@@ -1,0 +1,7 @@
+plugins {
+	// Sin esto, Gradle no sabe donde conseguir el JDK que pide build.gradle
+	// (Java 25) y solo compila quien ya lo tenga instalado.
+	id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'ucopetapi'
