@@ -35,3 +35,16 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### macOS ###
+.DS_Store
+
+### Logs ###
+*.log
+
+### Secretos — nunca versionar credenciales ###
+# La app necesita UCOPET_JWT_SECRET por variable de entorno.
+# El .env se queda en cada maquina, nunca en el repo.
+.env
+.env.*
+!.env.example
