@@ -12,9 +12,9 @@ public class PetCareDto {
     private UUID productDTO;
     private LocalDate attentionDate;
     private String description;
-    private boolean petCateStatus;
+    private boolean isPetCateStatus;
 
-    public PetCareDto (UUID id, UUID petsDto, UUID episodeDto, UUID procedureDto, UUID productDto, LocalDate attentionDate, String description, boolean petCareStatus){
+    public PetCareDto (final UUID id, final UUID petsDto, final UUID episodeDto, final UUID procedureDto, final UUID productDto, final LocalDate attentionDate, final String description, final boolean isPetCareStatus){
         this.id = id;
         this.petsDto = petsDto;
         this.episodeDTO = episodeDto;
@@ -22,7 +22,7 @@ public class PetCareDto {
         this.productDTO = productDto;
         this.attentionDate = attentionDate;
         this.description = description;
-        this.petCateStatus= petCareStatus;
+        this.isPetCateStatus= isPetCareStatus;
     }
 
     public UUID getId() {
@@ -49,23 +49,23 @@ public class PetCareDto {
         return attentionDate;
     }
 
-    public void setAttentionDate(LocalDate attentionDate) {
-        this.attentionDate = attentionDate;
-    }
-
     public String getDescription() {
         return description;
+    }
+
+    public boolean isPetCateStatus() {
+        return isPetCateStatus;
+    }
+
+    public void setAttentionDate(LocalDate attentionDate) {
+        this.attentionDate = attentionDate;
     }
 
     public void setDescription(String description) {
         this.description = description;
     }
 
-    public boolean isPetCateStatus() {
-        return petCateStatus;
-    }
-
-    public void setPetCateStatus(boolean petCateStatus) {
-        this.petCateStatus = petCateStatus;
+    public void setPetCateStatus(boolean isPetCateStatus) {
+        this.isPetCateStatus = isPetCateStatus;
     }
 }

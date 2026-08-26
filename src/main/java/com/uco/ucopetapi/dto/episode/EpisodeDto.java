@@ -8,20 +8,19 @@ public class EpisodeDto {
     private String description;
     private LocalDate startDate;
     private LocalDate endDate;
-    private boolean status;
+    private boolean isStatus;
 
-    public EpisodeDto (final UUID id,final String description,final LocalDate starDate,final LocalDate endDate, boolean status){
+    public EpisodeDto (final UUID id,final String description,final LocalDate startDate,final LocalDate endDate, boolean isStatus){
         this.id = id;
         this.description = description;
-        this.startDate = starDate;
+        this.startDate = startDate;
         this.endDate = endDate;
-        this.status=status;
+        this.isStatus=isStatus;
     }
 
-    public UUID getId() {
+    public final UUID getId() {
         return id;
     }
-
 
     public String getDescription() {
         return description;
@@ -48,10 +47,10 @@ public class EpisodeDto {
     }
 
     public boolean isStatus() {
-        return status;
+        return isStatus;
     }
 
-    public void setStatus(boolean status) {
-        this.status = status;
+    public void setStatus(boolean isStatus) {
+        this.isStatus = isStatus;
     }
 }
