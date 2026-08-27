@@ -18,7 +18,7 @@ public class EpisodeDto {
         this.isStatus=isStatus;
     }
 
-    public final UUID getId() {
+    public UUID getId() {
         return id;
     }
 
