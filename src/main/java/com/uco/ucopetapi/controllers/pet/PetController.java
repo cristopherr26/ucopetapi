@@ -1,4 +1,4 @@
-package com.uco.ucopetapi.controllers.pets;
+package com.uco.ucopetapi.controllers.pet;
 
 import com.uco.ucopetapi.dto.pets.PetDTO;
 import org.springframework.http.HttpStatus;
