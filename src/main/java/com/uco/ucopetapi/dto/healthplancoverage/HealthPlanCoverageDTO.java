@@ -7,7 +7,7 @@ public class HealthPlanCoverageDTO {
 
     private UUID id;
     private UUID healthPlanId;
-    private UUID serviceId;
+    private UUID procedureId;
     private Integer coveragePercentage;
     private BigDecimal coverageLimit;
 
@@ -17,13 +17,13 @@ public class HealthPlanCoverageDTO {
     public HealthPlanCoverageDTO(
             UUID id,
             UUID healthPlanId,
-            UUID serviceId,
+            UUID procedureId,
             Integer coveragePercentage,
             BigDecimal coverageLimit) {
 
         this.id = id;
         this.healthPlanId = healthPlanId;
-        this.serviceId = serviceId;
+        this.procedureId = procedureId;
         this.coveragePercentage = coveragePercentage;
         this.coverageLimit = coverageLimit;
     }
@@ -44,12 +44,12 @@ public class HealthPlanCoverageDTO {
         this.healthPlanId = healthPlanId;
     }
 
-    public UUID getServiceId() {
-        return serviceId;
+    public UUID getProcedureId() {
+        return procedureId;
     }
 
-    public void setServiceId(UUID serviceId) {
-        this.serviceId = serviceId;
+    public void setProcedureId(UUID procedureId) {
+        this.procedureId = procedureId;
     }
 
     public Integer getCoveragePercentage() {
