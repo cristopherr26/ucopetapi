@@ -16,26 +16,24 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("api/v1/doctors")
+@RequestMapping("api/v1/doctor")
 public class DoctorController {
 
     private DoctorDTO buildDummyDoctor(UUID id) {
         return new DoctorDTO(
                 id != null ? id : UUID.randomUUID(),
-                null,
-                "MED-2026-001",
-                "Calle 45 # 12-30, Monteria",
-                null
+                UUID.randomUUID(),
+                "MED-2026-001"
         );
     }
 
     @GetMapping
-    public ResponseEntity<List<DoctorDTO>> findAllDoctors() {
-        List<DoctorDTO> doctors = List.of(
+    public ResponseEntity<List<DoctorDTO>> findAllDoctor() {
+        List<DoctorDTO> doctor = List.of(
                 buildDummyDoctor(UUID.randomUUID())
         );
 
-        return ResponseEntity.ok(doctors);
+        return ResponseEntity.ok(doctor);
     }
 
     @GetMapping("/{id}")
@@ -44,7 +42,7 @@ public class DoctorController {
     }
 
     @GetMapping("/filter")
-    public ResponseEntity<List<DoctorDTO>> findDoctorsByFilter(@RequestParam(required = true) UUID id) {
+    public ResponseEntity<List<DoctorDTO>> findDoctorByFilter(@RequestParam(required = true) UUID id) {
         return ResponseEntity.ok(List.of(buildDummyDoctor(id)));
     }
 
@@ -60,7 +58,6 @@ public class DoctorController {
             @RequestBody DoctorDTO doctor) {
 
         DoctorDTO updatedDoctor = buildDummyDoctor(id);
-        updatedDoctor.setAddress(doctor.getAddress());
         return ResponseEntity.ok(updatedDoctor);
     }
 
