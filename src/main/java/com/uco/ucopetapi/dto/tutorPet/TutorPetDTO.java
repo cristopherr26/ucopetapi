@@ -16,18 +16,22 @@ public class TutorPetDTO {
     }
 
     public UUID getId() {
+
         return id;
     }
 
     public void setId(UUID id) {
+
         this.id = id;
     }
 
     public UUID getPerson() {
+
         return idPerson;
     }
 
     public void setPerson(UUID person) {
+
         this.idPerson = person;
     }
 }
