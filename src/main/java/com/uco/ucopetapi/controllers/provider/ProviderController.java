@@ -24,8 +24,8 @@ public class ProviderController {
                 "901234567-1",
                 "3006541122",
                 "Cra 45 #12-30, Medellín",
-                true,
-                "contacto@vetfarma.com"
+                "contacto@vetfarma.com",
+                true
         );
     }
 
