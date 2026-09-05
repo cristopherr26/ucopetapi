@@ -1,51 +1,58 @@
 package com.uco.ucopetapi.dto.petCare;
 
-import java.time.LocalDate;
+import com.uco.ucopetapi.dto.vitalSigns.VitalSignsDTO;
 
+
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class PetCareDto {
     private UUID id;
-    private UUID petsDto;
-    private UUID episodeDTO;
-    private UUID procedureDTO;
-    private UUID productDTO;
-    private LocalDate attentionDate;
+    private UUID episodeId;
+    private UUID procedureId;
+    private UUID productId;
+    private UUID doctorId;
+    private LocalDateTime attentionDate;
     private String description;
-    private boolean isPetCateStatus;
+    private PetCareStatus petCateStatus;
+    private VitalSignsDTO vitalSigns;
 
-    public PetCareDto (final UUID id, final UUID petsDto, final UUID episodeDto, final UUID procedureDto, final UUID productDto, final LocalDate attentionDate, final String description, final boolean isPetCareStatus){
+    public PetCareDto (final UUID id, final UUID episodeId, final UUID procedureId,
+                       final UUID productId, final UUID doctorId, final LocalDateTime attentionDate,
+                       final String description, final PetCareStatus petCateStatus, final VitalSignsDTO vitalSigns){
+
         this.id = id;
-        this.petsDto = petsDto;
-        this.episodeDTO = episodeDto;
-        this.procedureDTO = procedureDto;
-        this.productDTO = productDto;
+        this.episodeId = episodeId;
+        this.procedureId = procedureId;
+        this.productId = productId;
+        this.doctorId = doctorId;
         this.attentionDate = attentionDate;
         this.description = description;
-        this.isPetCateStatus= isPetCareStatus;
+        this.petCateStatus = petCateStatus;
+        this.vitalSigns = vitalSigns;
     }
 
     public UUID getId() {
         return id;
     }
 
-    public UUID getPetsDto() {
-        return petsDto;
+    public UUID getEpisodeId() {
+        return episodeId;
     }
 
-    public UUID getEpisodeDTO() {
-        return episodeDTO;
+    public UUID getProcedureId() {
+        return procedureId;
     }
 
-    public UUID getProcedureDTO() {
-        return procedureDTO;
+    public UUID getProductId() {
+        return productId;
     }
 
-    public UUID getProductDTO() {
-        return productDTO;
+    public UUID getDoctorId() {
+        return doctorId;
     }
 
-    public LocalDate getAttentionDate() {
+    public LocalDateTime getAttentionDate() {
         return attentionDate;
     }
 
@@ -53,11 +60,19 @@ public class PetCareDto {
         return description;
     }
 
-    public boolean isPetCateStatus() {
-        return isPetCateStatus;
+    public PetCareStatus petCateStatus() {
+        return petCateStatus;
     }
 
-    public void setAttentionDate(LocalDate attentionDate) {
+    public VitalSignsDTO getVitalSigns() {
+        return vitalSigns;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public void setAttentionDate(LocalDateTime attentionDate) {
         this.attentionDate = attentionDate;
     }
 
@@ -65,7 +80,11 @@ public class PetCareDto {
         this.description = description;
     }
 
-    public void setPetCateStatus(boolean isPetCateStatus) {
-        this.isPetCateStatus = isPetCateStatus;
+    public void setPetCateStatus(PetCareStatus petCateStatus) {
+        this.petCateStatus = petCateStatus;
+    }
+
+    public void setVitalSigns(VitalSignsDTO vitalSigns) {
+        this.vitalSigns = vitalSigns;
     }
 }
