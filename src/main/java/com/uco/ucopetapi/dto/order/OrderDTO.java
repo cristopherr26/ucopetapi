@@ -1,96 +1,79 @@
 package com.uco.ucopetapi.dto.order;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class OrderDTO {
 
     private UUID id;
-    private String idOrden;
+
+    @NotBlank(message = "El identificador de la orden no puede estar vacío")
+    @Size(min = 5, max = 20, message = "El idOrder debe tener entre 5 y 20 caracteres")
+    @Pattern(regexp = "^ORD-\\d{4}-\\d{3}$", message = "El idOrder debe tener el formato ORD-YYYY-XXX")
+    private String idOrder;
+
+    @NotBlank(message = "El nombre del tutor es obligatorio")
+    @Size(min = 3, max = 100, message = "El nombre del tutor debe tener entre 3 y 100 caracteres")
     private String tutor;
-    private String mascota;
-    private String procedimiento;
-    private String estado;
-    private LocalDateTime fecha;
-    private boolean isAuthorized;
 
+    @NotBlank(message = "El nombre de la mascota es obligatorio")
+    @Size(min = 2, max = 50, message = "El nombre de la mascota debe tener entre 2 y 50 caracteres")
+    private String pet;
 
-    public OrderDTO(){
+    @NotBlank(message = "El procedimiento es obligatorio")
+    @Size(max = 150, message = "El procedimiento no puede exceder 150 caracteres")
+    private String procedure;
+
+    @NotBlank(message = "El estado es obligatorio")
+    private String state;
+
+    private LocalDateTime date;
+
+    @NotNull(message = "El campo de autorización es obligatorio")
+    private Boolean isAuthorized;
+
+    public OrderDTO() {
     }
 
-    public OrderDTO(UUID id, String idOrden, String tutor, String mascota, String procedimiento, String estado,
-                    LocalDateTime fecha, boolean isAuthorized) {
+    @SuppressWarnings("java:S107")
+    public OrderDTO(UUID id, String idOrder, String tutor, String pet, String procedure, String state,
+                    LocalDateTime date, Boolean isAuthorized) {
         this.id = id;
-        this.idOrden = idOrden;
+        this.idOrder = idOrder;
         this.tutor = tutor;
-        this.mascota = mascota;
-        this.procedimiento = procedimiento;
-        this.estado = estado;
-        this.fecha = fecha;
+        this.pet = pet;
+        this.procedure = procedure;
+        this.state = state;
+        this.date = date;
         this.isAuthorized = isAuthorized;
     }
 
-    public UUID getId() {
-        return id;
-    }
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
+    public String getIdOrder() { return idOrder; }
+    public void setIdOrder(String idOrder) { this.idOrder = idOrder; }
 
-    public String getIdOrden() {
-        return idOrden;
-    }
+    public String getTutor() { return tutor; }
+    public void setTutor(String tutor) { this.tutor = tutor; }
 
-    public void setIdOrden(String idOrden) {
-        this.idOrden = idOrden;
-    }
+    public String getPet() { return pet; }
+    public void setPet(String pet) { this.pet = pet; }
 
-    public String getTutor() {
-        return tutor;
-    }
+    public String getProcedure() { return procedure; }
+    public void setProcedure(String procedure) { this.procedure = procedure; }
 
-    public void setTutor(String tutor) {
-        this.tutor = tutor;
-    }
+    public String getState() { return state; }
+    public void setState(String state) { this.state = state; }
 
-    public String getMascota() {
-        return mascota;
-    }
+    public LocalDateTime getDate() { return date; }
+    public void setDate(LocalDateTime date) { this.date = date; }
 
-    public void setMascota(String mascota) {
-        this.mascota = mascota;
-    }
-
-    public String getProcedimiento() {
-        return procedimiento;
-    }
-
-    public void setProcedimiento(String procedimiento) {
-        this.procedimiento = procedimiento;
-    }
-
-    public String getEstado() {
-        return estado;
-    }
-
-    public void setEstado(String estado) {
-        this.estado = estado;
-    }
-
-    public LocalDateTime getFecha() {
-        return fecha;
-    }
-
-    public void setFecha(LocalDateTime fecha) {
-        this.fecha = fecha;
-    }
-
-    public boolean isAuthorized() {
-        return isAuthorized;
-    }
-
-    public void setAuthorized(boolean authorized) {
-        isAuthorized = authorized;
-    }
+    public Boolean getAuthorized() { return isAuthorized; }
+    public void setAuthorized(Boolean authorized) { isAuthorized = authorized; }
 }
