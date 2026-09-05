@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 @RestController
@@ -56,7 +55,6 @@ public class HeadquarterController {
 
     @PostMapping
     public ResponseEntity<HeadquarterDTO> createNewHeadquarter(@RequestBody HeadquarterDTO headquarterDTO) {
-        // Asignamos un ID simulado al objeto que entra por el body
         headquarterDTO.setId(UUID.randomUUID());
         if (headquarterDTO.getIsActive() == null) {
             headquarterDTO.setIsActive(true);
@@ -80,7 +78,7 @@ public class HeadquarterController {
         deactivated.setId(id);
         deactivated.setName("Sede Inactivada de Prueba");
         deactivated.setAddress("Calle Ficticia 123");
-        deactivated.setIsActive(false); // Refleja el estado inactivo
+        deactivated.setIsActive(false);
 
         return ResponseEntity.ok(deactivated);
     }
