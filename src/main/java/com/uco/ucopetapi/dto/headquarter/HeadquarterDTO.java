@@ -1,11 +1,21 @@
 package com.uco.ucopetapi.dto.headquarter;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 import java.util.UUID;
 
 public class HeadquarterDTO {
     private UUID id;
+
+    @NotBlank(message = "El nombre de la sede es obligatorio")
+    @Size(min = 3, max = 50, message = "El nombre debe tener entre 3 y 50 caracteres")
     private String name;
+
+    @NotBlank(message = "La dirección de la sede es obligatoria")
+    @Size(min = 3, max = 100, message = "La dirección debe tener entre 3 y 100 caracteres")
     private String address;
+
     private Boolean isActive;
 
     public HeadquarterDTO() {}
