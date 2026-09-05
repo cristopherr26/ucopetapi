@@ -1,4 +1,4 @@
 package com.uco.ucopetapi.repository.specialtie;
 
-public interface TutorPetRepository {
+public interface ITutorPetRepository {
 }
