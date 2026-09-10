@@ -1,0 +1,69 @@
+package com.uco.ucopetapi.service.egress;
+
+import com.uco.ucopetapi.domain.egress.EgressDomain;
+import com.uco.ucopetapi.repository.egress.EgressRepository;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+public class EgressService {
+
+    private final EgressRepository egressRepository;
+
+    public EgressService(EgressRepository egressRepository) {
+        this.egressRepository = egressRepository;
+    }
+
+    public List<EgressDomain> obtenerTodos() {
+        return egressRepository.findAll();
+    }
+
+    public EgressDomain obtenerPorId(UUID id) {
+        return egressRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Egreso no encontrado con id: " + id));
+    }
+
+    public EgressDomain guardar(EgressDomain egress) {
+        return egressRepository.save(egress);
+    }
+
+    public EgressDomain actualizar(UUID id, EgressDomain egressActualizado) {
+        EgressDomain egressExistente = obtenerPorId(id);
+
+        egressExistente.setDate(egressActualizado.getDate());
+        //egressExistente.setProvider(egressActualizado.getProvider());
+        egressExistente.setPayMethod(egressActualizado.getPayMethod());
+        egressExistente.setProduct(egressActualizado.getProduct());
+        egressExistente.setQuantity(egressActualizado.getQuantity());
+        egressExistente.setPrice(egressActualizado.getPrice());
+        egressExistente.setTotalPrice(egressActualizado.getTotalPrice());
+
+        return egressRepository.save(egressExistente);
+    }
+
+    public void eliminar(UUID id) {
+        if (!egressRepository.existsById(id)) {
+            throw new RuntimeException("Egreso no encontrado con id: " + id);
+        }
+        egressRepository.deleteById(id);
+    }
+
+    public List<EgressDomain> buscarPorProducto(String product) {
+        return egressRepository.findByProduct(product);
+    }
+
+    public List<EgressDomain> buscarPorRangoDeFechas(LocalDate startDate, LocalDate endDate) {
+        return egressRepository.findByDateBetween(startDate, endDate);
+    }
+
+    public List<EgressDomain> buscarPorProvider(UUID providerId) {
+        return egressRepository.findByProvider_Id(providerId);
+    }
+
+    public List<EgressDomain> buscarPorPayMethod(UUID payMethodId) {
+        return egressRepository.findByPayMethod_Id(payMethodId);
+    }
+}
