@@ -1,11 +1,12 @@
 package com.uco.ucopetapi.controllers.pet;
 
 import com.uco.ucopetapi.dto.pets.PetDTO;
+import com.uco.ucopetapi.service.pet.PetService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -13,43 +14,22 @@ import java.util.UUID;
 @RequestMapping("/api/v1/pets")
 public class PetController {
 
+    @Autowired
+    private PetService petService;
+
     @GetMapping
-    public ResponseEntity<List<PetDTO>> getAllPets() {
-        List<PetDTO> pets = List.of(
-                new PetDTO(
-                        UUID.fromString("a1e6f0d2-8d1e-4f3b-9a2c-1b2c3d4e5f6a"),
-                        "Toby", LocalDate.of(2021, 3, 10), "Labrador", "Perro", "Macho",
-                        "https://blob.ucopet.com/pets/toby.jpg",
-                        UUID.fromString("3f2a1c9e-9e2f-5a4c-8b3d-2c3d4e5f6a7b"),
-                        UUID.fromString("9b7d4e21-1a2b-4c3d-8e9f-6a7b8c9d0e1f"),
-                        true
-                ),
-                new PetDTO(
-                        UUID.fromString("b2f7e1d3-9e2f-5a4c-8b3d-2c3d4e5f6a7b"),
-                        "Mila", LocalDate.of(2022, 7, 1), "Poodle", "Perro", "Hembra",
-                        "https://blob.ucopet.com/pets/mila.jpg",
-                        UUID.fromString("4a3b2c1d-8d1e-4f3b-9a2c-1b2c3d4e5f6a"),
-                        UUID.fromString("8c6e3d10-9a2c-1b2c-3d4e-5f6a7b8c9d0e"),
-                        true
-                )
-        );
-        return ResponseEntity.ok(pets);
+    public ResponseEntity<List<PetDTO>> getAllPets(
+            @RequestParam UUID headquarterId,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String breed,
+            @RequestParam(required = false) String species,
+            @RequestParam(required = false) Boolean isActive) {
+        return ResponseEntity.ok(petService.getAllPets(headquarterId, name, breed, species, isActive));
     }
 
     @PostMapping
     public ResponseEntity<PetDTO> createPet(@RequestBody PetDTO request) {
-        PetDTO response = new PetDTO(
-                UUID.randomUUID(),
-                request.getName(),
-                request.getBirthDate(),
-                request.getBreed(),
-                request.getSpecies(),
-                request.getGender(),
-                request.getPhotoUrl(),
-                request.getTutorId(),
-                request.getPolicyId(),
-                true
-        );
+        PetDTO response = petService.createPet(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -57,42 +37,18 @@ public class PetController {
     public ResponseEntity<PetDTO> updatePet(
             @PathVariable UUID id,
             @RequestBody PetDTO request) {
-
-        PetDTO response = new PetDTO(
-                id,
-                request.getName(),
-                request.getBirthDate(),
-                request.getBreed(),
-                request.getSpecies(),
-                request.getGender(),
-                request.getPhotoUrl(),
-                request.getTutorId(),
-                request.getPolicyId(),
-                true
-        );
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(petService.updatePet(id, request));
     }
 
     @GetMapping("/tutor/{tutorId}")
-    public ResponseEntity<List<PetDTO>> getPetsByTutor(@PathVariable UUID tutorId) {
-        List<PetDTO> pets = List.of(
-                new PetDTO(
-                        UUID.fromString("a1e6f0d2-8d1e-4f3b-9a2c-1b2c3d4e5f6a"),
-                        "Toby", LocalDate.of(2021, 3, 10), "Labrador", "Perro", "Macho",
-                        "https://blob.ucopet.com/pets/toby.jpg",
-                        tutorId,
-                        UUID.fromString("9b7d4e21-1a2b-4c3d-8e9f-6a7b8c9d0e1f"),
-                        true
-                )
-        );
-        return ResponseEntity.ok(pets);
+    public ResponseEntity<List<PetDTO>> getPetsByTutor(
+            @PathVariable UUID tutorId,
+            @RequestParam UUID headquarterId) {
+        return ResponseEntity.ok(petService.getPetsByTutor(tutorId, headquarterId));
     }
 
     @PatchMapping("/{id}/deactivate")
     public ResponseEntity<PetDTO> deactivatePet(@PathVariable UUID id) {
-        PetDTO response = new PetDTO();
-        response.setId(id);
-        response.setActive(false);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(petService.deactivatePet(id));
     }
 }
