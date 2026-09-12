@@ -1,6 +1,7 @@
 package com.uco.ucopetapi.controllers.tutorPet;
 
 import com.uco.ucopetapi.dto.tutorPet.TutorPetDTO;
+import com.uco.ucopetapi.service.tutorPet.TutorPetService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,35 +20,30 @@ import java.util.UUID;
 @RequestMapping("api/v1/tutorPet")
 public class TutorPetController {
 
-    private TutorPetDTO buildDummyTutorPet(UUID id) {
-        return new TutorPetDTO(
-                id != null ? id : UUID.randomUUID(),
-                UUID.randomUUID()
-        );
+    private final TutorPetService tutorPetService;
+
+    public TutorPetController(TutorPetService tutorPetService) {
+        this.tutorPetService = tutorPetService;
     }
 
     @GetMapping
     public ResponseEntity<List<TutorPetDTO>> findAllTutorPet() {
-        List<TutorPetDTO> tutorPet = List.of(
-                buildDummyTutorPet(UUID.randomUUID())
-        );
-
-        return ResponseEntity.ok(tutorPet);
+        return ResponseEntity.ok(tutorPetService.findAll());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<TutorPetDTO> findTutorPetById(@PathVariable UUID id) {
-        return ResponseEntity.ok(buildDummyTutorPet(id));
+        return ResponseEntity.ok(tutorPetService.findById(id));
     }
 
     @GetMapping("/filter")
     public ResponseEntity<List<TutorPetDTO>> findTutorPetByFilter(@RequestParam(required = true) UUID id) {
-        return ResponseEntity.ok(List.of(buildDummyTutorPet(id)));
+        return ResponseEntity.ok(tutorPetService.findByPersonId(id));
     }
 
     @PostMapping
     public ResponseEntity<TutorPetDTO> createNewTutorPet(@RequestBody TutorPetDTO tutorPet) {
-        TutorPetDTO createdTutorPet = buildDummyTutorPet(tutorPet.getId());
+        TutorPetDTO createdTutorPet = tutorPetService.create(tutorPet);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdTutorPet);
     }
 
@@ -56,12 +52,13 @@ public class TutorPetController {
             @RequestParam(required = true) UUID id,
             @RequestBody TutorPetDTO tutorPet) {
 
-        TutorPetDTO updatedTutorPet = buildDummyTutorPet(id);
+        TutorPetDTO updatedTutorPet = tutorPetService.update(id, tutorPet);
         return ResponseEntity.ok(updatedTutorPet);
     }
 
     @PutMapping("/deactivate")
     public ResponseEntity<Void> deactivateTutorPet(@RequestParam(required = true) UUID id) {
+        tutorPetService.deactivate(id);
         return ResponseEntity.noContent().build();
     }
 
