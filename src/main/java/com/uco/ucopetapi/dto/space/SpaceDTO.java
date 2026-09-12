@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public class SpaceDTO {
     private UUID id;
+    private String code;
     private String type;
     private String description;
     private Boolean active;
@@ -11,11 +12,12 @@ public class SpaceDTO {
     public SpaceDTO() {
     }
 
-    public SpaceDTO(UUID id, String type, String description, Boolean active) {
-        this.id = id;
-        this.type = type;
-        this.description = description;
-        this.active = active;
+    public SpaceDTO(UUID id, String code, String type, String description, Boolean active) {
+        setId(id);
+        setCode(code);
+        setType(type);
+        setDescription(description);
+        setActive(active);
     }
 
     public UUID getId() {
@@ -24,6 +26,14 @@ public class SpaceDTO {
 
     public void setId(UUID id) {
         this.id = id;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
     }
 
     public String getType() {
