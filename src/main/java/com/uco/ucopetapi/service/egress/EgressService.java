@@ -33,6 +33,10 @@ public class EgressService {
     public EgressDomain actualizar(UUID id, EgressDomain egressActualizado) {
         EgressDomain egressExistente = obtenerPorId(id);
 
+        if (egressActualizado.getTotal() != null && egressActualizado.getTotal() < 0) {
+            throw new IllegalArgumentException("El total no puede ser negativo");
+        }
+
         egressExistente.setDate(egressActualizado.getDate());
         egressExistente.setProvider(egressActualizado.getProvider());
         egressExistente.setPayMethod(egressActualizado.getPayMethod());
@@ -50,8 +54,8 @@ public class EgressService {
         egressRepository.deleteById(id);
     }
 
-    public List<EgressDomain> buscarPorProducto(String product) {
-        return egressRepository.findByProduct(product);
+    public List<EgressDomain> buscarPorConcepto(String concept) {
+        return egressRepository.findByConcept(concept);
     }
 
     public List<EgressDomain> buscarPorRangoDeFechas(LocalDate startDate, LocalDate endDate) {
@@ -59,10 +63,10 @@ public class EgressService {
     }
 
     public List<EgressDomain> buscarPorProvider(UUID providerId) {
-        return egressRepository.findByProvider_Id(providerId);
+        return egressRepository.findByProvider(providerId);
     }
 
     public List<EgressDomain> buscarPorPayMethod(UUID payMethodId) {
-        return egressRepository.findByPayMethod_Id(payMethodId);
+        return egressRepository.findByPayMethod(payMethodId);
     }
 }

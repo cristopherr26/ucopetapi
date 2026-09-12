@@ -11,12 +11,13 @@ import java.util.UUID;
 @Repository
 public interface EgressRepository extends JpaRepository<EgressDomain, UUID> {
 
-    List<EgressDomain> findByProduct(String product);
+    List<EgressDomain> findByConcept(String concept);
 
     List<EgressDomain> findByDateBetween(LocalDate startDate, LocalDate endDate);
 
-    List<EgressDomain> findByProvider_Id(UUID providerId);
+    List<EgressDomain> findByProvider(UUID providerId);
 
-    List<EgressDomain> findByPayMethod_Id(UUID payMethodId);
+    List<EgressDomain> findByPayMethod(UUID payMethodId);
 
+    List<EgressDomain> findByPurchaseOrder(UUID purchaseOrderId);
 }

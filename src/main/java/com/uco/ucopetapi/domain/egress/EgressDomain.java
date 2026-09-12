@@ -1,7 +1,5 @@
 package com.uco.ucopetapi.domain.egress;
 
-import com.uco.ucopetapi.domain.payMethod.PayMethodDomain;
-import com.uco.ucopetapi.domain.provider.ProviderDomain;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;

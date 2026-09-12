@@ -21,7 +21,6 @@ public class EgressControler {
         this.egressService = egressService;
     }
 
-
     @GetMapping("/Egresses")
     public ResponseEntity<List<EgressDomain>> getAllEgresses() {
         return ResponseEntity.ok(egressService.obtenerTodos());
@@ -38,9 +37,9 @@ public class EgressControler {
         EgressDomain nuevoEgress = new EgressDomain(
                 null,
                 LocalDate.parse((String) request.get("date")),
-                (UUID) request.get("provider"),
-                (UUID)request.get("payMethod"),
-                (UUID) request.get("purchaseOrder"),
+                UUID.fromString((String) request.get("provider")),
+                UUID.fromString((String) request.get("payMethod")),
+                UUID.fromString((String) request.get("purchaseOrder")),
                 (String) request.get("concept"),
                 Float.valueOf(request.get("total").toString())
         );
@@ -49,7 +48,7 @@ public class EgressControler {
         return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/Egresses/{id}")
     public ResponseEntity<EgressDomain> updateEgress(
             @PathVariable UUID id,
             @RequestBody Map<String, Object> request) {
@@ -57,9 +56,9 @@ public class EgressControler {
         EgressDomain egressActualizado = new EgressDomain(
                 id,
                 LocalDate.parse((String) request.get("date")),
-                (UUID) request.get("provider"),
-                (UUID)request.get("payMethod"),
-                (UUID) request.get("purchaseOrder"),
+                UUID.fromString((String) request.get("provider")),
+                UUID.fromString((String) request.get("payMethod")),
+                UUID.fromString((String) request.get("purchaseOrder")),
                 (String) request.get("concept"),
                 Float.valueOf(request.get("total").toString())
         );
@@ -68,7 +67,7 @@ public class EgressControler {
         return ResponseEntity.ok(resultado);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/Egresses/{id}")
     public ResponseEntity<Void> deleteEgress(@PathVariable UUID id) {
         egressService.eliminar(id);
         return ResponseEntity.noContent().build();
