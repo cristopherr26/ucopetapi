@@ -1,12 +1,16 @@
 package com.uco.ucopetapi.controllers.person;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,58 +18,99 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.uco.ucopetapi.dto.person.ChangePasswordRequestDTO;
+import com.uco.ucopetapi.dto.person.DocumentType;
+import com.uco.ucopetapi.dto.person.DocumentTypeDTO;
+import com.uco.ucopetapi.dto.person.LoginRequestDTO;
+import com.uco.ucopetapi.dto.person.LoginResponseDTO;
 import com.uco.ucopetapi.dto.person.PersonDTO;
+import com.uco.ucopetapi.dto.person.SetPasswordRequestDTO;
+import com.uco.ucopetapi.service.person.PersonService;
 
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/v1/rest")
+@RequestMapping("/api/v1/persons")
 public class PersonController {
+    private final PersonService personService;
 
-    private static final UUID EJEMPLO = UUID.fromString("3f2a8c1e-4b5d-4e2a-9c11-77f1a0c4b9de");
-
-    @GetMapping("/person")
-    public PersonDTO get(@RequestParam(required = true) String documentType,
-                         @RequestParam(required = true) String documentNumber) {
-        return new PersonDTO(EJEMPLO, documentType, documentNumber,
-                "Ana Maria", "Rios", "ana.rios@correo.com", "3000000000", true);
+    public PersonController(PersonService personService) {
+        this.personService = personService;
     }
 
-    @GetMapping("/person/email")
-    public PersonDTO getByEmail(@RequestParam(required = true) String email) {
-        return new PersonDTO(EJEMPLO, "CC", "1036442118",
-                "Ana Maria", "Rios", email, "3000000000", true);
-    }
-
-    @GetMapping("/persons")
+    @GetMapping
     public List<PersonDTO> findAll() {
-        return List.of(
-                new PersonDTO(EJEMPLO, "CC", "1036442118",
-                        "Ana Maria", "Rios", "ana.rios@correo.com", "3000000000", true),
-                new PersonDTO(UUID.randomUUID(), "CC", "71884203",
-                        "Carlos", "Pena Duque", "carlos.pena@correo.com", "3015557788", true));
+        return personService.findAll();
     }
 
-    @PostMapping("/person")
+    @GetMapping("/document-types")
+    public List<DocumentTypeDTO> documentTypes() {
+        return Arrays.stream(DocumentType.values()).map(DocumentTypeDTO::de).toList();
+    }
+
+    @GetMapping(params = {"documentType", "documentNumber"})
+    public PersonDTO findByDocument(@RequestParam DocumentType documentType,
+                                    @RequestParam String documentNumber) {
+        return personService.findByDocument(documentType, documentNumber);
+    }
+
+    @GetMapping(params = "email")
+    public PersonDTO findByEmail(@RequestParam String email) {
+        return personService.findByEmail(email);
+    }
+
+    @GetMapping("/me")
+    public PersonDTO me(Authentication authentication) {
+        return personService.findById(UUID.fromString(authentication.getName()));
+    }
+
+    @GetMapping("/{personId}")
+    public PersonDTO findById(@PathVariable UUID personId) {
+        return personService.findById(personId);
+    }
+
+    @PostMapping
     public ResponseEntity<PersonDTO> create(@Valid @RequestBody PersonDTO person) {
-        // El id lo asigna el servidor, nunca el cliente.
-        PersonDTO creada = new PersonDTO(UUID.randomUUID(), person.documentType(),
-                person.documentNumber(), person.firstName(), person.lastName(),
-                person.email(), person.phone(), true);
-        return new ResponseEntity<>(creada, HttpStatus.CREATED);
+        return new ResponseEntity<>(personService.create(person), HttpStatus.CREATED);
     }
 
-    @PutMapping("/person")
-    public ResponseEntity<PersonDTO> update(@RequestParam(required = true) UUID personId,
+    @PreAuthorize("hasRole('ADMIN') or #personId.toString() == authentication.name")
+    @PutMapping("/{personId}")
+    public ResponseEntity<PersonDTO> update(@PathVariable UUID personId,
                                             @Valid @RequestBody PersonDTO person) {
-        PersonDTO actualizada = new PersonDTO(personId, person.documentType(),
-                person.documentNumber(), person.firstName(), person.lastName(),
-                person.email(), person.phone(), person.active());
-        return new ResponseEntity<>(actualizada, HttpStatus.OK);
+        return new ResponseEntity<>(personService.update(personId, person), HttpStatus.OK);
     }
 
-    @DeleteMapping("/person")
-    public ResponseEntity<Void> delete(@RequestParam(required = true) UUID personId) {
+    @DeleteMapping("/{personId}")
+    public ResponseEntity<Void> delete(@PathVariable UUID personId) {
+        personService.delete(personId);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PutMapping("/me/password")
+    public ResponseEntity<Void> changeOwnPassword(
+            Authentication authentication,
+            @Valid @RequestBody ChangePasswordRequestDTO request) {
+        personService.changeOwnPassword(UUID.fromString(authentication.getName()), request);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{personId}/password")
+    public ResponseEntity<Void> setPassword(@PathVariable UUID personId,
+                                            @Valid @RequestBody SetPasswordRequestDTO request) {
+        personService.setPassword(personId, request);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(Authentication authentication) {
+        personService.logout(UUID.fromString(authentication.getName()));
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PostMapping("/login")
+    public LoginResponseDTO login(@Valid @RequestBody LoginRequestDTO request) {
+        return personService.login(request);
     }
 }

@@ -7,7 +7,7 @@ public class ProviderDTO {
     private UUID id;
     private String providerName;
     private String representName;
-    private String idType;
+    private UUID idType;
     private String documentNumber;
     private String mobileNumber;
     private String address;
@@ -15,7 +15,7 @@ public class ProviderDTO {
     private boolean isActive;
 
     public ProviderDTO(final UUID id, final String providerName, final String representName,
-                       final String idType, final String documentNumber, final String mobileNumber,
+                       final UUID idType, final String documentNumber, final String mobileNumber,
                        final String address, final String email, final boolean isActive) {
         this.id = id;
         this.providerName = providerName;
@@ -40,7 +40,7 @@ public class ProviderDTO {
         return representName;
     }
 
-    public String getIdType() {
+    public UUID getIdType() {
         return idType;
     }
 
