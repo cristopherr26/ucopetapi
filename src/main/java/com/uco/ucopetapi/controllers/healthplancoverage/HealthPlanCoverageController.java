@@ -23,7 +23,7 @@ public class HealthPlanCoverageController {
                                 "305bd9b5-9db9-47df-bd1e-b3fb8271420b"
                         ),
                         "healthPlanId", healthPlanId,
-                        "serviceId", UUID.fromString(
+                        "procedureId", UUID.fromString(
                                 "405bd9b5-9db9-47df-bd1e-b3fb8271420b"
                         ),
                         "coveragePercentage", 80,
@@ -34,7 +34,7 @@ public class HealthPlanCoverageController {
                                 "505bd9b5-9db9-47df-bd1e-b3fb8271420b"
                         ),
                         "healthPlanId", healthPlanId,
-                        "serviceId", UUID.fromString(
+                        "procedureId", UUID.fromString(
                                 "605bd9b5-9db9-47df-bd1e-b3fb8271420b"
                         ),
                         "coveragePercentage", 90,
@@ -54,7 +54,7 @@ public class HealthPlanCoverageController {
         Map<String, Object> coverage = Map.of(
                 "id", coverageId,
                 "healthPlanId", healthPlanId,
-                "serviceId", UUID.fromString(
+                "procedureId", UUID.fromString(
                         "405bd9b5-9db9-47df-bd1e-b3fb8271420b"
                 ),
                 "coveragePercentage", 80,
@@ -73,8 +73,8 @@ public class HealthPlanCoverageController {
         Map<String, Object> response = Map.of(
                 "id", UUID.randomUUID(),
                 "healthPlanId", healthPlanId,
-                "serviceId", request.getOrDefault(
-                        "serviceId",
+                "procedureId", request.getOrDefault(
+                        "procedureId",
                         UUID.randomUUID()
                 ),
                 "coveragePercentage", request.getOrDefault(
@@ -102,7 +102,7 @@ public class HealthPlanCoverageController {
         Map<String, Object> response = Map.of(
                 "id", coverageId,
                 "healthPlanId", healthPlanId,
-                "serviceId", request.getOrDefault(
+                "procedureId", request.getOrDefault(
                         "serviceId",
                         UUID.randomUUID()
                 ),
@@ -129,7 +129,7 @@ public class HealthPlanCoverageController {
         Map<String, Object> response = Map.of(
                 "id", coverageId,
                 "healthPlanId", healthPlanId,
-                "serviceId", request.getOrDefault(
+                "procedureId", request.getOrDefault(
                         "serviceId",
                         UUID.randomUUID()
                 ),

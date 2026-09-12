@@ -1,82 +1,73 @@
 package com.uco.ucopetapi.controllers.order;
 
+import com.uco.ucopetapi.domain.order.OrderDomain;
+import com.uco.ucopetapi.domain.order.mapper.OrderMapper;
 import com.uco.ucopetapi.dto.order.OrderDTO;
+import com.uco.ucopetapi.service.order.OrderService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("api/v1/orders")
+@RequestMapping("/api/v1/orders")
 public class OrderController {
 
-    private OrderDTO buildDummyOrder(UUID id) {
-        return new OrderDTO(
-                id != null ? id : UUID.randomUUID(),
-                "ORD-2026-001",
-                "Juan Pablo Alzate",
-                "Firulais",
-                "Consulta General + Vacuna",
-                "PENDIENTE",
-                LocalDateTime.now(),
-                false
-        );
+    private final OrderService orderService;
+    private final OrderMapper orderMapper;
+
+    public OrderController(OrderService orderService, OrderMapper orderMapper) {
+        this.orderService = orderService;
+        this.orderMapper = orderMapper;
     }
 
     @GetMapping
     public ResponseEntity<List<OrderDTO>> findAllOrders() {
-        List<OrderDTO> orders = List.of(
-                buildDummyOrder(UUID.randomUUID())
-        );
-
+        List<OrderDTO> orders = orderService.findAll()
+                .stream()
+                .map(orderMapper::toDTO)
+                .toList();
         return ResponseEntity.ok(orders);
     }
 
-    @GetMapping("/filter")
-    public ResponseEntity<List<OrderDTO>> findOrdersByFilter(@RequestParam(required = true) UUID id) {
-        return ResponseEntity.ok(List.of(buildDummyOrder(id)));
+    @GetMapping("/{id}")
+    public ResponseEntity<OrderDTO> findOrderById(@PathVariable UUID id) {
+        return orderService.findById(id)
+                .map(orderMapper::toDTO)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<OrderDTO> createNewOrder(@RequestBody OrderDTO order) {
-        OrderDTO createdOrder = buildDummyOrder(order.getId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdOrder);
+    public ResponseEntity<OrderDTO> createNewOrder(@Valid @RequestBody OrderDTO orderDto) {
+        OrderDomain savedDomain = orderService.save(orderMapper.toDomain(orderDto));
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderMapper.toDTO(savedDomain));
     }
 
-    @PutMapping
+    @PutMapping("/{id}")
     public ResponseEntity<OrderDTO> updateOrder(
-            @RequestParam(required = true) UUID id,
-            @RequestBody OrderDTO order) {
+            @PathVariable UUID id,
+            @Valid @RequestBody OrderDTO orderDto) {
 
-        OrderDTO updatedOrder = buildDummyOrder(id);
-        updatedOrder.setEstado("ACTUALIZADO");
-        return ResponseEntity.ok(updatedOrder);
+        OrderDomain updatedDomain = orderService.update(id, orderMapper.toDomain(orderDto));
+        return ResponseEntity.ok(orderMapper.toDTO(updatedDomain));
     }
 
-    @PutMapping("/authorize")
+    @PatchMapping("/{id}/authorize")
     public ResponseEntity<OrderDTO> authorizeOrder(
-            @RequestParam(required = true) UUID id,
-            @RequestParam(required = true) boolean isAuthorized) {
+            @PathVariable UUID id,
+            @RequestParam Boolean isAuthorized) {
 
-        OrderDTO authorizedOrder = buildDummyOrder(id);
-        authorizedOrder.setAuthorized(isAuthorized);
-        authorizedOrder.setEstado(isAuthorized ? "AUTORIZADO" : "RECHAZADO");
-        return ResponseEntity.ok(authorizedOrder);
+        OrderDomain authorizedDomain = orderService.authorize(id, isAuthorized);
+        return ResponseEntity.ok(orderMapper.toDTO(authorizedDomain));
     }
 
-    @DeleteMapping
-    public ResponseEntity<Void> deleteOrder(@RequestParam(required = true) UUID id) {
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteOrder(@PathVariable UUID id) {
+        orderService.delete(id);
         return ResponseEntity.noContent().build();
     }
-
 }

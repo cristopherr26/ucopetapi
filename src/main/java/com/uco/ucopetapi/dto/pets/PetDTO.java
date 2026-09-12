@@ -13,6 +13,7 @@ public class PetDTO {
     private String photoUrl;
     private UUID tutorId;
     private UUID policyId;
+    private UUID headquarterId;
     private boolean isActive;
 
     public PetDTO() {
@@ -20,7 +21,7 @@ public class PetDTO {
 
     public PetDTO(final UUID id, final String name, final LocalDate birthDate, final String breed,
                   final String species, final String gender, final String photoUrl,
-                  final UUID tutorId, final UUID policyId, final boolean isActive) {
+                  final UUID tutorId, final UUID policyId, final UUID headquarterId, final boolean isActive) {
         setId(id);
         setName(name);
         setBirthDate(birthDate);
@@ -30,6 +31,7 @@ public class PetDTO {
         setPhotoUrl(photoUrl);
         setTutorId(tutorId);
         setPolicyId(policyId);
+        setHeadquarterId(headquarterId);
         setActive(isActive);
     }
 
@@ -103,6 +105,13 @@ public class PetDTO {
 
     public void setPolicyId(final UUID policyId) {
         this.policyId = policyId;
+    }
+    public UUID getHeadquarterId() {
+        return headquarterId;
+    }
+
+    public void setHeadquarterId(final UUID headquarterId) {
+        this.headquarterId = headquarterId;
     }
 
     public boolean isActive() {
