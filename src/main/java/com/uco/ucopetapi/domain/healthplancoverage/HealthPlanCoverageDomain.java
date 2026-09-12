@@ -20,7 +20,6 @@ public class HealthPlanCoverageDomain {
     @JoinColumn(name = "health_plan_id",  nullable = false)
     private HealthPlanDomain healthPlan;
 
-    //TO DOOOO: Cambiar para obtener el id de procedureDomain
     @Column(name = "procedure_id", nullable = false)
     private UUID procedureId;
 
@@ -36,7 +35,6 @@ public class HealthPlanCoverageDomain {
     public HealthPlanCoverageDomain(
             UUID id,
             HealthPlanDomain healthPlan,
-            //TO DO
             UUID procedureId,
             Integer coveragePercentage,
             BigDecimal coverageLimit) {
@@ -44,7 +42,6 @@ public class HealthPlanCoverageDomain {
 
         this.id = id;
         this.healthPlan = healthPlan;
-        //TO DO
         this.procedureId = procedureId;
         this.coveragePercentage = coveragePercentage;
         this.coverageLimit = coverageLimit;
@@ -66,12 +63,10 @@ public class HealthPlanCoverageDomain {
         this.healthPlan = healthPlan;
     }
 
-    //TO DO
     public UUID getProcedureId() {
         return procedureId;
     }
 
-    //TO DO
     public void setProcedureId(UUID serviceId) {
         this.procedureId = serviceId;
     }
