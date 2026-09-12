@@ -4,7 +4,7 @@ import com.uco.ucopetapi.domain.purchases.PurchaseStatus;
 import com.uco.ucopetapi.dto.purchases.LinkExpenseRequestDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseRequestDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseResponseDTO;
-import com.uco.ucopetapi.services.purchases.PurchaseService;
+import com.uco.ucopetapi.service.purchases.PurchaseService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

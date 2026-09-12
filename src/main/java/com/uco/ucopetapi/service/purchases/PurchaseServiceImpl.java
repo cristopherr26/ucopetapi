@@ -1,4 +1,4 @@
-package com.uco.ucopetapi.services.purchases;
+package com.uco.ucopetapi.service.purchases;
 
 import com.uco.ucopetapi.domain.purchases.Purchase;
 import com.uco.ucopetapi.domain.purchases.PurchaseItem;
