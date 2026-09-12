@@ -1,6 +1,8 @@
 package com.uco.ucopetapi.controllers.sale;
 
-import com.uco.ucopetapi.dto.sale.SaleDTO;
+import com.uco.ucopetapi.domain.sale.enums.PaymentMethod;
+import com.uco.ucopetapi.domain.sale.enums.SaleOrderState;
+import com.uco.ucopetapi.dto.sale.SaleOrderDTO;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,9 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class SaleController {
 
     @GetMapping("/{id}")
-    public SaleDTO findSaleById(@PathVariable String id){return new SaleDTO(id, "Product Name", 1, 100.0);}
+    public SaleOrderDTO findSaleById(@PathVariable String id){return new SaleOrderDTO("OV-001", java.time.LocalDateTime.now(), 100, 10, 10, 100, PaymentMethod.TARJETA, "Comment", SaleOrderState.BORRADOR);}
 
     @PostMapping
-    public SaleDTO registerSale(@RequestBody SaleDTO saleDTO){return saleDTO;}
+    public SaleOrderDTO registerSale(@RequestBody SaleOrderDTO saleOrderDTO){return saleOrderDTO;}
 
 }
