@@ -9,23 +9,21 @@ public class EgressDTO {
     private LocalDate date;
     private UUID provider;
     private UUID payMethod;
-    private String product;
-    private Integer quantity;
-    private Float price;
-    private Float totalPrice;
+    private UUID purchaseOrder;
+    private String concept;
+    private Float total;
 
     public EgressDTO (){
     }
-    public EgressDTO(UUID id, LocalDate date, UUID provider, UUID payMethod, String product,
-                        Integer quantity, Float price, Float totalPrice){
+    public EgressDTO(UUID id, LocalDate date, UUID provider, UUID payMethod,
+                     UUID purchaseOrder, String concept, Float total){
         this.id = id;
         this.date = date;
         this.provider = provider;
         this.payMethod = payMethod;
-        this.product = product;
-        this.quantity = quantity;
-        this.price = price;
-        this.totalPrice = totalPrice;
+        this.purchaseOrder = purchaseOrder;
+        this.concept = concept;
+        this.total = total;
     }
 
     public UUID getId() {
@@ -60,36 +58,28 @@ public class EgressDTO {
         this.payMethod = payMethod;
     }
 
-    public String getProduct() {
-        return product;
+    public UUID getPurchaseOrder() {
+        return purchaseOrder;
     }
 
-    private void setProduct(String product) {
-        this.product = product;
+    public void setPurchaseOrder(UUID purchaseOrder) {
+        this.purchaseOrder = purchaseOrder;
     }
 
-    public Integer getQuantity() {
-        return quantity;
+    public String getConcept() {
+        return concept;
     }
 
-    private void setQuantity(Integer quantity) {
-        this.quantity = quantity;
+    public void setConcept(String concept) {
+        this.concept = concept;
     }
 
-    public Float getPrice() {
-        return price;
+    public Float getTotal() {
+        return total;
     }
 
-    private void setPrice(Float price) {
-        this.price = price;
-    }
-
-    public Float getTotalPrice() {
-        return totalPrice;
-    }
-
-    private void setTotalPrice(Float totalPrice) {
-        this.totalPrice = totalPrice;
+    public void setTotal(Float total) {
+        this.total = total;
     }
 }
 
