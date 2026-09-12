@@ -33,13 +33,16 @@ public class EgressService {
     public EgressDomain actualizar(UUID id, EgressDomain egressActualizado) {
         EgressDomain egressExistente = obtenerPorId(id);
 
+        if (egressActualizado.getTotal() != null && egressActualizado.getTotal() < 0) {
+            throw new IllegalArgumentException("El total no puede ser negativo");
+        }
+
         egressExistente.setDate(egressActualizado.getDate());
-        //egressExistente.setProvider(egressActualizado.getProvider());
+        egressExistente.setProvider(egressActualizado.getProvider());
         egressExistente.setPayMethod(egressActualizado.getPayMethod());
-        egressExistente.setProduct(egressActualizado.getProduct());
-        egressExistente.setQuantity(egressActualizado.getQuantity());
-        egressExistente.setPrice(egressActualizado.getPrice());
-        egressExistente.setTotalPrice(egressActualizado.getTotalPrice());
+        egressExistente.setPurchaseOrder(egressActualizado.getPurchaseOrder());
+        egressExistente.setConcept(egressActualizado.getConcept());
+        egressExistente.setTotal(egressActualizado.getTotal());
 
         return egressRepository.save(egressExistente);
     }
@@ -51,19 +54,19 @@ public class EgressService {
         egressRepository.deleteById(id);
     }
 
-    public List<EgressDomain> buscarPorProducto(String product) {
-        return egressRepository.findByProduct(product);
+    public List<EgressDomain> buscarPorConcepto(String concept) {
+        return egressRepository.findByConcept(concept);
     }
 
     public List<EgressDomain> buscarPorRangoDeFechas(LocalDate startDate, LocalDate endDate) {
         return egressRepository.findByDateBetween(startDate, endDate);
     }
 
-    /*public List<EgressDomain> buscarPorProvider(UUID providerId) {
-        return egressRepository.findByProvider_Id(providerId);
-    }*/
+    public List<EgressDomain> buscarPorProvider(UUID providerId) {
+        return egressRepository.findByProvider(providerId);
+    }
 
     public List<EgressDomain> buscarPorPayMethod(UUID payMethodId) {
-        return egressRepository.findByPayMethod_Id(payMethodId);
+        return egressRepository.findByPayMethod(payMethodId);
     }
 }
