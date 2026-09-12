@@ -1,7 +1,6 @@
 package com.uco.ucopetapi.controllers.provider;
 
 import com.uco.ucopetapi.dto.provider.ProviderDTO;
-import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +19,7 @@ public class ProviderController {
                 id,
                 "Vetfarma S.A.S.",
                 "Laura Gómez",
-                "NIT",
+                UUID.fromString("b1a2c3d4-1111-2222-3333-444455556666"), // idType quemado (NIT)
                 "901234567-1",
                 "3006541122",
                 "Cra 45 #12-30, Medellín",
@@ -29,17 +28,15 @@ public class ProviderController {
         );
     }
 
-    // El diagrama dice "void", pero devolver el objeto creado (con su id) es
-    // el estándar para un POST real — así el cliente sabe qué id se generó.
     @PostMapping
-    public ResponseEntity<ProviderDTO> createNewProvider(@Valid @RequestBody ProviderDTO provider) {
+    public ResponseEntity<ProviderDTO> createNewProvider(@RequestBody ProviderDTO provider) {
         ProviderDTO created = exampleProvider(UUID.randomUUID());
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ProviderDTO> updateProvider(@PathVariable UUID id,
-                                                      @Valid @RequestBody ProviderDTO provider) {
+                                                      @RequestBody ProviderDTO provider) {
         ProviderDTO updated = exampleProvider(id);
         return ResponseEntity.ok(updated);
     }
@@ -51,10 +48,8 @@ public class ProviderController {
         return ResponseEntity.ok(deactivated);
     }
 
-    // El diagrama pide recibir "Providers provider" como filtro, pero un GET
-    // no lleva body — se traduce a query params opcionales con el mismo fin.
     @GetMapping("/filter")
-    public ResponseEntity<List<ProviderDTO>> findByFilter(@RequestParam(required = false) String idType,
+    public ResponseEntity<List<ProviderDTO>> findByFilter(@RequestParam(required = false) UUID idType,
                                                           @RequestParam(required = false) Boolean isActive) {
         return ResponseEntity.ok(List.of(exampleProvider(UUID.randomUUID())));
     }
