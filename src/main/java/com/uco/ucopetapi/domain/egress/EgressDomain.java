@@ -73,7 +73,7 @@ public class EgressDomain {
         return provider;
     }
 
-    private void setProvider(ProviderDomain provider) {
+    public void setProvider(ProviderDomain provider) {
         this.provider = provider;
     }*/
 
