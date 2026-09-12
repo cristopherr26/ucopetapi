@@ -1,6 +1,6 @@
-package com.uco.ucopetapi.repository.specialtie;
+package com.uco.ucopetapi.repository.headquarter;
 
-import com.uco.ucopetapi.domain.specialtie.HeadquarterDomain;
+import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.UUID;
