@@ -41,7 +41,11 @@ public class OrderService {
             existingOrder.setPet(orderDetails.getPet());
             existingOrder.setProcedure(orderDetails.getProcedure());
             existingOrder.setState(orderDetails.getState());
-            existingOrder.setDate(orderDetails.getDate());
+
+            if (orderDetails.getDate() != null) {
+                existingOrder.setDate(orderDetails.getDate());
+            }
+
             existingOrder.setAuthorized(orderDetails.getAuthorized());
 
             return orderRepository.save(existingOrder);
@@ -60,6 +64,9 @@ public class OrderService {
     }
 
     public void delete(UUID id) {
+        if (!orderRepository.existsById(id)) {
+            throw new RuntimeException("No existe la orden con id: " + id);
+        }
         orderRepository.deleteById(id);
     }
 }
