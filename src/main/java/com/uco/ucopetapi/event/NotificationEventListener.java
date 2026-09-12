@@ -45,4 +45,16 @@ public class NotificationEventListener {
             );
         }
     }
+
+    @EventListener
+    public void onLoginSucceded(LoginSuccededEvent event) {
+        notificationService.create(
+                event.getPersonId(),
+                "Inicio de sesion exitoso",
+                "Ultimo inicio de sesion exitoso: " + event.getDate() + ".",
+                NotificationType.LOGIN_SUCCEDED,
+                event.getLoginId(),
+                "LOGIN"
+        );
+    }
 }
