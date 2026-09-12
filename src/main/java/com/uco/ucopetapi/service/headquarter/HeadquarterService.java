@@ -1,8 +1,8 @@
-package com.uco.ucopetapi.service.specialtie;
+package com.uco.ucopetapi.service.headquarter;
 
 
-import com.uco.ucopetapi.domain.specialtie.HeadquarterDomain;
-import com.uco.ucopetapi.repository.specialtie.HeadquarterRepository;
+import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
+import com.uco.ucopetapi.repository.headquarter.HeadquarterRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

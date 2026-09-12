@@ -5,8 +5,7 @@ import java.util.Optional;
 public enum Role {
 
     ADMIN,
-    DOCTOR,
-    TUTOR;
+    DOCTOR;
 
     private static final String PREFIJO_SPRING = "ROLE_";
 
