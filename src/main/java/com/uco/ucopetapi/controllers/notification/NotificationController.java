@@ -2,6 +2,7 @@ package com.uco.ucopetapi.controllers.notification;
 
 import com.uco.ucopetapi.dto.notification.NotificationDTO;
 import com.uco.ucopetapi.model.notification.enums.NotificationType;
+import com.uco.ucopetapi.service.notification.NotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,57 +14,42 @@ import java.util.UUID;
 @RequestMapping("/api/notifications")
 public class NotificationController {
 
-    @GetMapping
-    public ResponseEntity<List<NotificationDTO>> getAllNotifications() {
-        List<NotificationDTO> notifications = List.of(
-                new NotificationDTO(
-                        UUID.randomUUID(),
-                        UUID.randomUUID(),
-                        "Cita confirmada",
-                        "Tu cita fue confirmada para mañana a las 10am",
-                        false,
-                        NotificationType.APPOINTMENT_CREATED,
-                        UUID.randomUUID(),
-                        "APPOINTMENT",
-                        LocalDateTime.now()
-                ),
-                new NotificationDTO(
-                        UUID.randomUUID(),
-                        UUID.randomUUID(),
-                        "Pago recibido",
-                        "Se registró el pago de tu factura #F-0042",
-                        true,
-                        NotificationType.PAYMENT_RECEIVED,
-                        UUID.randomUUID(),
-                        "INVOICE",
-                        LocalDateTime.now().minusHours(3)
-                )
-        );
-        return ResponseEntity.ok(notifications);
+    private final NotificationService notificationService;
+
+    public NotificationController (NotificationService notificationService) {
+        this.notificationService = notificationService;
     }
 
-    @GetMapping("/unread")
-    public ResponseEntity<List<NotificationDTO>> getUnreadNotifications() {
-        return ResponseEntity.ok(List.of());
+    @GetMapping("/person/{personId}")
+    public ResponseEntity<List<NotificationDTO>> getAllByPerson(@PathVariable UUID personId) {
+        return ResponseEntity.ok(notificationService.getAllByPerson(personId));
     }
 
-    @GetMapping("/unread/count")
-    public ResponseEntity<Long> countUnread() {
-        return ResponseEntity.ok(1L);
+    @GetMapping("/person/{personId}/unread")
+    public ResponseEntity<List<NotificationDTO>> getUnread(@PathVariable UUID personId) {
+        return ResponseEntity.ok(notificationService.getUnreadByPerson(personId));
+    }
+
+    @GetMapping("/person/{personId}/unread/count")
+    public ResponseEntity<Long> countUnread(@PathVariable UUID personId) {
+        return ResponseEntity.ok(notificationService.countUnreadByPerson(personId));
     }
 
     @PatchMapping("/{id}/read")
     public ResponseEntity<Void> markAsRead(@PathVariable UUID id) {
+        notificationService.markAsRead(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/read-all")
-    public ResponseEntity<Void> markAllAsRead() {
+    @PatchMapping("/person/{personId}/read-all")
+    public ResponseEntity<Void> markAllAsRead(@PathVariable UUID personId) {
+        notificationService.markAllAsRead(personId);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteNotification(@PathVariable UUID id) {
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        notificationService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

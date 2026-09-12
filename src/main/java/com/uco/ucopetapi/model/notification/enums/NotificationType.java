@@ -2,13 +2,6 @@ package com.uco.ucopetapi.model.notification.enums;
 
 public enum NotificationType {
     APPOINTMENT_CREATED,
-    APPOINTMENT_CANCELLED,
-    APPOINTMENT_REMINDER,
-    PET_CARE_UPDATED,
     ORDER_AUTHORIZED,
-    ORDER_REJECTED,
-    INVOICE_GENERATED,
-    PAYMENT_RECEIVED,
-    TRANSFER_STATUS_CHANGED,
-    SYSTEM_MESSAGE
+    ORDER_REJECTED
 }
