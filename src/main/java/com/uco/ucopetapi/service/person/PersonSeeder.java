@@ -1,7 +1,5 @@
 package com.uco.ucopetapi.service.person;
 
-import java.security.SecureRandom;
-import java.util.Base64;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,12 +16,10 @@ import com.uco.ucopetapi.repository.person.PersonRepository;
 public class PersonSeeder implements CommandLineRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(PersonSeeder.class);
-    private static final SecureRandom AZAR = new SecureRandom();
-
     private final PersonRepository personRepository;
     private final PasswordEncoder passwordEncoder;
     private final boolean habilitado;
-    private final String contrasenaConfigurada;
+    private final String contrasena;
     private final String correo;
     private final String nombre;
     private final String apellido;
@@ -32,7 +28,7 @@ public class PersonSeeder implements CommandLineRunner {
     public PersonSeeder(PersonRepository personRepository,
                         PasswordEncoder passwordEncoder,
                         @Value("${ucopet.seed.enabled:true}") boolean habilitado,
-                        @Value("${ucopet.admin.password:}") String contrasenaConfigurada,
+                        @Value("${ucopet.admin.password:UcopetAdmin2026*}") String contrasena,
                         @Value("${ucopet.admin.email:admin@ucopet.com}") String correo,
                         @Value("${ucopet.admin.first-name:Administrador}") String nombre,
                         @Value("${ucopet.admin.last-name:UcoPet}") String apellido,
@@ -40,7 +36,7 @@ public class PersonSeeder implements CommandLineRunner {
         this.personRepository = personRepository;
         this.passwordEncoder = passwordEncoder;
         this.habilitado = habilitado;
-        this.contrasenaConfigurada = contrasenaConfigurada;
+        this.contrasena = contrasena;
         this.correo = correo;
         this.nombre = nombre;
         this.apellido = apellido;
@@ -52,9 +48,6 @@ public class PersonSeeder implements CommandLineRunner {
         if (!habilitado || personRepository.countByAdminTrueAndActiveTrue() > 0) {
             return;
         }
-
-        boolean generada = contrasenaConfigurada == null || contrasenaConfigurada.isBlank();
-        String contrasena = generada ? contrasenaAlAzar() : contrasenaConfigurada;
 
         PersonDomain admin = new PersonDomain();
         admin.setDocumentType(DocumentType.CC);
@@ -71,25 +64,13 @@ public class PersonSeeder implements CommandLineRunner {
         LOG.info("No habia ningun administrador activo. Se creo el de arranque:");
         LOG.info("   correo:     {}", correo);
         LOG.info("   nombre:     {} {}", nombre, apellido);
-        if (generada) {
-            LOG.info("   contrasena: {}", contrasena);
-            LOG.info("");
-            LOG.info("Se genero al azar y NO se vuelve a mostrar. Anotala.");
-            LOG.info("Para elegirla vos, define la variable de entorno UCOPET_ADMIN_PASSWORD.");
-            LOG.info("Y para que el admin seas vos y no otro:");
-            LOG.info("   UCOPET_ADMIN_EMAIL / UCOPET_ADMIN_FIRST_NAME / UCOPET_ADMIN_LAST_NAME");
-        } else {
-            LOG.info("   contrasena: la de UCOPET_ADMIN_PASSWORD");
-        }
+        LOG.info("   contrasena: {}", contrasena);
         LOG.info("");
-        LOG.info("Con ese usuario se crean los demas: POST /api/v1/persons");
-        LOG.info("Es una cuenta generica de arranque: creen la suya y usen esa.");
+        LOG.info("Es una cuenta de arranque con clave conocida: cualquiera que lea el");
+        LOG.info("repositorio la sabe. Entren con ella, creen su propio usuario y");
+        LOG.info("cambienle la contrasena a esta: PUT /api/v1/persons/{id}/password");
+        LOG.info("Para elegirla al arrancar: UCOPET_ADMIN_PASSWORD=loQueQuieras");
         LOG.info("=====================================================================");
     }
 
-    private static String contrasenaAlAzar() {
-        byte[] bytes = new byte[12];
-        AZAR.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
 }
