@@ -1,5 +1,7 @@
 package com.uco.ucopetapi.dto.purchases;
 
+import com.uco.ucopetapi.domain.purchases.PurchaseStatus;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -7,11 +9,17 @@ import java.util.UUID;
 
 public record PurchaseResponseDTO(
         UUID id,
+        String purchaseNumber,
         RelatedEntityDTO supplier,
         List<Item> items,
-        BigDecimal totalValue,
+        LocalDateTime purchaseDate,
+        BigDecimal subtotal,
+        BigDecimal totalTaxes,
+        BigDecimal total,
         PurchaseStatus status,
         UUID expenseId,
+        UUID headquarterId,
+        Boolean hasDiscount,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
