@@ -3,12 +3,11 @@ package com.uco.ucopetapi.service.tutorPet;
 import com.uco.ucopetapi.domain.person.PersonDomain;
 import com.uco.ucopetapi.domain.tutorPet.TutorPetDomain;
 import com.uco.ucopetapi.dto.tutorPet.TutorPetDTO;
+import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.repository.person.PersonRepository;
 import com.uco.ucopetapi.repository.tutorPet.ITutorPetRepository;
 import com.uco.ucopetapi.service.person.PersonService;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -73,14 +72,14 @@ public class TutorPetService {
 
     private TutorPetDomain getOrThrow(UUID id) {
         return tutorPetRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "TutorPet no encontrado con id: " + id));
+                .orElseThrow(() -> new BusinessException(
+                        "TutorPet no encontrado con id: " + id));
     }
 
     private PersonDomain getPersonOrThrow(UUID personId) {
         return personRepository.findById(personId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Person no encontrada con id: " + personId));
+                .orElseThrow(() -> new BusinessException(
+                        "Person no encontrada con id: " + personId));
     }
 
     private TutorPetDTO toDTO(TutorPetDomain tutorPet) {
