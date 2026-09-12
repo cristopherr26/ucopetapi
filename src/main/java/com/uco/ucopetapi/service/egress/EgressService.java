@@ -59,9 +59,9 @@ public class EgressService {
         return egressRepository.findByDateBetween(startDate, endDate);
     }
 
-    public List<EgressDomain> buscarPorProvider(UUID providerId) {
+    /*public List<EgressDomain> buscarPorProvider(UUID providerId) {
         return egressRepository.findByProvider_Id(providerId);
-    }
+    }*/
 
     public List<EgressDomain> buscarPorPayMethod(UUID payMethodId) {
         return egressRepository.findByPayMethod_Id(payMethodId);
