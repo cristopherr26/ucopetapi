@@ -1,4 +1,4 @@
-package com.uco.ucopetapi.dto.purchases;
+package com.uco.ucopetapi.domain.purchases;
 
 public enum PurchaseStatus {
     PENDING,
