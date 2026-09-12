@@ -17,7 +17,7 @@ public class HealthPlanCoverageDomain {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "health_plan_id", nullable = false)
+    @JoinColumn(name = "health_plan_id",  nullable = false)
     private HealthPlanDomain healthPlan;
 
     //TO DOOOO: Cambiar para obtener el id de procedureDomain
