@@ -34,12 +34,11 @@ public class EgressService {
         EgressDomain egressExistente = obtenerPorId(id);
 
         egressExistente.setDate(egressActualizado.getDate());
-        //egressExistente.setProvider(egressActualizado.getProvider());
+        egressExistente.setProvider(egressActualizado.getProvider());
         egressExistente.setPayMethod(egressActualizado.getPayMethod());
-        egressExistente.setProduct(egressActualizado.getProduct());
-        egressExistente.setQuantity(egressActualizado.getQuantity());
-        egressExistente.setPrice(egressActualizado.getPrice());
-        egressExistente.setTotalPrice(egressActualizado.getTotalPrice());
+        egressExistente.setPurchaseOrder(egressActualizado.getPurchaseOrder());
+        egressExistente.setConcept(egressActualizado.getConcept());
+        egressExistente.setTotal(egressActualizado.getTotal());
 
         return egressRepository.save(egressExistente);
     }
@@ -59,9 +58,9 @@ public class EgressService {
         return egressRepository.findByDateBetween(startDate, endDate);
     }
 
-    /*public List<EgressDomain> buscarPorProvider(UUID providerId) {
+    public List<EgressDomain> buscarPorProvider(UUID providerId) {
         return egressRepository.findByProvider_Id(providerId);
-    }*/
+    }
 
     public List<EgressDomain> buscarPorPayMethod(UUID payMethodId) {
         return egressRepository.findByPayMethod_Id(payMethodId);

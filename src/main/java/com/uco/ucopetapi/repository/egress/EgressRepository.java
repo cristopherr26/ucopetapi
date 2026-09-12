@@ -15,7 +15,7 @@ public interface EgressRepository extends JpaRepository<EgressDomain, UUID> {
 
     List<EgressDomain> findByDateBetween(LocalDate startDate, LocalDate endDate);
 
-    //List<EgressDomain> findByProvider_Id(UUID providerId);
+    List<EgressDomain> findByProvider_Id(UUID providerId);
 
     List<EgressDomain> findByPayMethod_Id(UUID payMethodId);
 
