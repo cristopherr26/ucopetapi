@@ -1,8 +1,8 @@
 package com.uco.ucopetapi.controllers.headquarter;
 
-import com.uco.ucopetapi.domain.specialtie.HeadquarterDomain;
+import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
 import com.uco.ucopetapi.dto.headquarter.HeadquarterDTO;
-import com.uco.ucopetapi.service.specialtie.HeadquarterService;
+import com.uco.ucopetapi.service.headquarter.HeadquarterService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

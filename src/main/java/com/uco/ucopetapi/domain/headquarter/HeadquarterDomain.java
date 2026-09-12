@@ -1,4 +1,4 @@
-package com.uco.ucopetapi.domain.specialtie;
+package com.uco.ucopetapi.domain.headquarter;
 
 import jakarta.persistence.*;
 
