@@ -1,85 +1,92 @@
 package com.uco.ucopetapi.controllers.headquarter;
 
+import com.uco.ucopetapi.domain.specialtie.HeadquarterDomain;
 import com.uco.ucopetapi.dto.headquarter.HeadquarterDTO;
+import com.uco.ucopetapi.service.specialtie.HeadquarterService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
 @RestController
 @RequestMapping("/api/headquarter")
-
 public class HeadquarterController {
 
-    private List<HeadquarterDTO> getMockHeadquarters() {
-        List<HeadquarterDTO> list = new ArrayList<>();
+    private final HeadquarterService headquarterService;
 
-        HeadquarterDTO h1 = new HeadquarterDTO();
-        h1.setId(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
-        h1.setName("patitas");
-        h1.setAddress("Carrera 52 # 40-25");
-        h1.setIsActive(true);
+    public HeadquarterController(HeadquarterService headquarterService) {
+        this.headquarterService = headquarterService;
+    }
 
-        HeadquarterDTO h2 = new HeadquarterDTO();
-        h2.setId(UUID.fromString("987e6543-e21b-34d5-c654-426614174111"));
-        h2.setName("animalitos");
-        h2.setAddress("Calle 47 # 50-10");
-        h2.setIsActive(true);
+    private HeadquarterDTO toDTO(HeadquarterDomain entity) {
+        return new HeadquarterDTO(
+                entity.getId(),
+                entity.getName(),
+                entity.getAddress(),
+                entity.getIsActive()
+        );
+    }
 
-        list.add(h1);
-        list.add(h2);
-        return list;
+    private HeadquarterDomain toEntity(HeadquarterDTO dto) {
+        return new HeadquarterDomain(
+                dto.getId(),
+                dto.getName(),
+                dto.getAddress(),
+                dto.getIsActive()
+        );
     }
 
     @GetMapping
-    public ResponseEntity<List<HeadquarterDTO>> findByFilter(
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) String address,
-            @RequestParam(required = false) Boolean isActive) {
-
-        return ResponseEntity.ok(getMockHeadquarters());
+    public ResponseEntity<List<HeadquarterDTO>> findAll() {
+        List<HeadquarterDTO> list = headquarterService.get().stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(list);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<HeadquarterDTO> findById(@PathVariable UUID id) {
-        HeadquarterDTO h = new HeadquarterDTO();
-        h.setId(id);
-        h.setName("patitas");
-        h.setAddress("Carrera 52 # 40-25");
-        h.setIsActive(true);
-
-        return ResponseEntity.ok(h);
+        return headquarterService.findById(id)
+                .map(this::toDTO)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<HeadquarterDTO> createNewHeadquarter(@RequestBody HeadquarterDTO headquarterDTO) {
-        headquarterDTO.setId(UUID.randomUUID());
-        if (headquarterDTO.getIsActive() == null) {
-            headquarterDTO.setIsActive(true);
+    public ResponseEntity<HeadquarterDTO> createNewHeadquarter(@Valid @RequestBody HeadquarterDTO headquarterDTO) {
+        HeadquarterDomain entity = toEntity(headquarterDTO);
+        if (entity.getIsActive() == null) {
+            entity.setIsActive(true);
         }
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(headquarterDTO);
+        HeadquarterDomain saved = headquarterService.save(entity);
+        return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(saved));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<HeadquarterDTO> updateHeadquarter(
             @PathVariable UUID id,
-            @RequestBody HeadquarterDTO headquarterDTO) {
+            @Valid @RequestBody HeadquarterDTO headquarterDTO) {
 
-        headquarterDTO.setId(id);
-        return ResponseEntity.ok(headquarterDTO);
+        return headquarterService.findById(id).map(existing -> {
+            existing.setName(headquarterDTO.getName());
+            existing.setAddress(headquarterDTO.getAddress());
+            if (headquarterDTO.getIsActive() != null) {
+                existing.setIsActive(headquarterDTO.getIsActive());
+            }
+            HeadquarterDomain updated = headquarterService.save(existing);
+            return ResponseEntity.ok(toDTO(updated));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}/deactivate")
     public ResponseEntity<HeadquarterDTO> deactivateHeadquarter(@PathVariable UUID id) {
-        HeadquarterDTO deactivated = new HeadquarterDTO();
-        deactivated.setId(id);
-        deactivated.setName("Sede Inactivada de Prueba");
-        deactivated.setAddress("Calle Ficticia 123");
-        deactivated.setIsActive(false);
-
-        return ResponseEntity.ok(deactivated);
+        return headquarterService.deactivate(id)
+                .map(this::toDTO)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }
