@@ -1,13 +1,24 @@
-package com.uco.ucopetapi.dto.appointmentType;
+package com.uco.ucopetapi.domain.appointmentType;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.util.UUID;
 
-public class AppointmentTypeDTO {
+@Entity
+@Table(name = "appointment_types")
+public class AppointmentTypeDomain {
 
+    @Id
     private UUID id;
     private String name;
     private String description;
     private Boolean isActive;
+
+    public AppointmentTypeDomain() {
+        // Requerido por JPA para instanciar la entidad
+    }
 
     public UUID getId() {
         return id;
