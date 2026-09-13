@@ -8,12 +8,13 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -46,16 +47,15 @@ public class PetCareDomain {
     @Column(name = "pet_care_status", nullable = false)
     private PetCareStatus petCareStatus;
 
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "vital_signs_id")
-    private VitalSignsDomain vitalSigns;
+    @OneToMany(mappedBy = "petCare", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<VitalSignsDomain> vitalSigns = new ArrayList<>();
 
     public PetCareDomain() {
     }
 
     public PetCareDomain(final UUID id, final UUID episodeId, final UUID procedureId, final UUID productId,
                          final UUID doctorId, final LocalDateTime attentionDate, final String description,
-                         final PetCareStatus petCareStatus, final VitalSignsDomain vitalSigns) {
+                         final PetCareStatus petCareStatus) {
         this.id = id;
         this.episodeId = episodeId;
         this.procedureId = procedureId;
@@ -64,7 +64,6 @@ public class PetCareDomain {
         this.attentionDate = attentionDate;
         this.description = description;
         this.petCareStatus = petCareStatus;
-        this.vitalSigns = vitalSigns;
     }
 
     @PrePersist
@@ -78,6 +77,11 @@ public class PetCareDomain {
         if (petCareStatus == null) {
             petCareStatus = PetCareStatus.REGISTERED;
         }
+    }
+
+    public void addVitalSign(final VitalSignsDomain vitalSign) {
+        vitalSigns.add(vitalSign);
+        vitalSign.setPetCare(this);
     }
 
     public UUID getId() {
@@ -144,11 +148,11 @@ public class PetCareDomain {
         this.petCareStatus = petCareStatus;
     }
 
-    public VitalSignsDomain getVitalSigns() {
+    public List<VitalSignsDomain> getVitalSigns() {
         return vitalSigns;
     }
 
-    public void setVitalSigns(VitalSignsDomain vitalSigns) {
+    public void setVitalSigns(List<VitalSignsDomain> vitalSigns) {
         this.vitalSigns = vitalSigns;
     }
 }

@@ -1,10 +1,7 @@
 package com.uco.ucopetapi.domain.vitalSigns;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
+import com.uco.ucopetapi.domain.petCare.PetCareDomain;
+import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -17,26 +14,30 @@ public class VitalSignsDomain {
     @Column(nullable = false, updatable = false)
     private UUID id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pet_care_id", nullable = false)
+    private PetCareDomain petCare;
+
     @Column(name = "temperature")
-    private double temperature;
+    private Double temperature;
 
     @Column(name = "heart_rate")
-    private int heartRate;
+    private Integer heartRate;
 
     @Column(name = "respiratory_rate")
-    private int respiratoryRate;
+    private Integer respiratoryRate;
 
     @Column(name = "systolic_pressure")
-    private int systolicPressure;
+    private Integer systolicPressure;
 
     @Column(name = "diastolic_pressure")
-    private int diastolicPressure;
+    private Integer diastolicPressure;
 
     @Column(name = "weight")
-    private double weight;
+    private Double weight;
 
     @Column(name = "body_condition_score")
-    private int bodyConditionScore;
+    private Integer bodyConditionScore;
 
     @Column(name = "measurement_date", nullable = false)
     private LocalDateTime measurementDate;
@@ -44,10 +45,13 @@ public class VitalSignsDomain {
     public VitalSignsDomain() {
     }
 
-    public VitalSignsDomain(final UUID id, final double temperature, final int heartRate, final int respiratoryRate,
-                            final int systolicPressure, final int diastolicPressure, final double weight,
-                            final int bodyConditionScore, final LocalDateTime measurementDate) {
+    public VitalSignsDomain(final UUID id, final PetCareDomain petCare, final Double temperature,
+                            final Integer heartRate, final Integer respiratoryRate,
+                            final Integer systolicPressure, final Integer diastolicPressure,
+                            final Double weight, final Integer bodyConditionScore,
+                            final LocalDateTime measurementDate) {
         this.id = id;
+        this.petCare = petCare;
         this.temperature = temperature;
         this.heartRate = heartRate;
         this.respiratoryRate = respiratoryRate;
@@ -76,59 +80,67 @@ public class VitalSignsDomain {
         this.id = id;
     }
 
-    public double getTemperature() {
+    public PetCareDomain getPetCare() {
+        return petCare;
+    }
+
+    public void setPetCare(PetCareDomain petCare) {
+        this.petCare = petCare;
+    }
+
+    public Double getTemperature() {
         return temperature;
     }
 
-    public void setTemperature(double temperature) {
+    public void setTemperature(Double temperature) {
         this.temperature = temperature;
     }
 
-    public int getHeartRate() {
+    public Integer getHeartRate() {
         return heartRate;
     }
 
-    public void setHeartRate(int heartRate) {
+    public void setHeartRate(Integer heartRate) {
         this.heartRate = heartRate;
     }
 
-    public int getRespiratoryRate() {
+    public Integer getRespiratoryRate() {
         return respiratoryRate;
     }
 
-    public void setRespiratoryRate(int respiratoryRate) {
+    public void setRespiratoryRate(Integer respiratoryRate) {
         this.respiratoryRate = respiratoryRate;
     }
 
-    public int getSystolicPressure() {
+    public Integer getSystolicPressure() {
         return systolicPressure;
     }
 
-    public void setSystolicPressure(int systolicPressure) {
+    public void setSystolicPressure(Integer systolicPressure) {
         this.systolicPressure = systolicPressure;
     }
 
-    public int getDiastolicPressure() {
+    public Integer getDiastolicPressure() {
         return diastolicPressure;
     }
 
-    public void setDiastolicPressure(int diastolicPressure) {
+    public void setDiastolicPressure(Integer diastolicPressure) {
         this.diastolicPressure = diastolicPressure;
     }
 
-    public double getWeight() {
+    public Double getWeight() {
         return weight;
     }
 
-    public void setWeight(double weight) {
+    public void setWeight(Double weight) {
         this.weight = weight;
     }
 
-    public int getBodyConditionScore() {
+    public Integer getBodyConditionScore() {
         return bodyConditionScore;
     }
 
-    public void setBodyConditionScore(int bodyConditionScore) {
+    public void setBodyConditionScore(Integer bodyConditionScore) {
         this.bodyConditionScore = bodyConditionScore;
     }
 

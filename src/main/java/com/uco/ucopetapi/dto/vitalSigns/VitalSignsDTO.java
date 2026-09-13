@@ -1,19 +1,27 @@
 package com.uco.ucopetapi.dto.vitalSigns;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class VitalSignsDTO {
-    private final double temperature;
-    private final int heartRate;
-    private final int respiratoryRate;
-    private final int systolicPressure;
-    private final int diastolicPressure;
-    private final double weight;
-    private final int bodyConditionScore;
-    private final LocalDateTime measurementDate;
+    private UUID id;
+    private Double temperature;
+    private Integer heartRate;
+    private Integer respiratoryRate;
+    private Integer systolicPressure;
+    private Integer diastolicPressure;
+    private Double weight;
+    private Integer bodyConditionScore;
+    private LocalDateTime measurementDate;
 
-    public VitalSignsDTO(double temperature, int heartRate, int respiratoryRate, int systolicPressure,
-                         int diastolicPressure, double weight, int bodyConditionScore, LocalDateTime measurementDate){
+    public VitalSignsDTO() {
+    }
+
+    public VitalSignsDTO(final UUID id, final Double temperature, final Integer heartRate,
+                         final Integer respiratoryRate, final Integer systolicPressure,
+                         final Integer diastolicPressure, final Double weight,
+                         final Integer bodyConditionScore, final LocalDateTime measurementDate) {
+        this.id = id;
         this.temperature = temperature;
         this.heartRate = heartRate;
         this.respiratoryRate = respiratoryRate;
@@ -24,35 +32,75 @@ public class VitalSignsDTO {
         this.measurementDate = measurementDate;
     }
 
-    public double getTemperature() {
+    public UUID getId() {
+        return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public Double getTemperature() {
         return temperature;
     }
 
-    public int getHeartRate() {
+    public void setTemperature(Double temperature) {
+        this.temperature = temperature;
+    }
+
+    public Integer getHeartRate() {
         return heartRate;
     }
 
-    public int getRespiratoryRate() {
+    public void setHeartRate(Integer heartRate) {
+        this.heartRate = heartRate;
+    }
+
+    public Integer getRespiratoryRate() {
         return respiratoryRate;
     }
 
-    public int getSystolicPressure() {
+    public void setRespiratoryRate(Integer respiratoryRate) {
+        this.respiratoryRate = respiratoryRate;
+    }
+
+    public Integer getSystolicPressure() {
         return systolicPressure;
     }
 
-    public int getDiastolicPressure() {
+    public void setSystolicPressure(Integer systolicPressure) {
+        this.systolicPressure = systolicPressure;
+    }
+
+    public Integer getDiastolicPressure() {
         return diastolicPressure;
     }
 
-    public double getWeight() {
+    public void setDiastolicPressure(Integer diastolicPressure) {
+        this.diastolicPressure = diastolicPressure;
+    }
+
+    public Double getWeight() {
         return weight;
     }
 
-    public int getBodyConditionScore() {
+    public void setWeight(Double weight) {
+        this.weight = weight;
+    }
+
+    public Integer getBodyConditionScore() {
         return bodyConditionScore;
+    }
+
+    public void setBodyConditionScore(Integer bodyConditionScore) {
+        this.bodyConditionScore = bodyConditionScore;
     }
 
     public LocalDateTime getMeasurementDate() {
         return measurementDate;
+    }
+
+    public void setMeasurementDate(LocalDateTime measurementDate) {
+        this.measurementDate = measurementDate;
     }
 }
