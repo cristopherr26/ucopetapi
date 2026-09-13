@@ -7,15 +7,15 @@ public enum Role {
     ADMIN,
     DOCTOR;
 
-    private static final String PREFIJO_SPRING = "ROLE_";
+    private static final String SPRING_PREFIX = "ROLE_";
 
     public String authority() {
-        return PREFIJO_SPRING + name();
+        return SPRING_PREFIX + name();
     }
 
-    public static Optional<Role> de(String nombre) {
+    public static Optional<Role> from(String name) {
         try {
-            return Optional.of(valueOf(nombre));
+            return Optional.of(valueOf(name));
         } catch (IllegalArgumentException | NullPointerException _) {
             return Optional.empty();
         }
