@@ -1,9 +1,11 @@
 package com.uco.ucopetapi.controllers.tutorPet;
 
 import com.uco.ucopetapi.dto.tutorPet.TutorPetDTO;
+import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.service.tutorPet.TutorPetService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -62,4 +64,8 @@ public class TutorPetController {
         return ResponseEntity.noContent().build();
     }
 
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<String> handleBusinessException(BusinessException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    }
 }
