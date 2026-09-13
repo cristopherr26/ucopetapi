@@ -1,6 +1,7 @@
 package com.uco.ucopetapi.controllers.egress;
 
-
+import com.uco.ucopetapi.domain.egress.EgressDomain;
+import com.uco.ucopetapi.service.egress.EgressService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,53 +15,61 @@ import java.util.UUID;
 @RequestMapping("api/v1")
 public class EgressControler {
 
+    private final EgressService egressService;
+
+    public EgressControler(EgressService egressService) {
+        this.egressService = egressService;
+    }
+
     @GetMapping("/Egresses")
-    public ResponseEntity<List<Map<String, Object>>> getAllEgresses() {
-        List<Map<String, Object>> egresses = List.of(
-                Map.of(
-                        "id", UUID.fromString("105bd9b5-9db9-47df-bd1e-b3fb8271420b"),
-                        "date", ("12/05/2026"),
-                        "provider", UUID.fromString("b905c6cf-e8f9-465a-b409-86e2e4a385a3"),
-                        "payMethod", UUID.fromString("4b3fb2db-f63a-41a2-8233-43b73d2c1176"),
-                        "product", ("Diclofenaco"),
-                        "quantity", ("2"),
-                        "price", ("$30.000"),
-                        "totalPrice", ("$60.000")
-                )
-        );
-        return ResponseEntity.ok(egresses);
+    public ResponseEntity<List<EgressDomain>> getAllEgresses() {
+        return ResponseEntity.ok(egressService.obtenerTodos());
+    }
+
+    @GetMapping("/Egresses/{id}")
+    public ResponseEntity<EgressDomain> getEgressById(@PathVariable UUID id) {
+        return ResponseEntity.ok(egressService.obtenerPorId(id));
     }
 
     @PostMapping("/newEgress")
-    public ResponseEntity<Map<String, Object>> createEgress(@RequestBody Map<String, Object> request) {
-        Map<String, Object> response = Map.of(
-                "id", UUID.randomUUID(),
-                "date", request.getOrDefault("date", "21/03/2026"),
-                "provider", UUID.randomUUID(),
-                "payMethod", UUID.randomUUID(),
-                "product", request.getOrDefault("product", "Dolex"),
-                "quantity", request.getOrDefault("quantity", "21"),
-                "price", request.getOrDefault("price", "$5.000"),
-                "totalPrice", request.getOrDefault("totalPrice", "105.000")
+    public ResponseEntity<EgressDomain> createEgress(@RequestBody Map<String, Object> request) {
+
+        EgressDomain nuevoEgress = new EgressDomain(
+                null,
+                LocalDate.parse((String) request.get("date")),
+                UUID.fromString((String) request.get("provider")),
+                UUID.fromString((String) request.get("payMethod")),
+                UUID.fromString((String) request.get("purchaseOrder")),
+                (String) request.get("concept"),
+                Float.valueOf(request.get("total").toString())
         );
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
+        EgressDomain guardado = egressService.guardar(nuevoEgress);
+        return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> updateEgress(
+    @PutMapping("/Egresses/{id}")
+    public ResponseEntity<EgressDomain> updateEgress(
             @PathVariable UUID id,
             @RequestBody Map<String, Object> request) {
 
-        Map<String, Object> response = Map.of(
-                "id", id,
-                "date", request.getOrDefault("date", "21/05/2026"),
-                "provider", UUID.randomUUID(),
-                "payMethod", UUID.randomUUID(),
-                "product", request.getOrDefault("product", "Dolex"),
-                "quantity", request.getOrDefault("quantity", "21"),
-                "price", request.getOrDefault("price", "$5.000"),
-                "totalPrice", request.getOrDefault("totalPrice", "105.000")
+        EgressDomain egressActualizado = new EgressDomain(
+                id,
+                LocalDate.parse((String) request.get("date")),
+                UUID.fromString((String) request.get("provider")),
+                UUID.fromString((String) request.get("payMethod")),
+                UUID.fromString((String) request.get("purchaseOrder")),
+                (String) request.get("concept"),
+                Float.valueOf(request.get("total").toString())
         );
-        return ResponseEntity.ok(response);
+
+        EgressDomain resultado = egressService.actualizar(id, egressActualizado);
+        return ResponseEntity.ok(resultado);
+    }
+
+    @DeleteMapping("/Egresses/{id}")
+    public ResponseEntity<Void> deleteEgress(@PathVariable UUID id) {
+        egressService.eliminar(id);
+        return ResponseEntity.noContent().build();
     }
 }
