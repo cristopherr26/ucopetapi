@@ -13,9 +13,9 @@ public class OrderMapper {
         return new OrderDTO(
                 domain.getId(),
                 domain.getIdOrder(),
-                domain.getTutor(),
-                domain.getPet(),
-                domain.getProcedure(),
+                domain.getTutorId(),
+                domain.getPetId(),
+                domain.getProcedureId(),
                 domain.getState(),
                 domain.getDate(),
                 domain.getAuthorized()
@@ -28,9 +28,9 @@ public class OrderMapper {
         return new OrderDomain(
                 dto.getId(),
                 dto.getIdOrder(),
-                dto.getTutor(),
-                dto.getPet(),
-                dto.getProcedure(),
+                dto.getTutorId(),
+                dto.getPetId(),
+                dto.getProcedureId(),
                 dto.getState(),
                 dto.getDate(),
                 dto.getAuthorized()

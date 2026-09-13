@@ -47,12 +47,12 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(orderMapper.toDTO(savedDomain));
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<OrderDTO> updateOrder(
+    @PatchMapping("/{id}/procedure")
+    public ResponseEntity<OrderDTO> changeProcedure(
             @PathVariable UUID id,
-            @Valid @RequestBody OrderDTO orderDto) {
+            @RequestParam UUID procedureId) {
 
-        OrderDomain updatedDomain = orderService.update(id, orderMapper.toDomain(orderDto));
+        OrderDomain updatedDomain = orderService.changeProcedure(id, procedureId);
         return ResponseEntity.ok(orderMapper.toDTO(updatedDomain));
     }
 
@@ -61,7 +61,7 @@ public class OrderController {
             @PathVariable UUID id,
             @RequestParam Boolean isAuthorized) {
 
-        OrderDomain authorizedDomain = orderService.authorize(id, isAuthorized);
+        OrderDomain authorizedDomain = orderService.processAuthorization(id, isAuthorized);
         return ResponseEntity.ok(orderMapper.toDTO(authorizedDomain));
     }
 

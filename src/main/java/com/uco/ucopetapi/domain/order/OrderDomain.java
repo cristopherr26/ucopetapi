@@ -21,14 +21,14 @@ public class OrderDomain {
     @Column(name = "id_order", nullable = false, length = 20)
     private String idOrder;
 
-    @Column(name = "tutor", nullable = false, length = 100)
-    private String tutor;
+    @Column(name = "tutor_id", nullable = false)
+    private UUID tutorId;
 
-    @Column(name = "pet", nullable = false, length = 50)
-    private String pet;
+    @Column(name = "pet_id", nullable = false)
+    private UUID petId;
 
-    @Column(name = "procedure_name", nullable = false, length = 150)
-    private String procedure;
+    @Column(name = "procedure_id", nullable = false)
+    private UUID procedureId;
 
     @Column(name = "state", nullable = false)
     private String state;
@@ -43,79 +43,39 @@ public class OrderDomain {
     }
 
     @SuppressWarnings("java:S107")
-    public OrderDomain(UUID id, String idOrder, String tutor, String pet, String procedure,
+    public OrderDomain(UUID id, String idOrder, UUID tutorId, UUID petId, UUID procedureId,
                        String state, LocalDateTime date, Boolean isAuthorized) {
         this.id = id;
         this.idOrder = idOrder;
-        this.tutor = tutor;
-        this.pet = pet;
-        this.procedure = procedure;
+        this.tutorId = tutorId;
+        this.petId = petId;
+        this.procedureId = procedureId;
         this.state = state;
         this.date = date;
         this.isAuthorized = isAuthorized;
     }
 
-    public UUID getId() {
-        return id;
-    }
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
+    public String getIdOrder() { return idOrder; }
+    public void setIdOrder(String idOrder) { this.idOrder = idOrder; }
 
-    public String getIdOrder() {
-        return idOrder;
-    }
+    public UUID getTutorId() { return tutorId; }
+    public void setTutorId(UUID tutorId) { this.tutorId = tutorId; }
 
-    public void setIdOrder(String idOrder) {
-        this.idOrder = idOrder;
-    }
+    public UUID getPetId() { return petId; }
+    public void setPetId(UUID petId) { this.petId = petId; }
 
-    public String getTutor() {
-        return tutor;
-    }
+    public UUID getProcedureId() { return procedureId; }
+    public void setProcedureId(UUID procedureId) { this.procedureId = procedureId; }
 
-    public void setTutor(String tutor) {
-        this.tutor = tutor;
-    }
+    public String getState() { return state; }
+    public void setState(String state) { this.state = state; }
 
-    public String getPet() {
-        return pet;
-    }
+    public LocalDateTime getDate() { return date; }
+    public void setDate(LocalDateTime date) { this.date = date; }
 
-    public void setPet(String pet) {
-        this.pet = pet;
-    }
-
-    public String getProcedure() {
-        return procedure;
-    }
-
-    public void setProcedure(String procedure) {
-        this.procedure = procedure;
-    }
-
-    public String getState() {
-        return state;
-    }
-
-    public void setState(String state) {
-        this.state = state;
-    }
-
-    public LocalDateTime getDate() {
-        return date;
-    }
-
-    public void setDate(LocalDateTime date) {
-        this.date = date;
-    }
-
-    public Boolean getAuthorized() {
-        return isAuthorized;
-    }
-
-    public void setAuthorized(Boolean authorized) {
-        isAuthorized = authorized;
-    }
+    public Boolean getAuthorized() { return isAuthorized; }
+    public void setAuthorized(Boolean authorized) { isAuthorized = authorized; }
 }

@@ -1,7 +1,11 @@
 package com.uco.ucopetapi.service.order;
 
 import com.uco.ucopetapi.domain.order.OrderDomain;
+import com.uco.ucopetapi.dto.pets.PetDTO;
 import com.uco.ucopetapi.repository.order.IOrderRepository;
+import com.uco.ucopetapi.service.pet.PetService;
+import com.uco.ucopetapi.service.procedure.ProcedureService;
+import com.uco.ucopetapi.service.tutorPet.TutorPetService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -14,9 +18,16 @@ import java.util.UUID;
 public class OrderService {
 
     private final IOrderRepository orderRepository;
+    private final PetService petService;
+    private final ProcedureService procedureService;
+    private final TutorPetService tutorPetService;
 
-    public OrderService(IOrderRepository orderRepository) {
+    public OrderService(IOrderRepository orderRepository, PetService petService,
+                        ProcedureService procedureService, TutorPetService tutorPetService) {
         this.orderRepository = orderRepository;
+        this.petService = petService;
+        this.procedureService = procedureService;
+        this.tutorPetService = tutorPetService;
     }
 
     public List<OrderDomain> findAll() {
@@ -28,38 +39,62 @@ public class OrderService {
     }
 
     public OrderDomain save(OrderDomain order) {
+        if (order.getPetId() == null) {
+            throw new IllegalArgumentException("El ID de la mascota es obligatorio para crear la orden.");
+        }
+
+        if (order.getProcedureId() == null) {
+            throw new IllegalArgumentException("El ID del procedimiento es obligatorio para crear la orden.");
+        }
+
+        if (order.getState() == null) {
+            order.setState("PENDIENTE");
+        }
+        if (order.getAuthorized() == null) {
+            order.setAuthorized(false);
+        }
+
+        procedureService.findById(order.getProcedureId());
+        PetDTO pet = petService.getById(order.getPetId());
+        tutorPetService.findById(pet.getTutorId());
+
+        order.setTutorId(pet.getTutorId());
+        order.setIdOrder(generateNextIdOrder());
+
         if (order.getDate() == null) {
             order.setDate(LocalDateTime.now(ZoneId.of("America/Bogota")));
         }
+
         return orderRepository.save(order);
     }
 
-    public OrderDomain update(UUID id, OrderDomain orderDetails) {
-        return orderRepository.findById(id).map(existingOrder -> {
-            existingOrder.setIdOrder(orderDetails.getIdOrder());
-            existingOrder.setTutor(orderDetails.getTutor());
-            existingOrder.setPet(orderDetails.getPet());
-            existingOrder.setProcedure(orderDetails.getProcedure());
-            existingOrder.setState(orderDetails.getState());
+    public OrderDomain changeProcedure(UUID id, UUID newProcedureId) {
+        if (newProcedureId == null) {
+            throw new IllegalArgumentException("El ID del nuevo procedimiento es obligatorio.");
+        }
 
-            if (orderDetails.getDate() != null) {
-                existingOrder.setDate(orderDetails.getDate());
+        return orderRepository.findById(id).map(order -> {
+            if (!"PENDIENTE".equalsIgnoreCase(order.getState())) {
+                throw new IllegalStateException("No se puede cambiar el procedimiento de una orden que ya fue procesada.");
             }
 
-            existingOrder.setAuthorized(orderDetails.getAuthorized());
+            procedureService.findById(newProcedureId);
 
-            return orderRepository.save(existingOrder);
+            order.setProcedureId(newProcedureId);
+            return orderRepository.save(order);
         }).orElseThrow(() -> new RuntimeException("Orden no encontrada con el ID: " + id));
     }
 
-    public OrderDomain authorize(UUID id, Boolean isAuthorized) {
-        return orderRepository.findById(id).map(existingOrder -> {
-            boolean isApproved = Boolean.TRUE.equals(isAuthorized);
+    public OrderDomain processAuthorization(UUID id, boolean isApproved) {
+        return orderRepository.findById(id).map(order -> {
+            if (!"PENDIENTE".equalsIgnoreCase(order.getState())) {
+                throw new IllegalStateException("La orden ya fue autorizada o rechazada previamente.");
+            }
 
-            existingOrder.setAuthorized(isApproved);
-            existingOrder.setState(isApproved ? "AUTORIZADO" : "RECHAZADO");
+            order.setAuthorized(isApproved);
+            order.setState(isApproved ? "AUTORIZADO" : "DENEGADO");
 
-            return orderRepository.save(existingOrder);
+            return orderRepository.save(order);
         }).orElseThrow(() -> new RuntimeException("Orden no encontrada con el ID: " + id));
     }
 
@@ -68,5 +103,22 @@ public class OrderService {
             throw new RuntimeException("No existe la orden con id: " + id);
         }
         orderRepository.deleteById(id);
+    }
+
+    private String generateNextIdOrder() {
+        return orderRepository.findTopByOrderByDateDesc()
+                .map(lastOrder -> {
+                    try {
+                        String currentCode = lastOrder.getIdOrder();
+                        if (currentCode != null && currentCode.startsWith("ORD-")) {
+                            int number = Integer.parseInt(currentCode.replace("ORD-", ""));
+                            return "ORD-" + (number + 1);
+                        }
+                    } catch (Exception e) {
+                        // Fallback en caso de que la cadena previa no sea numérica
+                    }
+                    return "ORD-" + (orderRepository.count() + 1);
+                })
+                .orElse("ORD-1");
     }
 }
