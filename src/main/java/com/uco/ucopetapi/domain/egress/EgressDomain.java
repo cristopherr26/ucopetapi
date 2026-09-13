@@ -1,6 +1,5 @@
 package com.uco.ucopetapi.domain.egress;
 
-import com.uco.ucopetapi.domain.payMethod.PayMethodDomain;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
@@ -17,40 +16,34 @@ public class EgressDomain {
     @Column(name = "date", nullable = false)
     private LocalDate date;
 
-    /*@ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "provider_id", nullable = false)
-    private ProviderDomain provider;*/
+    @Column(name = "provider", nullable = false)
+    private UUID provider;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "paymethod_id", nullable = false)
-    private PayMethodDomain payMethod;
+    @Column(name = "payMethod", nullable = false)
+    private UUID payMethod;
 
-    @Column(name = "product", nullable = false)
-    private String product;
+    @Column(name = "purchaseOrder", nullable = false)
+    private UUID purchaseOrder;
 
-    @Column(name = "quantity", nullable = false)
-    private Integer quantity;
+    @Column(name = "concept", nullable = false)
+    private String concept;
 
-    @Column(name = "price", nullable = false)
-    private Float price;
-
-    @Column(name = "totalPrice", nullable = false)
-    private Float totalPrice;
+    @Column(name = "total", nullable = false)
+    private Float total;
 
     public EgressDomain(){
     }
 
-    public EgressDomain(UUID id, LocalDate date, /*ProviderDomain provider,*/ PayMethodDomain payMethod,
-                        String product, Integer quantity, Float price, Float totalPrice){
+    public EgressDomain(UUID id, LocalDate date, UUID provider, UUID payMethod,
+                        UUID purchaseOrder, String concept, Float total){
 
         this.id = id;
         this.date = date;
-        //this.provider = provider;
+        this.provider = provider;
         this.payMethod = payMethod;
-        this.product = product;
-        this.quantity = quantity;
-        this.price = price;
-        this.totalPrice = totalPrice;
+        this.purchaseOrder = purchaseOrder;
+        this.concept = concept;
+        this.total = total;
     }
 
     public UUID getId() {
@@ -69,51 +62,43 @@ public class EgressDomain {
         this.date = date;
     }
 
-    /*public ProviderDomain getProvider() {
+    public UUID getProvider() {
         return provider;
     }
 
-    public void setProvider(ProviderDomain provider) {
+    public void setProvider(UUID provider) {
         this.provider = provider;
-    }*/
+    }
 
-    public PayMethodDomain getPayMethod() {
+    public UUID getPayMethod() {
         return payMethod;
     }
 
-    public void setPayMethod(PayMethodDomain payMethod) {
+    public void setPayMethod(UUID payMethod) {
         this.payMethod = payMethod;
     }
 
-    public String getProduct() {
-        return product;
+    public UUID getPurchaseOrder() {
+        return purchaseOrder;
     }
 
-    public void setProduct(String product) {
-        this.product = product;
+    public void setPurchaseOrder(UUID purchaseOrder) {
+        this.purchaseOrder = purchaseOrder;
     }
 
-    public Integer getQuantity() {
-        return quantity;
+    public String getConcept() {
+        return concept;
     }
 
-    public void setQuantity(Integer quantity) {
-        this.quantity = quantity;
+    public void setConcept(String concept) {
+        this.concept = concept;
     }
 
-    public Float getPrice() {
-        return price;
+    public Float getTotal() {
+        return total;
     }
 
-    public void setPrice(Float price) {
-        this.price = price;
-    }
-
-    public Float getTotalPrice() {
-        return totalPrice;
-    }
-
-    public void setTotalPrice(Float totalPrice) {
-        this.totalPrice = totalPrice;
+    public void setTotal(Float total) {
+        this.total = total;
     }
 }

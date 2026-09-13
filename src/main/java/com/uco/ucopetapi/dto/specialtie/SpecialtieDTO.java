@@ -1,7 +1,5 @@
 package com.uco.ucopetapi.dto.specialtie;
 
-import com.uco.ucopetapi.dto.certificate.CertificateDTO;
-
 import java.util.UUID;
 
 public class SpecialtieDTO {
@@ -10,13 +8,13 @@ public class SpecialtieDTO {
     private String name;
     private String description;
     private boolean isActive;
-    private CertificateDTO certificate;
+    private UUID certificate;
 
     public SpecialtieDTO() {
     }
 
     public SpecialtieDTO(final UUID id, final String name, final boolean isActive,
-                         final String description, final CertificateDTO certificate) {
+                         final String description, final UUID certificate) {
         setId(id);
         setName(name);
         setActive(isActive);
@@ -32,11 +30,11 @@ public class SpecialtieDTO {
         this.id = id;
     }
 
-    public CertificateDTO getCertificate() {
+    public UUID getCertificate() {
         return certificate;
     }
 
-    public void setCertificate(final CertificateDTO certificate) {
+    public void setCertificate(final UUID certificate) {
         this.certificate = certificate;
     }
 
