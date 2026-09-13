@@ -5,6 +5,7 @@ public enum NotificationType {
     ORDER_AUTHORIZED,
     ORDER_REJECTED,
     ORDER_PENDING,
-    LOGIN_SUCCEDED,
+    LOGIN_SUCCEDED
+
 
 }

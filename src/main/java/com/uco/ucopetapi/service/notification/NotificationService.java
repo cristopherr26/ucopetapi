@@ -24,7 +24,7 @@ public class NotificationService {
 
     public void create(UUID personId, String title, String message,
                        NotificationType type, UUID referenceId, String referenceType) {
-
+        System.out.println("Llegue");
         PersonDomain person = personRepository.findById(personId)
                 .orElseThrow(() -> new RuntimeException("Person not found: " + personId));
 

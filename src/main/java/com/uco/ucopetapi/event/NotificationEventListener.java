@@ -3,7 +3,9 @@ package com.uco.ucopetapi.event;
 import com.uco.ucopetapi.model.notification.enums.NotificationType;
 import com.uco.ucopetapi.service.notification.NotificationService;
 import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
 
+@Component
 public class NotificationEventListener {
     private final NotificationService notificationService;
 
@@ -25,25 +27,17 @@ public class NotificationEventListener {
 
     @EventListener
     public void onOrderStatus(OrderStatusEvent event) {
-        if (event.isAuthorized()) {
-            notificationService.create(
-                    event.getPersonId(),
-                    "Orden autorizada",
-                    "Tu orden ha sido aprobada y está en proceso.",
-                    NotificationType.ORDER_AUTHORIZED,
-                    event.getOrderId(),
-                    "ORDER"
-            );
-        } else {
-            notificationService.create(
-                    event.getPersonId(),
-                    "Orden rechazada",
-                    "Tu orden no pudo ser aprobada. Contáctanos para más información.",
-                    NotificationType.ORDER_REJECTED,
-                    event.getOrderId(),
-                    "ORDER"
-            );
-        }
+
+        notificationService.create(
+                event.getPersonId(),
+                "Cambio estado en la orden",
+                event.isAuthorized()
+                        ? "Tu orden fue aprobada y está en proceso."
+                        : "Tu orden no pudo ser aprobada. Contáctanos.",
+                event.isAuthorized() ? NotificationType.ORDER_AUTHORIZED : NotificationType.ORDER_REJECTED,
+                event.getOrderId(),
+                "ORDER"
+        );
     }
 
     @EventListener
