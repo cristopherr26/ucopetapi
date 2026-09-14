@@ -10,5 +10,4 @@ import java.util.UUID;
 @Repository
 public interface IOrderRepository extends JpaRepository<OrderDomain, UUID> {
 
-    Optional<OrderDomain> findTopByOrderByDateDesc();
 }

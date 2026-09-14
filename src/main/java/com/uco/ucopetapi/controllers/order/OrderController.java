@@ -3,8 +3,7 @@ package com.uco.ucopetapi.controllers.order;
 import com.uco.ucopetapi.domain.order.OrderDomain;
 import com.uco.ucopetapi.domain.order.mapper.OrderMapper;
 import com.uco.ucopetapi.dto.order.OrderDTO;
-import com.uco.ucopetapi.service.order.OrderService;
-import jakarta.validation.Valid;
+import com.uco.ucopetapi.service.order.IOrderService; // <-- Importas la interfaz
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,10 +15,10 @@ import java.util.UUID;
 @RequestMapping("/api/v1/orders")
 public class OrderController {
 
-    private final OrderService orderService;
+    private final IOrderService orderService;
     private final OrderMapper orderMapper;
 
-    public OrderController(OrderService orderService, OrderMapper orderMapper) {
+    public OrderController(IOrderService orderService, OrderMapper orderMapper) {
         this.orderService = orderService;
         this.orderMapper = orderMapper;
     }
@@ -35,14 +34,12 @@ public class OrderController {
 
     @GetMapping("/{id}")
     public ResponseEntity<OrderDTO> findOrderById(@PathVariable UUID id) {
-        return orderService.findById(id)
-                .map(orderMapper::toDTO)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        OrderDomain order = orderService.findById(id);
+        return ResponseEntity.ok(orderMapper.toDTO(order));
     }
 
     @PostMapping
-    public ResponseEntity<OrderDTO> createNewOrder(@Valid @RequestBody OrderDTO orderDto) {
+    public ResponseEntity<OrderDTO> createNewOrder(@RequestBody OrderDTO orderDto) {
         OrderDomain savedDomain = orderService.save(orderMapper.toDomain(orderDto));
         return ResponseEntity.status(HttpStatus.CREATED).body(orderMapper.toDTO(savedDomain));
     }
@@ -50,18 +47,18 @@ public class OrderController {
     @PatchMapping("/{id}/procedure")
     public ResponseEntity<OrderDTO> changeProcedure(
             @PathVariable UUID id,
-            @RequestParam UUID procedureId) {
+            @RequestBody OrderDTO orderDto) {
 
-        OrderDomain updatedDomain = orderService.changeProcedure(id, procedureId);
+        OrderDomain updatedDomain = orderService.changeProcedure(id, orderDto.getProcedureId());
         return ResponseEntity.ok(orderMapper.toDTO(updatedDomain));
     }
 
     @PatchMapping("/{id}/authorize")
     public ResponseEntity<OrderDTO> authorizeOrder(
             @PathVariable UUID id,
-            @RequestParam Boolean isAuthorized) {
+            @RequestBody OrderDTO orderDto) {
 
-        OrderDomain authorizedDomain = orderService.processAuthorization(id, isAuthorized);
+        OrderDomain authorizedDomain = orderService.processAuthorization(id, orderDto.getIsAuthorized());
         return ResponseEntity.ok(orderMapper.toDTO(authorizedDomain));
     }
 

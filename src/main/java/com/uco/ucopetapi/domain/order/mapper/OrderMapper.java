@@ -18,7 +18,7 @@ public class OrderMapper {
                 domain.getProcedureId(),
                 domain.getState(),
                 domain.getDate(),
-                domain.getAuthorized()
+                domain.getIsAuthorized()
         );
     }
 
@@ -33,7 +33,7 @@ public class OrderMapper {
                 dto.getProcedureId(),
                 dto.getState(),
                 dto.getDate(),
-                dto.getAuthorized()
+                dto.getIsAuthorized()
         );
     }
 }
