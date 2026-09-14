@@ -21,7 +21,9 @@ public record PurchaseResponseDTO(
         UUID headquarterId,
         Boolean hasDiscount,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        RelatedEntityDTO createdBy,
+        RelatedEntityDTO updatedBy
 ) {
     public record RelatedEntityDTO(UUID id, String name) {
     }

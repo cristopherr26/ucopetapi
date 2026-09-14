@@ -11,6 +11,7 @@ import com.uco.ucopetapi.dto.purchases.PurchaseResponseDTO.Item;
 import com.uco.ucopetapi.dto.purchases.PurchaseResponseDTO.RelatedEntityDTO;
 import com.uco.ucopetapi.repository.purchases.PurchaseItemRepository;
 import com.uco.ucopetapi.repository.purchases.PurchaseRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -72,6 +73,7 @@ public class PurchaseServiceImpl implements PurchaseService {
                 .orElseThrow(NoSuchElementException::new);
         purchase.setStatus(PurchaseStatus.RECEIVED);
         purchase.setUpdatedAt(LocalDateTime.now());
+        purchase.setUpdatedByPersonId(currentPersonId());
         Purchase saved = purchaseRepository.save(purchase);
         return toResponseDTO(saved);
     }
@@ -82,6 +84,7 @@ public class PurchaseServiceImpl implements PurchaseService {
                 .orElseThrow(NoSuchElementException::new);
         purchase.setStatus(PurchaseStatus.CANCELLED);
         purchase.setUpdatedAt(LocalDateTime.now());
+        purchase.setUpdatedByPersonId(currentPersonId());
         Purchase saved = purchaseRepository.save(purchase);
         return toResponseDTO(saved);
     }
@@ -93,8 +96,13 @@ public class PurchaseServiceImpl implements PurchaseService {
         purchase.setExpenseId(request.expenseId());
         purchase.setStatus(PurchaseStatus.LINKED);
         purchase.setUpdatedAt(LocalDateTime.now());
+        purchase.setUpdatedByPersonId(currentPersonId());
         Purchase saved = purchaseRepository.save(purchase);
         return toResponseDTO(saved);
+    }
+
+    private UUID currentPersonId() {
+        return UUID.fromString(SecurityContextHolder.getContext().getAuthentication().getName());
     }
 
     private Purchase toEntity(PurchaseRequestDTO request) {
@@ -107,6 +115,9 @@ public class PurchaseServiceImpl implements PurchaseService {
         purchase.setStatus(PurchaseStatus.PENDING);
         purchase.setCreatedAt(LocalDateTime.now());
         purchase.setUpdatedAt(LocalDateTime.now());
+        UUID currentPersonId = currentPersonId();
+        purchase.setCreatedByPersonId(currentPersonId);
+        purchase.setUpdatedByPersonId(currentPersonId);
 
         List<PurchaseItem> items = request.items().stream()
                 .map(itemRequest -> toItemEntity(itemRequest, purchase))
@@ -154,7 +165,9 @@ public class PurchaseServiceImpl implements PurchaseService {
                 purchase.getHeadquarterId(),
                 purchase.isHasDiscount(),
                 purchase.getCreatedAt(),
-                purchase.getUpdatedAt()
+                purchase.getUpdatedAt(),
+                new RelatedEntityDTO(purchase.getCreatedByPersonId(), null),
+                new RelatedEntityDTO(purchase.getUpdatedByPersonId(), null)
         );
     }
 
