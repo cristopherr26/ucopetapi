@@ -1,72 +1,123 @@
 package com.uco.ucopetapi.service.order;
 
 import com.uco.ucopetapi.domain.order.OrderDomain;
+import com.uco.ucopetapi.domain.order.OrderState;
+import com.uco.ucopetapi.dto.pets.PetDTO;
 import com.uco.ucopetapi.repository.order.IOrderRepository;
+import com.uco.ucopetapi.service.order.exception.InvalidOrderRequestException;
+import com.uco.ucopetapi.service.order.exception.InvalidOrderStateException;
+import com.uco.ucopetapi.service.order.exception.OrderNotFoundException;
+import com.uco.ucopetapi.service.pet.PetService;
+import com.uco.ucopetapi.service.procedure.ProcedureService;
+import com.uco.ucopetapi.service.tutorPet.TutorPetService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class OrderService {
+public class OrderService implements IOrderService {
 
     private final IOrderRepository orderRepository;
+    private final PetService petService;
+    private final ProcedureService procedureService;
+    private final TutorPetService tutorPetService;
 
-    public OrderService(IOrderRepository orderRepository) {
+    public OrderService(IOrderRepository orderRepository, PetService petService,
+                        ProcedureService procedureService, TutorPetService tutorPetService) {
         this.orderRepository = orderRepository;
+        this.petService = petService;
+        this.procedureService = procedureService;
+        this.tutorPetService = tutorPetService;
     }
 
+    @Override
     public List<OrderDomain> findAll() {
         return orderRepository.findAll();
     }
 
-    public Optional<OrderDomain> findById(UUID id) {
-        return orderRepository.findById(id);
+    @Override
+    public OrderDomain findById(UUID id) {
+        return orderRepository.findById(id)
+                .orElseThrow(() -> new OrderNotFoundException("No existe una orden con id " + id));
     }
 
+    @Override
     public OrderDomain save(OrderDomain order) {
-        if (order.getDate() == null) {
-            order.setDate(LocalDateTime.now(ZoneId.of("America/Bogota")));
-        }
+        validateRequiredFieldsForCreation(order);
+
+        initializeDefaultValues(order);
+
+        procedureService.findById(order.getProcedureId());
+        PetDTO pet = petService.getById(order.getPetId());
+        tutorPetService.findById(pet.getTutorId());
+
+        order.setTutorId(pet.getTutorId());
+
         return orderRepository.save(order);
     }
 
-    public OrderDomain update(UUID id, OrderDomain orderDetails) {
-        return orderRepository.findById(id).map(existingOrder -> {
-            existingOrder.setIdOrder(orderDetails.getIdOrder());
-            existingOrder.setTutor(orderDetails.getTutor());
-            existingOrder.setPet(orderDetails.getPet());
-            existingOrder.setProcedure(orderDetails.getProcedure());
-            existingOrder.setState(orderDetails.getState());
-
-            if (orderDetails.getDate() != null) {
-                existingOrder.setDate(orderDetails.getDate());
-            }
-
-            existingOrder.setAuthorized(orderDetails.getAuthorized());
-
-            return orderRepository.save(existingOrder);
-        }).orElseThrow(() -> new RuntimeException("Orden no encontrada con el ID: " + id));
-    }
-
-    public OrderDomain authorize(UUID id, Boolean isAuthorized) {
-        return orderRepository.findById(id).map(existingOrder -> {
-            boolean isApproved = Boolean.TRUE.equals(isAuthorized);
-
-            existingOrder.setAuthorized(isApproved);
-            existingOrder.setState(isApproved ? "AUTORIZADO" : "RECHAZADO");
-
-            return orderRepository.save(existingOrder);
-        }).orElseThrow(() -> new RuntimeException("Orden no encontrada con el ID: " + id));
-    }
-
-    public void delete(UUID id) {
-        if (!orderRepository.existsById(id)) {
-            throw new RuntimeException("No existe la orden con id: " + id);
+    @Override
+    public OrderDomain changeProcedure(UUID id, UUID newProcedureId) {
+        if (newProcedureId == null) {
+            throw new InvalidOrderRequestException("El ID del nuevo procedimiento es obligatorio.");
         }
-        orderRepository.deleteById(id);
+
+        OrderDomain order = findById(id);
+        requireStatus(order, OrderState.PENDIENTE, "cambiar el procedimiento de");
+
+        if (newProcedureId.equals(order.getProcedureId())) {
+            throw new InvalidOrderRequestException("El nuevo procedimiento debe ser diferente al actual.");
+        }
+
+        procedureService.findById(newProcedureId);
+        order.setProcedureId(newProcedureId);
+
+        return orderRepository.save(order);
+    }
+
+    @Override
+    public OrderDomain processAuthorization(UUID id, boolean isApproved) {
+        OrderDomain order = findById(id);
+        requireStatus(order, OrderState.PENDIENTE, "procesar la autorización de");
+
+        order.setIsAuthorized(isApproved);
+        order.setState(isApproved ? OrderState.AUTORIZADO : OrderState.DENEGADO);
+
+        return orderRepository.save(order);
+    }
+
+    @Override
+    public void delete(UUID id) {
+        OrderDomain order = findById(id);
+        requireStatus(order, OrderState.PENDIENTE, "eliminar");
+        orderRepository.delete(order);
+    }
+
+
+    private void requireStatus(OrderDomain order, OrderState required, String accion) {
+        if (order.getState() == null || order.getState() != required) {
+            throw new InvalidOrderStateException(
+                    "Solo se puede " + accion + " una orden en estado " + required +
+                            ". Estado actual: " + order.getState()
+            );
+        }
+    }
+
+    private void validateRequiredFieldsForCreation(OrderDomain order) {
+        if (order.getPetId() == null) {
+            throw new InvalidOrderRequestException("El ID de la mascota es obligatorio para crear la orden.");
+        }
+        if (order.getProcedureId() == null) {
+            throw new InvalidOrderRequestException("El ID del procedimiento es obligatorio para crear la orden.");
+        }
+    }
+
+    private void initializeDefaultValues(OrderDomain order) {
+        order.setState(OrderState.PENDIENTE);
+        order.setIsAuthorized(false);
+        order.setDate(LocalDateTime.now(ZoneId.of("America/Bogota")));
     }
 }
