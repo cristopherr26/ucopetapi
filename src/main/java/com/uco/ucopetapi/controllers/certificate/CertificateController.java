@@ -1,6 +1,5 @@
 package com.uco.ucopetapi.controllers.certificate;
 
-import com.uco.ucopetapi.domain.certificate.CertificateDomain;
 import com.uco.ucopetapi.dto.certificate.CertificateDTO;
 import com.uco.ucopetapi.service.certificate.CertificateService;
 import org.springframework.http.ResponseEntity;
@@ -9,10 +8,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.stream.Collectors;
+
 
 @RestController
-@RequestMapping("/api/v1/certificate")
+@RequestMapping("/api/v1/certificates")
 public class CertificateController {
 
     private final CertificateService certificateService;
@@ -22,11 +21,9 @@ public class CertificateController {
     }
 
     @GetMapping
-    public ResponseEntity<List<CertificateDTO>> getAllSpaces() {
-        List<CertificateDomain> domains = certificateService.getAllCertificates();
-        List<CertificateDTO> dtos = domains.stream()
-                .map(d -> new CertificateDTO(d.getId(), d.getName(), d.getDescription()))
-                .collect(Collectors.toList());
+    public ResponseEntity<List<CertificateDTO>> getAllCertificates() {
+
+        List<CertificateDTO> dtos = certificateService.getAllCertificates();
         return ResponseEntity.ok(dtos);
     }
 }
