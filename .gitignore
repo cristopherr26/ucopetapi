@@ -53,4 +53,6 @@ out/
 # Opcional, para quien lo quiera: Spring Boot lee config/application.properties
 # y le gana al del repo. Sirve para fijar UCOPET_JWT_SECRET en la propia maquina
 # y que los tokens sobrevivan a los reinicios. Nunca se versiona.
-config/
+# La barra inicial es obligatoria: sin ella tambien ignoraria el paquete
+# src/main/java/com/uco/ucopetapi/config/
+/config/

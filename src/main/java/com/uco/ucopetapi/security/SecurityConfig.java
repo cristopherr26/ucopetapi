@@ -31,19 +31,19 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableMethodSecurity
 public class SecurityConfig {
     private static final String PERSONS = "/api/v1/persons";
-    private static final String PERSONS_TODO = PERSONS + "/**";
+    private static final String PERSONS_ALL = PERSONS + "/**";
 
-    private static final String[] USUARIOS = {
+    private static final String[] USERS = {
         "/api/v1/doctor", "/api/v1/doctor/**",
         "/api/v1/pets", "/api/v1/pets/**",
         "/api/v1/tutorPet", "/api/v1/tutorPet/**"
     };
 
-    private static final String[] NOTIFICACIONES = {
+    private static final String[] NOTIFICATIONS = {
         "/api/notifications", "/api/notifications/**"
     };
 
-    private static final String[] SALUD = {
+    private static final String[] HEALTH = {
         "/api/v1/appointments", "/api/v1/appointments/**",
         "/api/v1/certificate", "/api/v1/certificate/**",
         "/api/v1/episodes", "/api/v1/episodes/**",
@@ -56,18 +56,18 @@ public class SecurityConfig {
         "/api/v1/vitalsigns", "/api/v1/vitalsigns/**"
     };
 
-    private static final String[] COMERCIAL = {
+    private static final String[] COMMERCIAL = {
         "/api/v1/healthplans", "/api/v1/healthplans/**",
         "/api/v1/providers", "/api/v1/providers/**",
         "/api/v1/purchases", "/api/v1/purchases/**"
     };
 
-    private static final String[] INVENTARIO = {
+    private static final String[] INVENTORY = {
         "/api/headquarter", "/api/headquarter/**",
         "/api/transfers", "/api/transfers/**"
     };
 
-    private static final String[] PAGOS = {
+    private static final String[] PAYMENTS = {
         "/api/invoices", "/api/invoices/**",
         "/api/v1/Egresses", "/api/v1/newEgress", "/api/v1/metodosDePago",
         "/api/v1/receipts", "/api/v1/receipts/**"
@@ -75,13 +75,13 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    private final List<String> origenesPermitidos;
+    private final List<String> allowedOrigins;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                           @Value("${ucopet.cors.allowed-origins:http://localhost:4200}")
-                          List<String> origenesPermitidos) {
+                          List<String> allowedOrigins) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.origenesPermitidos = origenesPermitidos;
+        this.allowedOrigins = allowedOrigins;
     }
 
     @Bean
@@ -97,22 +97,22 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.GET, PERSONS + "/me").authenticated()
                     .requestMatchers(HttpMethod.POST, PERSONS + "/logout").authenticated()
                     .requestMatchers(HttpMethod.POST, PERSONS).hasRole(Role.ADMIN.name())
-                    .requestMatchers(HttpMethod.DELETE, PERSONS_TODO).hasRole(Role.ADMIN.name())
-                    .requestMatchers(HttpMethod.GET, PERSONS, PERSONS_TODO)
+                    .requestMatchers(HttpMethod.DELETE, PERSONS_ALL).hasRole(Role.ADMIN.name())
+                    .requestMatchers(HttpMethod.GET, PERSONS, PERSONS_ALL)
                             .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
-                    .requestMatchers(PERSONS, PERSONS_TODO).authenticated()
+                    .requestMatchers(PERSONS, PERSONS_ALL).authenticated()
 
-                    .requestMatchers(NOTIFICACIONES).authenticated()
-                    .requestMatchers(HttpMethod.GET, USUARIOS)
+                    .requestMatchers(NOTIFICATIONS).authenticated()
+                    .requestMatchers(HttpMethod.GET, USERS)
                             .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
-                    .requestMatchers(USUARIOS).hasRole(Role.ADMIN.name())
+                    .requestMatchers(USERS).hasRole(Role.ADMIN.name())
 
-                    .requestMatchers(SALUD)
+                    .requestMatchers(HEALTH)
                             .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
 
-                    .requestMatchers(COMERCIAL).hasRole(Role.ADMIN.name())
-                    .requestMatchers(INVENTARIO).hasRole(Role.ADMIN.name())
-                    .requestMatchers(PAGOS).hasRole(Role.ADMIN.name())
+                    .requestMatchers(COMMERCIAL).hasRole(Role.ADMIN.name())
+                    .requestMatchers(INVENTORY).hasRole(Role.ADMIN.name())
+                    .requestMatchers(PAYMENTS).hasRole(Role.ADMIN.name())
 
                     .anyRequest().authenticated())
             .exceptionHandling(e -> e.authenticationEntryPoint(
@@ -132,7 +132,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(origenesPermitidos);
+        config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setExposedHeaders(List.of("Location"));

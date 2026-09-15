@@ -1,7 +1,7 @@
 # Colección de Postman — Person + Login
 
 **Importable directo.** Cubre el CRUD de `Person`, el login, el token, la autorización y los bugs
-ya corregidos: **94 peticiones, 609 comprobaciones.**
+ya corregidos, en **94 peticiones**.
 
 ## Levantarlo
 
@@ -18,7 +18,7 @@ correo:     admin@ucopet.com
 contrasena: UcopetAdmin2026*
 ```
 
-> ⚠️ **Esa clave está en el repositorio: cualquiera que lo lea la sabe.** Es una cuenta de arranque
+> **Importante: esa clave está en el repositorio: cualquiera que lo lea la sabe.** Es una cuenta de arranque
 > para desarrollo local, no una credencial. **Entrá con ella, creá tu propio usuario y cambiale la
 > contraseña a esta.** Y si algún día esto se despliega, tiene que arrancar con
 > `UCOPET_ADMIN_PASSWORD=<algo que nadie haya visto>`.
