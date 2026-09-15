@@ -3,9 +3,10 @@ package com.uco.ucopetapi.controllers.order;
 import com.uco.ucopetapi.domain.order.OrderDomain;
 import com.uco.ucopetapi.domain.order.mapper.OrderMapper;
 import com.uco.ucopetapi.dto.order.OrderDTO;
-import com.uco.ucopetapi.service.order.IOrderService; // <-- Importas la interfaz
+import com.uco.ucopetapi.service.order.IOrderService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -54,6 +55,7 @@ public class OrderController {
     }
 
     @PatchMapping("/{id}/authorize")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrderDTO> authorizeOrder(
             @PathVariable UUID id,
             @RequestBody OrderDTO orderDto) {
@@ -63,6 +65,7 @@ public class OrderController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteOrder(@PathVariable UUID id) {
         orderService.delete(id);
         return ResponseEntity.noContent().build();

@@ -2,6 +2,7 @@ package com.uco.ucopetapi.service.order;
 
 import com.uco.ucopetapi.domain.order.OrderDomain;
 import com.uco.ucopetapi.domain.order.OrderState;
+import com.uco.ucopetapi.domain.procedure.ProcedureDomain;
 import com.uco.ucopetapi.dto.pets.PetDTO;
 import com.uco.ucopetapi.repository.order.IOrderRepository;
 import com.uco.ucopetapi.service.order.exception.InvalidOrderRequestException;
@@ -10,6 +11,8 @@ import com.uco.ucopetapi.service.order.exception.OrderNotFoundException;
 import com.uco.ucopetapi.service.pet.PetService;
 import com.uco.ucopetapi.service.procedure.ProcedureService;
 import com.uco.ucopetapi.service.tutorPet.TutorPetService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -24,6 +27,9 @@ public class OrderService implements IOrderService {
     private final PetService petService;
     private final ProcedureService procedureService;
     private final TutorPetService tutorPetService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public OrderService(IOrderRepository orderRepository, PetService petService,
                         ProcedureService procedureService, TutorPetService tutorPetService) {
@@ -73,7 +79,7 @@ public class OrderService implements IOrderService {
         }
 
         procedureService.findById(newProcedureId);
-        order.setProcedureId(newProcedureId);
+        order.setProcedure(entityManager.getReference(ProcedureDomain.class, newProcedureId));
 
         return orderRepository.save(order);
     }

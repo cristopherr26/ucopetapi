@@ -1,12 +1,17 @@
 package com.uco.ucopetapi.domain.order;
 
+import com.uco.ucopetapi.domain.pet.PetDomain;
+import com.uco.ucopetapi.domain.procedure.ProcedureDomain;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Generated;
 import org.hibernate.generator.EventType;
@@ -30,11 +35,13 @@ public class OrderDomain {
     @Column(name = "tutor_id", nullable = false)
     private UUID tutorId;
 
-    @Column(name = "pet_id", nullable = false)
-    private UUID petId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pet_id", nullable = false)
+    private PetDomain pet;
 
-    @Column(name = "procedure_id", nullable = false)
-    private UUID procedureId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "procedure_id", nullable = false)
+    private ProcedureDomain procedure;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "state", nullable = false)
@@ -50,13 +57,13 @@ public class OrderDomain {
     }
 
     @SuppressWarnings("java:S107")
-    public OrderDomain(UUID id, Long idOrder, UUID tutorId, UUID petId, UUID procedureId,
+    public OrderDomain(UUID id, Long idOrder, UUID tutorId, PetDomain pet, ProcedureDomain procedure,
                        OrderState state, LocalDateTime date, Boolean isAuthorized) {
         this.id = id;
         this.idOrder = idOrder;
         this.tutorId = tutorId;
-        this.petId = petId;
-        this.procedureId = procedureId;
+        this.pet = pet;
+        this.procedure = procedure;
         this.state = state;
         this.date = date;
         this.isAuthorized = isAuthorized;
@@ -71,11 +78,13 @@ public class OrderDomain {
     public UUID getTutorId() { return tutorId; }
     public void setTutorId(UUID tutorId) { this.tutorId = tutorId; }
 
-    public UUID getPetId() { return petId; }
-    public void setPetId(UUID petId) { this.petId = petId; }
+    public PetDomain getPet() { return pet; }
+    public void setPet(PetDomain pet) { this.pet = pet; }
+    public UUID getPetId() { return pet != null ? pet.getId() : null; }
 
-    public UUID getProcedureId() { return procedureId; }
-    public void setProcedureId(UUID procedureId) { this.procedureId = procedureId; }
+    public ProcedureDomain getProcedure() { return procedure; }
+    public void setProcedure(ProcedureDomain procedure) { this.procedure = procedure; }
+    public UUID getProcedureId() { return procedure != null ? procedure.getId() : null; }
 
     public OrderState getState() { return state; }
     public void setState(OrderState state) { this.state = state; }
