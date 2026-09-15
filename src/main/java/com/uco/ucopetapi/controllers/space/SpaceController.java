@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/spaces")
@@ -28,7 +27,7 @@ public class SpaceController {
         List<SpaceDomain> domains = spaceService.getAllSpaces();
         List<SpaceDTO> dtos = domains.stream()
                 .map(d -> new SpaceDTO(d.getId(), d.getCode(), d.getType(), d.getDescription(), d.getActive()))
-                .collect(Collectors.toList());
+                .toList();
         return ResponseEntity.ok(dtos);
     }
 
@@ -51,7 +50,7 @@ public class SpaceController {
         List<SpaceDomain> domains = spaceService.getSpacesByType(type);
         List<SpaceDTO> dtos = domains.stream()
                 .map(d -> new SpaceDTO(d.getId(), d.getCode(), d.getType(), d.getDescription(), d.getActive()))
-                .collect(Collectors.toList());
+                .toList();
 
         return ResponseEntity.ok(dtos);
     }
@@ -62,7 +61,7 @@ public class SpaceController {
         List<SpaceDomain> domains = spaceService.getSpacesByStatus(active);
         List<SpaceDTO> dtos = domains.stream()
                 .map(d -> new SpaceDTO(d.getId(), d.getCode(), d.getType(), d.getDescription(), d.getActive()))
-                .collect(Collectors.toList());
+                .toList();
 
         return ResponseEntity.ok(dtos);
     }
@@ -70,14 +69,8 @@ public class SpaceController {
     // 2. POST: Crear
     @PostMapping
     public ResponseEntity<SpaceDTO> createSpace(@RequestBody SpaceDTO spaceDTO) {
-        String code = (spaceDTO != null && spaceDTO.getCode() != null) ? spaceDTO.getCode() : "ESP-01";
-        String type = (spaceDTO != null && spaceDTO.getType() != null) ? spaceDTO.getType() : "Peluquería";
-        String description = (spaceDTO != null && spaceDTO.getDescription() != null) ? spaceDTO.getDescription() : "Zona de baño";
-        Boolean active = (spaceDTO != null && spaceDTO.isActive() != null) ? spaceDTO.isActive() : true;
-
-        SpaceDomain domainIn = new SpaceDomain(null, code, type, description, active);
+        SpaceDomain domainIn = new SpaceDomain(null, spaceDTO.getCode(), spaceDTO.getType(), spaceDTO.getDescription(), spaceDTO.isActive());
         SpaceDomain domainOut = spaceService.createSpace(domainIn);
-
         SpaceDTO dtoOut = new SpaceDTO(domainOut.getId(), domainOut.getCode(), domainOut.getType(), domainOut.getDescription(), domainOut.getActive());
         return ResponseEntity.status(HttpStatus.CREATED).body(dtoOut);
     }
