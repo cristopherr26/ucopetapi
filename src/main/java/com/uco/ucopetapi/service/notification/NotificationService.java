@@ -24,7 +24,6 @@ public class NotificationService {
 
     public void create(UUID personId, String title, String message,
                        NotificationType type, UUID referenceId, String referenceType) {
-        System.out.println("Llegue");
         PersonDomain person = personRepository.findById(personId)
                 .orElseThrow(() -> new RuntimeException("Person not found: " + personId));
 
@@ -75,16 +74,16 @@ public class NotificationService {
     }
 
     private NotificationDTO toDTO(NotificationDomain n) {
-        return new NotificationDTO(
-                n.getId(),
-                n.getPerson().getId(),
-                n.getTitle(),
-                n.getMessage(),
-                n.isRead(),
-                n.getType(),
-                n.getReferenceId(),
-                n.getReferenceType(),
-                n.getCreatedAt()
-        );
+        return NotificationDTO.builder()
+                .id(n.getId())
+                .personId(n.getPerson().getId())
+                .title(n.getTitle())
+                .message(n.getMessage())
+                .isRead(n.isRead())
+                .type(n.getType())
+                .referenceId(n.getReferenceId())
+                .referenceType(n.getReferenceType())
+                .createdAt(n.getCreatedAt())
+                .build();
     }
 }

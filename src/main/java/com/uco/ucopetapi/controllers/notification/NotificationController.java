@@ -1,12 +1,10 @@
 package com.uco.ucopetapi.controllers.notification;
 
 import com.uco.ucopetapi.dto.notification.NotificationDTO;
-import com.uco.ucopetapi.model.notification.enums.NotificationType;
 import com.uco.ucopetapi.service.notification.NotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 

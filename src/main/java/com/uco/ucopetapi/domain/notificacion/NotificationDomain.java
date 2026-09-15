@@ -5,6 +5,7 @@ import com.uco.ucopetapi.domain.person.PersonDomain;
 import com.uco.ucopetapi.model.notification.enums.NotificationType;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 
 @Entity
@@ -43,7 +44,7 @@ public class NotificationDomain {
 
     @PrePersist
     public void prePersist() {
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now(ZoneId.of("America/Bogota"));
     }
 
     // Business methods
