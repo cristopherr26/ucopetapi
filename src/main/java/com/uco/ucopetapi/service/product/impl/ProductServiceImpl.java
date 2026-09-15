@@ -6,38 +6,42 @@ import com.uco.ucopetapi.dto.product.AssociatedSupplierDTO;
 import com.uco.ucopetapi.dto.product.ProductDTO;
 import com.uco.ucopetapi.repository.product.ProductProviderRepository;
 import com.uco.ucopetapi.repository.product.ProductRepository;
-import com.uco.ucopetapi.repository.product.StockRepository;
 import com.uco.ucopetapi.repository.provider.ProviderJPARepository;
 import com.uco.ucopetapi.service.product.ProductService;
+import com.uco.ucopetapi.service.product.StockService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.uco.ucopetapi.domain.product.enums.ProductCategory;
+import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
-    private final StockRepository stockRepository;
     private final ProductProviderRepository productProviderRepository;
     private final ProviderJPARepository providerRepository;
+    private final StockService stockService;
 
     public ProductServiceImpl(ProductRepository productRepository,
-                              StockRepository stockRepository,
                               ProductProviderRepository productProviderRepository,
-                              ProviderJPARepository providerRepository) {
+                              ProviderJPARepository providerRepository,
+                              StockService stockService) {
         this.productRepository = productRepository;
-        this.stockRepository = stockRepository;
         this.productProviderRepository = productProviderRepository;
         this.providerRepository = providerRepository;
+        this.stockService = stockService;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProductDTO> list(ProductType type, ProductStatus status, String category, UUID headquarterId) {
-        return productRepository.findByFilter(type, category, status).stream()
+    public List<ProductDTO> list(ProductCategory category, Boolean active, Boolean sellable, TaxCategory taxCategory, UUID headquarterId) {
+        return productRepository.findByFilter(category, active, sellable, taxCategory).stream()
                 .map(product -> toDto(product, headquarterId))
                 .toList();
     }
@@ -56,11 +60,12 @@ public class ProductServiceImpl implements ProductService {
                 UUID.randomUUID(),
                 request.getName(),
                 request.getDescription(),
-                request.getType(),
-                request.getCategory(),
-                request.getSalePrice(),
-                ProductStatus.ACTIVE,
-                request.getImageUrl()
+                request.getImageUrl(),
+                request.getPrice(),
+                request.getTaxCategory(),
+                request.getSellable(),
+                true,
+                request.getCategory()
         );
         product = productRepository.save(product);
         saveProviderAssociations(product, request.getProviders());
@@ -79,17 +84,20 @@ public class ProductServiceImpl implements ProductService {
         if (request.getDescription() != null) {
             product.setDescription(request.getDescription());
         }
-        if (request.getType() != null) {
-            product.setType(request.getType());
-        }
         if (request.getCategory() != null) {
             product.setCategory(request.getCategory());
         }
-        if (request.getSalePrice() != null) {
-            product.setSalePrice(request.getSalePrice());
+        if (request.getPrice() != null) {
+            product.setPrice(request.getPrice());
         }
-        if (request.getStatus() != null) {
-            product.setStatus(request.getStatus());
+        if (request.getTaxCategory() != null) {
+            product.setTaxCategory(request.getTaxCategory());
+        }
+        if (request.getSellable() != null) {
+            product.setSellable(request.getSellable());
+        }
+        if (request.getActive() != null) {
+            product.setActive(request.getActive());
         }
         if (request.getImageUrl() != null) {
             product.setImageUrl(request.getImageUrl());
@@ -108,8 +116,63 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public void deactivate(UUID id) {
         ProductDomain product = findProductOrThrow(id);
-        product.setStatus(ProductStatus.INACTIVE);
+        product.setActive(false);
         productRepository.save(product);
+    }
+
+    private void validateForCreate(ProductDTO request) {
+        if (request.getName() == null || request.getName().isBlank()) {
+            throw new IllegalArgumentException("El nombre del producto es obligatorio");
+        }
+        if (request.getName().length() > 100) {
+            throw new IllegalArgumentException("El nombre no puede superar los 100 caracteres");
+        }
+        if (request.getCategory() == null) {
+            throw new IllegalArgumentException("La categoría del producto es obligatoria");
+        }
+        if (request.getTaxCategory() == null) {
+            throw new IllegalArgumentException("La categoría de IVA es obligatoria");
+        }
+        if (request.getSellable() == null) {
+            throw new IllegalArgumentException("Debes indicar si el producto se vende al público");
+        }
+        if (Boolean.TRUE.equals(request.getSellable()) && (request.getPrice() == null || request.getPrice() <= 0)) {
+            throw new IllegalArgumentException("Un producto vendible necesita un precio mayor a cero");
+        }
+        validateCommonFields(request);
+    }
+
+    private void validateForUpdate(ProductDTO request) {
+        if (request.getName() != null && request.getName().isBlank()) {
+            throw new IllegalArgumentException("El nombre no puede quedar vacío");
+        }
+        if (request.getName() != null && request.getName().length() > 100) {
+            throw new IllegalArgumentException("El nombre no puede superar los 100 caracteres");
+        }
+        if (Boolean.TRUE.equals(request.getSellable()) && request.getPrice() != null && request.getPrice() <= 0) {
+            throw new IllegalArgumentException("El precio debe ser mayor a cero");
+        }
+        validateCommonFields(request);
+    }
+
+    private void validateCommonFields(ProductDTO request) {
+        if (request.getDescription() != null && request.getDescription().length() > 255) {
+            throw new IllegalArgumentException("La descripción no puede superar los 255 caracteres");
+        }
+        if (request.getProviders() != null) {
+            Set<UUID> vistos = new HashSet<>();
+            for (AssociatedSupplierDTO supplier : request.getProviders()) {
+                if (supplier.getProviderId() == null) {
+                    throw new IllegalArgumentException("Cada proveedor asociado necesita un providerId");
+                }
+                if (!vistos.add(supplier.getProviderId())) {
+                    throw new IllegalArgumentException("No puedes asociar el mismo proveedor más de una vez en la misma petición");
+                }
+                if (supplier.getReferencePrice() != null && supplier.getReferencePrice() < 0) {
+                    throw new IllegalArgumentException("El precio de referencia no puede ser negativo");
+                }
+            }
+        }
     }
 
     private void saveProviderAssociations(ProductDomain product, List<AssociatedSupplierDTO> providers) {
@@ -137,63 +200,13 @@ public class ProductServiceImpl implements ProductService {
 
         Integer stockAtLocation = null;
         if (headquarterId != null) {
-            stockAtLocation = stockRepository.findByProduct_IdAndHeadquarter_Id(product.getId(), headquarterId)
-                    .map(StockDomain::getQuantity)
-                    .orElse(0);
+            stockAtLocation = stockService.findByProductAndHeadquarter(product.getId(), headquarterId).getQuantity();
         }
 
         return new ProductDTO(
-                product.getId(), product.getName(), product.getDescription(), product.getType(),
-                product.getCategory(), product.getSalePrice(), product.getStatus(), product.getImageUrl(),
-                providers, stockAtLocation
+                product.getId(), product.getName(), product.getDescription(), product.getImageUrl(),
+                product.getPrice(), product.getTaxCategory(), product.getSellable(), product.getActive(),
+                product.getCategory(), providers, stockAtLocation
         );
-    }
-
-    private void validateForCreate(ProductDTO request) {
-        if (request.getName() == null || request.getName().isBlank()) {
-            throw new IllegalArgumentException("El nombre del producto es obligatorio");
-        }
-        if (request.getName().length() > 100) {
-            throw new IllegalArgumentException("El nombre no puede superar los 100 caracteres");
-        }
-        if (request.getType() == null) {
-            throw new IllegalArgumentException("El tipo de producto (PRODUCT o SERVICE) es obligatorio");
-        }
-        if (request.getSalePrice() == null || request.getSalePrice() <= 0) {
-            throw new IllegalArgumentException("El precio de venta debe ser mayor a cero");
-        }
-        validateCommonFields(request);
-    }
-
-    private void validateForUpdate(ProductDTO request) {
-        if (request.getName() != null && request.getName().isBlank()) {
-            throw new IllegalArgumentException("El nombre no puede quedar vacío");
-        }
-        if (request.getName() != null && request.getName().length() > 100) {
-            throw new IllegalArgumentException("El nombre no puede superar los 100 caracteres");
-        }
-        if (request.getSalePrice() != null && request.getSalePrice() <= 0) {
-            throw new IllegalArgumentException("El precio de venta debe ser mayor a cero");
-        }
-        validateCommonFields(request);
-    }
-
-    private void validateCommonFields(ProductDTO request) {
-        if (request.getDescription() != null && request.getDescription().length() > 255) {
-            throw new IllegalArgumentException("La descripción no puede superar los 255 caracteres");
-        }
-        if (request.getCategory() != null && request.getCategory().length() > 50) {
-            throw new IllegalArgumentException("La categoría no puede superar los 50 caracteres");
-        }
-        if (request.getProviders() != null) {
-            for (AssociatedSupplierDTO supplier : request.getProviders()) {
-                if (supplier.getProviderId() == null) {
-                    throw new IllegalArgumentException("Cada proveedor asociado necesita un providerId");
-                }
-                if (supplier.getReferencePrice() != null && supplier.getReferencePrice() < 0) {
-                    throw new IllegalArgumentException("El precio de referencia no puede ser negativo");
-                }
-            }
-        }
     }
 }

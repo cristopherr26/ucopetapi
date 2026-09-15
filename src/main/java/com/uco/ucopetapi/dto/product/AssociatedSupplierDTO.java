@@ -16,12 +16,12 @@ public class AssociatedSupplierDTO {
         return providerId;
     }
 
-    public Integer getReferencePrice() {
-        return referencePrice;
-    }
-
     public void setProviderId(UUID providerId) {
         this.providerId = providerId;
+    }
+
+    public Integer getReferencePrice() {
+        return referencePrice;
     }
 
     public void setReferencePrice(Integer referencePrice) {

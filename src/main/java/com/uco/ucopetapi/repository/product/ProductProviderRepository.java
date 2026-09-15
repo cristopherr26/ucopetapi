@@ -2,6 +2,9 @@ package com.uco.ucopetapi.repository.product;
 
 import com.uco.ucopetapi.domain.product.ProductProviderDomain;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -14,5 +17,7 @@ public interface ProductProviderRepository extends JpaRepository<ProductProvider
 
     List<ProductProviderDomain> findByProvider_Id(UUID providerId);
 
-    void deleteByProduct_Id(UUID productId);
+    @Modifying
+    @Query("DELETE FROM ProductProviderDomain p WHERE p.product.id = :productId")
+    void deleteByProduct_Id(@Param("productId") UUID productId);
 }

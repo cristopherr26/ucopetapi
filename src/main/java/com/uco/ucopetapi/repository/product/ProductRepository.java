@@ -1,8 +1,8 @@
 package com.uco.ucopetapi.repository.product;
 
+import com.uco.ucopetapi.domain.product.enums.ProductCategory;
 import com.uco.ucopetapi.domain.product.ProductDomain;
-import com.uco.ucopetapi.domain.product.ProductStatus;
-import com.uco.ucopetapi.domain.product.ProductType;
+import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,13 +16,15 @@ public interface ProductRepository extends JpaRepository<ProductDomain, UUID> {
 
     @Query("""
         SELECT p FROM ProductDomain p
-        WHERE (:type IS NULL OR p.type = :type)
-          AND (:category IS NULL OR p.category = :category)
-          AND (:status IS NULL OR p.status = :status)
+        WHERE (:category IS NULL OR p.category = :category)
+          AND (:active IS NULL OR p.active = :active)
+          AND (:sellable IS NULL OR p.sellable = :sellable)
+          AND (:taxCategory IS NULL OR p.taxCategory = :taxCategory)
         """)
     List<ProductDomain> findByFilter(
-            @Param("type") ProductType type,
-            @Param("category") String category,
-            @Param("status") ProductStatus status
+            @Param("category") ProductCategory category,
+            @Param("active") Boolean active,
+            @Param("sellable") Boolean sellable,
+            @Param("taxCategory") TaxCategory taxCategory
     );
 }

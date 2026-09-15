@@ -1,9 +1,9 @@
 package com.uco.ucopetapi.controllers.product;
 
-import com.uco.ucopetapi.domain.product.enums.ProductCategory;
+import com.uco.ucopetapi.domain.product.enums.ServiceCategory;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
-import com.uco.ucopetapi.dto.product.ProductDTO;
-import com.uco.ucopetapi.service.product.ProductService;
+import com.uco.ucopetapi.dto.product.ServiceDTO;
+import com.uco.ucopetapi.service.product.ServiceService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,47 +13,45 @@ import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/products")
-public class ProductController {
+@RequestMapping("/api/v1/services")
+public class ServiceController {
 
-    private final ProductService productService;
+    private final ServiceService serviceService;
 
-    public ProductController(ProductService productService) {
-        this.productService = productService;
+    public ServiceController(ServiceService serviceService) {
+        this.serviceService = serviceService;
     }
 
     @GetMapping
-    public ResponseEntity<List<ProductDTO>> list(
-            @RequestParam(required = false) ProductCategory category,
+    public ResponseEntity<List<ServiceDTO>> list(
+            @RequestParam(required = false) ServiceCategory category,
             @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) Boolean purchasable,
             @RequestParam(required = false) Boolean sellable,
             @RequestParam(required = false) TaxCategory taxCategory,
             @RequestParam(required = false) UUID headquarterId
     ) {
-        return ResponseEntity.ok(productService.list(category, active, sellable, taxCategory, headquarterId));
+        return ResponseEntity.ok(serviceService.list(category, active, purchasable, sellable, taxCategory, headquarterId));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProductDTO> getById(
-            @PathVariable UUID id,
-            @RequestParam(required = false) UUID headquarterId
-    ) {
-        return ResponseEntity.ok(productService.getById(id, headquarterId));
+    public ResponseEntity<ServiceDTO> getById(@PathVariable UUID id) {
+        return ResponseEntity.ok(serviceService.getById(id));
     }
 
     @PostMapping
-    public ResponseEntity<ProductDTO> create(@RequestBody ProductDTO request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(productService.create(request));
+    public ResponseEntity<ServiceDTO> create(@RequestBody ServiceDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(serviceService.create(request));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProductDTO> update(@PathVariable UUID id, @RequestBody ProductDTO request) {
-        return ResponseEntity.ok(productService.update(id, request));
+    public ResponseEntity<ServiceDTO> update(@PathVariable UUID id, @RequestBody ServiceDTO request) {
+        return ResponseEntity.ok(serviceService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivate(@PathVariable UUID id) {
-        productService.deactivate(id);
+        serviceService.deactivate(id);
         return ResponseEntity.noContent().build();
     }
 

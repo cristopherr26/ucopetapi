@@ -6,16 +6,16 @@ import jakarta.persistence.*;
 import java.util.UUID;
 
 @Entity
-@Table(name = "product_providers", uniqueConstraints = @UniqueConstraint(columnNames = {"product_id", "provider_id"}))
-public class ProductProviderDomain {
+@Table(name = "service_providers", uniqueConstraints = @UniqueConstraint(columnNames = {"service_id", "provider_id"}))
+public class ServiceProviderDomain {
 
     @Id
     @Column(nullable = false, updatable = false)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "product_id", nullable = false, updatable = false)
-    private ProductDomain product;
+    @JoinColumn(name = "service_id", nullable = false, updatable = false)
+    private ServiceDomain service;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "provider_id", nullable = false, updatable = false)
@@ -24,13 +24,13 @@ public class ProductProviderDomain {
     @Column(name = "reference_price")
     private Integer referencePrice;
 
-    protected ProductProviderDomain() {
+    protected ServiceProviderDomain() {
     }
 
-    public ProductProviderDomain(final UUID id, final ProductDomain product, final ProviderDomain provider,
+    public ServiceProviderDomain(final UUID id, final ServiceDomain service, final ProviderDomain provider,
                                  final Integer referencePrice) {
         this.id = id;
-        this.product = product;
+        this.service = service;
         this.provider = provider;
         this.referencePrice = referencePrice;
     }
@@ -39,8 +39,8 @@ public class ProductProviderDomain {
         return id;
     }
 
-    public ProductDomain getProduct() {
-        return product;
+    public ServiceDomain getService() {
+        return service;
     }
 
     public ProviderDomain getProvider() {

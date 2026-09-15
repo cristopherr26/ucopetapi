@@ -1,4 +1,3 @@
-// domain/product/StockDomain.java
 package com.uco.ucopetapi.domain.product;
 
 import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
