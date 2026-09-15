@@ -8,6 +8,7 @@ import com.uco.ucopetapi.service.purchases.PurchaseService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,11 +30,13 @@ public class PurchaseController {
         this.purchaseService = purchaseService;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<PurchaseResponseDTO> create(@RequestBody @Valid PurchaseRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(purchaseService.createPurchase(request));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<PurchaseResponseDTO>> findByFilter(
             @RequestParam(required = true) UUID headquarterId,
@@ -43,21 +46,25 @@ public class PurchaseController {
         return ResponseEntity.ok(purchaseService.listPurchases(headquarterId, status, supplierId));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<PurchaseResponseDTO> findById(@PathVariable UUID id) {
         return ResponseEntity.ok(purchaseService.getPurchaseById(id));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/receive")
     public ResponseEntity<PurchaseResponseDTO> receive(@PathVariable UUID id) {
         return ResponseEntity.ok(purchaseService.receivePurchase(id));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/cancel")
     public ResponseEntity<PurchaseResponseDTO> cancel(@PathVariable UUID id) {
         return ResponseEntity.ok(purchaseService.cancelPurchase(id));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/link-expense")
     public ResponseEntity<PurchaseResponseDTO> linkExpense(
             @PathVariable UUID id,
