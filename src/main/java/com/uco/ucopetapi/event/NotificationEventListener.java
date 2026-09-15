@@ -16,9 +16,10 @@ public class NotificationEventListener {
     @EventListener
     public void onAppointmentCreated(AppointmentCreatedEvent event) {
         notificationService.create(
-                event.getPersonId(),
-                "Cita confirmada",
-                "Tu cita para " + event.getPetName() + " ha sido registrada exitosamente.",
+                event.getDoctorId(),
+                "Cita programada",
+                "Cita para la mascota " + event.getPetName() + " ha sido registrada el " + event.getDate() +
+                 " a las " + event.getTime(),
                 NotificationType.APPOINTMENT_CREATED,
                 event.getAppointmentId(),
                 "APPOINTMENT"
