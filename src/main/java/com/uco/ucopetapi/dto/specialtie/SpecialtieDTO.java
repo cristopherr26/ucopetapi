@@ -7,7 +7,7 @@ public class SpecialtieDTO {
     private UUID id;
     private String name;
     private String description;
-    private boolean isActive;
+    private Boolean isActive;
     private UUID certificate;
 
     public SpecialtieDTO() {
@@ -38,11 +38,11 @@ public class SpecialtieDTO {
         this.certificate = certificate;
     }
 
-    public boolean isActive() {
+    public Boolean isActive() {
         return isActive;
     }
 
-    public void setActive(final boolean active) {
+    public void setActive(final Boolean active) {
         isActive = active;
     }
 

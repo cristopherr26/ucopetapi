@@ -4,6 +4,8 @@ import com.uco.ucopetapi.dto.vitalSigns.VitalSignsDTO;
 
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class PetCareDto {
@@ -15,11 +17,14 @@ public class PetCareDto {
     private LocalDateTime attentionDate;
     private String description;
     private PetCareStatus petCateStatus;
-    private VitalSignsDTO vitalSigns;
+    private List<VitalSignsDTO> vitalSigns = new ArrayList<>();
+
+    public PetCareDto() {
+    }
 
     public PetCareDto (final UUID id, final UUID episodeId, final UUID procedureId,
                        final UUID productId, final UUID doctorId, final LocalDateTime attentionDate,
-                       final String description, final PetCareStatus petCateStatus, final VitalSignsDTO vitalSigns){
+                       final String description, final PetCareStatus petCateStatus, final List<VitalSignsDTO> vitalSigns){
 
         this.id = id;
         this.episodeId = episodeId;
@@ -29,7 +34,7 @@ public class PetCareDto {
         this.attentionDate = attentionDate;
         this.description = description;
         this.petCateStatus = petCateStatus;
-        this.vitalSigns = vitalSigns;
+        this.vitalSigns = vitalSigns != null ? vitalSigns : new ArrayList<>();
     }
 
     public UUID getId() {
@@ -60,11 +65,11 @@ public class PetCareDto {
         return description;
     }
 
-    public PetCareStatus petCateStatus() {
+    public PetCareStatus getPetCareStatus() {
         return petCateStatus;
     }
 
-    public VitalSignsDTO getVitalSigns() {
+    public List<VitalSignsDTO>  getVitalSigns() {
         return vitalSigns;
     }
 
@@ -84,7 +89,23 @@ public class PetCareDto {
         this.petCateStatus = petCateStatus;
     }
 
-    public void setVitalSigns(VitalSignsDTO vitalSigns) {
+    public void setVitalSigns(List<VitalSignsDTO> vitalSigns) {
         this.vitalSigns = vitalSigns;
+    }
+
+    public void setEpisodeId(UUID episodeId) {
+        this.episodeId = episodeId;
+    }
+
+    public void setProcedureId(UUID procedureId) {
+        this.procedureId = procedureId;
+    }
+
+    public void setProductId(UUID productId) {
+        this.productId = productId;
+    }
+
+    public void setDoctorId(UUID doctorId) {
+        this.doctorId = doctorId;
     }
 }

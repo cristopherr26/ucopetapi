@@ -35,20 +35,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
-        String cabecera = request.getHeader("Authorization");
+        String header = request.getHeader("Authorization");
 
-        if (cabecera != null && cabecera.startsWith("Bearer ")) {
+        if (header != null && header.startsWith("Bearer ")) {
             try {
-                Claims claims = jwtService.validar(cabecera.substring(7)).getPayload();
+                Claims claims = jwtService.validate(header.substring(7)).getPayload();
 
-                Object bruto = claims.get("tv");
-                Integer version = bruto instanceof Number n ? n.intValue() : null;
-                boolean sigueValida = personRepository.findById(UUID.fromString(claims.getSubject()))
-                        .map(persona -> persona.isActive()
+                Object raw = claims.get("tv");
+                Integer version = raw instanceof Number n ? n.intValue() : null;
+                boolean stillValid = personRepository.findById(UUID.fromString(claims.getSubject()))
+                        .map(person -> person.isActive()
                                 && version != null
-                                && version.intValue() == persona.getTokenVersion())
+                                && version.intValue() == person.getTokenVersion())
                         .orElse(false);
-                if (!sigueValida) {
+                if (!stillValid) {
                     SecurityContextHolder.clearContext();
                     chain.doFilter(request, response);
                     return;
@@ -56,15 +56,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 @SuppressWarnings("unchecked")
                 List<String> roles = claims.get("roles", List.class);
-                List<SimpleGrantedAuthority> permisos = roles == null ? List.of()
+                List<SimpleGrantedAuthority> authorities = roles == null ? List.of()
                         : roles.stream()
-                                .map(Role::de)
+                                .map(Role::from)
                                 .flatMap(Optional::stream)
-                                .map(rol -> new SimpleGrantedAuthority(rol.authority()))
+                                .map(role -> new SimpleGrantedAuthority(role.authority()))
                                 .toList();
 
                 SecurityContextHolder.getContext().setAuthentication(
-                        new UsernamePasswordAuthenticationToken(claims.getSubject(), null, permisos));
+                        new UsernamePasswordAuthenticationToken(claims.getSubject(), null, authorities));
             } catch (JwtException _) {
                 SecurityContextHolder.clearContext();
             }

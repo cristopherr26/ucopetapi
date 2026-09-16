@@ -62,6 +62,12 @@ public class Purchase {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(nullable = false)
+    private UUID createdByPersonId;
+
+    @Column(nullable = false)
+    private UUID updatedByPersonId;
+
     @OneToMany(mappedBy = "purchase", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PurchaseItem> items = new ArrayList<>();
 
@@ -71,7 +77,8 @@ public class Purchase {
     public Purchase(UUID id, UUID supplierId, String purchaseNumber, LocalDateTime purchaseDate,
                      BigDecimal subtotal, BigDecimal totalTaxes, BigDecimal total, PurchaseStatus status,
                      UUID expenseId, UUID headquarterId, boolean hasDiscount, LocalDateTime createdAt,
-                     LocalDateTime updatedAt, List<PurchaseItem> items) {
+                     LocalDateTime updatedAt, UUID createdByPersonId, UUID updatedByPersonId,
+                     List<PurchaseItem> items) {
         this.id = id;
         this.supplierId = supplierId;
         this.purchaseNumber = purchaseNumber;
@@ -85,6 +92,8 @@ public class Purchase {
         this.hasDiscount = hasDiscount;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.createdByPersonId = createdByPersonId;
+        this.updatedByPersonId = updatedByPersonId;
         this.items = new ArrayList<>(items);
         for (PurchaseItem item : this.items) {
             item.setPurchase(this);
@@ -193,6 +202,22 @@ public class Purchase {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public UUID getCreatedByPersonId() {
+        return createdByPersonId;
+    }
+
+    public void setCreatedByPersonId(UUID createdByPersonId) {
+        this.createdByPersonId = createdByPersonId;
+    }
+
+    public UUID getUpdatedByPersonId() {
+        return updatedByPersonId;
+    }
+
+    public void setUpdatedByPersonId(UUID updatedByPersonId) {
+        this.updatedByPersonId = updatedByPersonId;
     }
 
     public List<PurchaseItem> getItems() {

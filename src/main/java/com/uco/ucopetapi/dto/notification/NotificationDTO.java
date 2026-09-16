@@ -17,21 +17,12 @@ public class NotificationDTO {
     private String referenceType;
     private LocalDateTime createdAt;
 
-    public NotificationDTO() {}
+    public NotificationDTO() { // Se usa patron builder para instanciar la clase
 
-    public NotificationDTO(UUID id, UUID personId, String title, String message,
-                           boolean isRead, NotificationType type,
-                           UUID referenceId, String referenceType,
-                           LocalDateTime createdAt) {
-        this.id = id;
-        this.personId = personId;
-        this.title = title;
-        this.message = message;
-        this.isRead = isRead;
-        this.type = type;
-        this.referenceId = referenceId;
-        this.referenceType = referenceType;
-        this.createdAt = createdAt;
+        }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public UUID getId() { return id; }
@@ -60,4 +51,57 @@ public class NotificationDTO {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public static class Builder {
+        private final NotificationDTO dto = new NotificationDTO();
+
+        public Builder id(UUID id) {
+            dto.id = id;
+            return this;
+        }
+
+        public Builder personId(UUID personId) {
+            dto.personId = personId;
+            return this;
+        }
+
+        public Builder title(String title) {
+            dto.title = title;
+            return this;
+        }
+
+        public Builder message(String message) {
+            dto.message = message;
+            return this;
+        }
+
+        public Builder isRead(boolean read) {
+            dto.isRead = read;
+            return this;
+        }
+
+        public Builder type(NotificationType type) {
+            dto.type = type;
+            return this;
+        }
+
+        public Builder referenceId(UUID referenceId) {
+            dto.referenceId = referenceId;
+            return this;
+        }
+
+        public Builder referenceType(String referenceType) {
+            dto.referenceType = referenceType;
+            return this;
+        }
+
+        public Builder createdAt(LocalDateTime createdAt) {
+            dto.createdAt = createdAt;
+            return this;
+        }
+
+        public NotificationDTO build() {
+            return dto;
+        }
+    }
 }

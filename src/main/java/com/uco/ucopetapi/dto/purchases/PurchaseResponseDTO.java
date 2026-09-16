@@ -18,10 +18,12 @@ public record PurchaseResponseDTO(
         BigDecimal total,
         PurchaseStatus status,
         UUID expenseId,
-        UUID headquarterId,
+        RelatedEntityDTO headquarter,
         Boolean hasDiscount,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        RelatedEntityDTO createdBy,
+        RelatedEntityDTO updatedBy
 ) {
     public record RelatedEntityDTO(UUID id, String name) {
     }
