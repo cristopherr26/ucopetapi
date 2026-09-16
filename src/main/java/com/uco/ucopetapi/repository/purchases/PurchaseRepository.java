@@ -24,4 +24,6 @@ public interface PurchaseRepository extends JpaRepository<Purchase, UUID> {
     Page<Purchase> findByHeadquarterIdAndSupplierId(UUID headquarterId, UUID supplierId, Pageable pageable);
 
     Page<Purchase> findByHeadquarterIdAndStatusAndSupplierId(UUID headquarterId, PurchaseStatus status, UUID supplierId, Pageable pageable);
+
+    boolean existsByPurchaseNumber(String purchaseNumber);
 }

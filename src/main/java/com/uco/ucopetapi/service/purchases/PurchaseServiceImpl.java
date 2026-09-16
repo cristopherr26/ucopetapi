@@ -5,6 +5,7 @@ import com.uco.ucopetapi.domain.purchases.Purchase;
 import com.uco.ucopetapi.domain.purchases.PurchaseItem;
 import com.uco.ucopetapi.domain.purchases.PurchaseStatus;
 import com.uco.ucopetapi.dto.person.PersonDTO;
+import com.uco.ucopetapi.dto.product.ProductDTO;
 import com.uco.ucopetapi.dto.provider.ProviderDTO;
 import com.uco.ucopetapi.dto.purchases.LinkExpenseRequestDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseItemRequestDTO;
@@ -16,9 +17,13 @@ import com.uco.ucopetapi.repository.purchases.PurchaseItemRepository;
 import com.uco.ucopetapi.repository.purchases.PurchaseRepository;
 import com.uco.ucopetapi.service.headquarter.HeadquarterService;
 import com.uco.ucopetapi.service.person.PersonService;
+import com.uco.ucopetapi.service.product.ProductService;
 import com.uco.ucopetapi.service.provider.ProviderService;
+import com.uco.ucopetapi.service.purchases.exception.DuplicatePurchaseNumberException;
 import com.uco.ucopetapi.service.purchases.exception.HeadquarterInactiveException;
 import com.uco.ucopetapi.service.purchases.exception.HeadquarterNotFoundException;
+import com.uco.ucopetapi.service.purchases.exception.ProductInactiveException;
+import com.uco.ucopetapi.service.purchases.exception.ProductNotFoundException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseNotFoundException;
 import com.uco.ucopetapi.service.purchases.exception.SupplierNotFoundException;
 import org.springframework.data.domain.Page;
@@ -41,25 +46,36 @@ public class PurchaseServiceImpl implements PurchaseService {
     private final ProviderService providerService;
     private final HeadquarterService headquarterService;
     private final PersonService personService;
+    private final ProductService productService;
 
     public PurchaseServiceImpl(PurchaseRepository purchaseRepository,
                                 PurchaseItemRepository purchaseItemRepository,
                                 ProviderService providerService,
                                 HeadquarterService headquarterService,
-                                PersonService personService) {
+                                PersonService personService,
+                                ProductService productService) {
         this.purchaseRepository = purchaseRepository;
         this.purchaseItemRepository = purchaseItemRepository;
         this.providerService = providerService;
         this.headquarterService = headquarterService;
         this.personService = personService;
+        this.productService = productService;
     }
 
     @Override
     public PurchaseResponseDTO createPurchase(PurchaseRequestDTO request) {
+        if (purchaseRepository.existsByPurchaseNumber(request.purchaseNumber())) {
+            throw new DuplicatePurchaseNumberException(request.purchaseNumber());
+        }
+
         resolveSupplier(request.supplierId());
         HeadquarterDomain headquarter = findHeadquarterOrThrow(request.headquarterId());
         if (!Boolean.TRUE.equals(headquarter.getIsActive())) {
             throw new HeadquarterInactiveException(headquarter.getName());
+        }
+
+        for (PurchaseItemRequestDTO itemRequest : request.items()) {
+            validateProduct(itemRequest.productId(), request.headquarterId());
         }
 
         Purchase purchase = toEntity(request);
@@ -89,9 +105,9 @@ public class PurchaseServiceImpl implements PurchaseService {
 
     @Override
     public List<Item> getPurchaseItems(UUID id) {
-        findPurchaseOrThrow(id);
+        Purchase purchase = findPurchaseOrThrow(id);
         return purchaseItemRepository.findByPurchaseId(id).stream()
-                .map(this::toItemDTO)
+                .map(item -> toItemDTO(item, purchase.getHeadquarterId()))
                 .toList();
     }
 
@@ -136,6 +152,18 @@ public class PurchaseServiceImpl implements PurchaseService {
                 .orElseThrow(() -> new HeadquarterNotFoundException(headquarterId));
     }
 
+    private void validateProduct(UUID productId, UUID headquarterId) {
+        ProductDTO product;
+        try {
+            product = productService.getById(productId, headquarterId);
+        } catch (NoSuchElementException e) {
+            throw new ProductNotFoundException(productId);
+        }
+        if (!Boolean.TRUE.equals(product.getActive())) {
+            throw new ProductInactiveException(product.getName());
+        }
+    }
+
     private RelatedEntityDTO resolveSupplier(UUID supplierId) {
         try {
             ProviderDTO provider = providerService.findById(supplierId);
@@ -148,6 +176,15 @@ public class PurchaseServiceImpl implements PurchaseService {
     private RelatedEntityDTO resolveHeadquarter(UUID headquarterId) {
         HeadquarterDomain headquarter = findHeadquarterOrThrow(headquarterId);
         return new RelatedEntityDTO(headquarterId, headquarter.getName());
+    }
+
+    private RelatedEntityDTO resolveProduct(UUID productId, UUID headquarterId) {
+        try {
+            ProductDTO product = productService.getById(productId, headquarterId);
+            return new RelatedEntityDTO(productId, product.getName());
+        } catch (NoSuchElementException e) {
+            return new RelatedEntityDTO(productId, null);
+        }
     }
 
     private RelatedEntityDTO resolvePerson(UUID personId) {
@@ -207,7 +244,9 @@ public class PurchaseServiceImpl implements PurchaseService {
     private PurchaseResponseDTO toResponseDTO(Purchase purchase) {
         List<Item> items = purchase.getItems() == null
                 ? List.of()
-                : purchase.getItems().stream().map(this::toItemDTO).toList();
+                : purchase.getItems().stream()
+                        .map(item -> toItemDTO(item, purchase.getHeadquarterId()))
+                        .toList();
 
         return new PurchaseResponseDTO(
                 purchase.getId(),
@@ -229,9 +268,9 @@ public class PurchaseServiceImpl implements PurchaseService {
         );
     }
 
-    private Item toItemDTO(PurchaseItem item) {
+    private Item toItemDTO(PurchaseItem item, UUID headquarterId) {
         return new Item(
-                new RelatedEntityDTO(item.getProductId(), null),
+                resolveProduct(item.getProductId(), headquarterId),
                 item.getQuantity(),
                 item.getUnitPrice(),
                 item.getSubtotal()

@@ -1,7 +1,10 @@
 package com.uco.ucopetapi.controllers.purchases.exception;
 
+import com.uco.ucopetapi.service.purchases.exception.DuplicatePurchaseNumberException;
 import com.uco.ucopetapi.service.purchases.exception.HeadquarterInactiveException;
 import com.uco.ucopetapi.service.purchases.exception.HeadquarterNotFoundException;
+import com.uco.ucopetapi.service.purchases.exception.ProductInactiveException;
+import com.uco.ucopetapi.service.purchases.exception.ProductNotFoundException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseNotFoundException;
 import com.uco.ucopetapi.service.purchases.exception.SupplierNotFoundException;
 import org.slf4j.Logger;
@@ -42,6 +45,21 @@ public class PurchaseExceptionHandler {
 
     @ExceptionHandler(HeadquarterInactiveException.class)
     public ResponseEntity<Map<String, Object>> handleHeadquarterInactive(HeadquarterInactiveException ex) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(ProductNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleProductNotFound(ProductNotFoundException ex) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(ProductInactiveException.class)
+    public ResponseEntity<Map<String, Object>> handleProductInactive(ProductInactiveException ex) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicatePurchaseNumberException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicatePurchaseNumber(DuplicatePurchaseNumberException ex) {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
     }
 
