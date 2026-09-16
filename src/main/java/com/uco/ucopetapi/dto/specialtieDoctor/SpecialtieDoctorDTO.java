@@ -1,15 +1,19 @@
 package com.uco.ucopetapi.dto.specialtieDoctor;
 
+import jakarta.validation.constraints.NotNull;
+
 import java.util.UUID;
 
 public class SpecialtieDoctorDTO {
 
     private UUID id;
+
+    @NotNull(message = "El id del doctor es obligatorio")
     private UUID idDoctor;
+
+    @NotNull(message = "El id de la especialidad es obligatorio")
     private UUID idSpecialtie;
-
-
-    public SpecialtieDoctorDTO(){
+    public SpecialtieDoctorDTO() {
     }
 
     public SpecialtieDoctorDTO(UUID id, UUID idDoctor, UUID idSpecialtie) {
@@ -38,7 +42,6 @@ public class SpecialtieDoctorDTO {
         return idSpecialtie;
     }
 
-    public void setSpecialtie(UUID specialtie) {
-        this.idSpecialtie = specialtie;
-    }
+    public void setSpecialtie(UUID specialtie) { this.idSpecialtie = specialtie; }
+
 }

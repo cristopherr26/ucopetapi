@@ -1,8 +1,12 @@
 package com.uco.ucopetapi.controllers.doctor;
 
+import com.uco.ucopetapi.domain.doctor.DoctorDomain;
 import com.uco.ucopetapi.dto.doctor.DoctorDTO;
+import com.uco.ucopetapi.exception.BusinessException;
+import com.uco.ucopetapi.service.doctor.DoctorService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,57 +17,91 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+// Controller REST para el modulo de Doctor.
+// Expone los endpoints en /api/v1/doctor y delega toda la logica de negocio
 @RestController
 @RequestMapping("api/v1/doctor")
 public class DoctorController {
 
-    private DoctorDTO buildDummyDoctor(UUID id) {
-        return new DoctorDTO(
-                id != null ? id : UUID.randomUUID(),
-                UUID.randomUUID(),
-                "MED-2026-001"
-        );
+    private static final String MESSAGE_KEY = "message";
+
+    private final DoctorService doctorService;
+
+    public DoctorController(DoctorService doctorService) {
+        this.doctorService = doctorService;
     }
 
+    private DoctorDTO toDTO(DoctorDomain doctor) {
+        return new DoctorDTO(doctor.getId(), doctor.getIdPerson(), doctor.getLicenseNumber());
+    }
+
+    private DoctorDomain toDomain(DoctorDTO doctor) {
+        return new DoctorDomain(doctor.getId(), doctor.getPerson(), doctor.getLicenseNumber());
+    }
+
+    // Devuelve todos los doctores registrados.
     @GetMapping
     public ResponseEntity<List<DoctorDTO>> findAllDoctor() {
-        List<DoctorDTO> doctor = List.of(
-                buildDummyDoctor(UUID.randomUUID())
-        );
+        List<DoctorDTO> doctors = doctorService.findAll().stream()
+                .map(this::toDTO)
+                .toList();
 
-        return ResponseEntity.ok(doctor);
+        return ResponseEntity.ok(doctors);
     }
 
+    // Busca un doctor puntual por su id.
     @GetMapping("/{id}")
-    public ResponseEntity<DoctorDTO> findDoctorById(@PathVariable UUID id) {
-        return ResponseEntity.ok(buildDummyDoctor(id));
+    public ResponseEntity<Object> findDoctorById(@PathVariable UUID id) {
+        try {
+            return ResponseEntity.ok(toDTO(doctorService.findById(id)));
+        } catch (BusinessException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(MESSAGE_KEY, e.getMessage()));
+        }
     }
 
+    // Filtra doctores por numero de licencia (busqueda parcial, sin distinguir mayusculas/minusculas). Si no se manda el parametro, devuelve todos.
     @GetMapping("/filter")
-    public ResponseEntity<List<DoctorDTO>> findDoctorByFilter(@RequestParam(required = true) UUID id) {
-        return ResponseEntity.ok(List.of(buildDummyDoctor(id)));
+    public ResponseEntity<List<DoctorDTO>> findDoctorByFilter(@RequestParam(required = false) String licenseNumber) {
+        List<DoctorDTO> doctors = doctorService.findByFilter(licenseNumber).stream()
+                .map(this::toDTO)
+                .toList();
+
+        return ResponseEntity.ok(doctors);
     }
 
+    // Crea un doctor nuevo. El id que venga en el body se ignora
     @PostMapping
-    public ResponseEntity<DoctorDTO> createNewDoctor(@RequestBody DoctorDTO doctor) {
-        DoctorDTO createdDoctor = buildDummyDoctor(doctor.getId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdDoctor);
+    public ResponseEntity<DoctorDTO> createNewDoctor(@Valid @RequestBody DoctorDTO doctor) {
+        DoctorDomain createdDoctor = doctorService.createNewDoctor(toDomain(doctor));
+        return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(createdDoctor));
     }
 
+    // Actualiza los datos de un doctor existente (licencia e idPerson). Si el id no existe, responde 404 con mensaje claro (mismo manejo que arriba).
     @PutMapping
-    public ResponseEntity<DoctorDTO> updateDoctor(
+    public ResponseEntity<Object> updateDoctor(
             @RequestParam(required = true) UUID id,
-            @RequestBody DoctorDTO doctor) {
+            @Valid @RequestBody DoctorDTO doctor) {
 
-        DoctorDTO updatedDoctor = buildDummyDoctor(id);
-        return ResponseEntity.ok(updatedDoctor);
+        try {
+            DoctorDomain updatedDoctor = doctorService.updateDoctor(id, toDomain(doctor));
+            return ResponseEntity.ok(toDTO(updatedDoctor));
+        } catch (BusinessException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(MESSAGE_KEY, e.getMessage()));
+        }
     }
 
+    // Desactiva un doctor. En realidad delega en PersonService.delete(...), que hace una baja logica sobre la Person asociada (no borra el registro).
     @PutMapping("/deactivate")
-    public ResponseEntity<Void> deactivateDoctor(@RequestParam(required = true) UUID id) {
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Object> deactivateDoctor(@RequestParam(required = true) UUID id) {
+        try {
+            doctorService.deactivateDoctor(id);
+            return ResponseEntity.noContent().build();
+        } catch (BusinessException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(MESSAGE_KEY, e.getMessage()));
+        }
     }
 
 }
