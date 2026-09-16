@@ -1,10 +1,8 @@
 package com.uco.ucopetapi.domain.payMethod;
 
 
-import com.uco.ucopetapi.dto.payMethod.PayMethodDTO;
 import jakarta.persistence.*;
 
-import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity

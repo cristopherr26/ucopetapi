@@ -5,6 +5,7 @@ import com.uco.ucopetapi.repository.egress.EgressRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,56 +18,109 @@ public class EgressService {
         this.egressRepository = egressRepository;
     }
 
-    public List<EgressDomain> obtenerTodos() {
+    public List<EgressDomain> getAll() {
         return egressRepository.findAll();
     }
 
-    public EgressDomain obtenerPorId(UUID id) {
+    public EgressDomain getById(UUID id) {
         return egressRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Egreso no encontrado con id: " + id));
     }
 
-    public EgressDomain guardar(EgressDomain egress) {
+    public EgressDomain saveEgress(EgressDomain egress) {
+        validateEgress(egress);
         return egressRepository.save(egress);
     }
 
-    public EgressDomain actualizar(UUID id, EgressDomain egressActualizado) {
-        EgressDomain egressExistente = obtenerPorId(id);
+    public EgressDomain updateEgress(UUID id, EgressDomain updatedEgress) {
+        EgressDomain existentEgress = getById(id);
+        validateEgress(updatedEgress);
+        existentEgress.setDate(updatedEgress.getDate());
+        existentEgress.setProvider(updatedEgress.getProvider());
+        existentEgress.setPayMethod(updatedEgress.getPayMethod());
+        existentEgress.setPurchaseOrder(updatedEgress.getPurchaseOrder());
+        existentEgress.setConcept(updatedEgress.getConcept());
+        existentEgress.setTotal(updatedEgress.getTotal());
 
-        if (egressActualizado.getTotal() != null && egressActualizado.getTotal() < 0) {
-            throw new IllegalArgumentException("El total no puede ser negativo");
-        }
-
-        egressExistente.setDate(egressActualizado.getDate());
-        egressExistente.setProvider(egressActualizado.getProvider());
-        egressExistente.setPayMethod(egressActualizado.getPayMethod());
-        egressExistente.setPurchaseOrder(egressActualizado.getPurchaseOrder());
-        egressExistente.setConcept(egressActualizado.getConcept());
-        egressExistente.setTotal(egressActualizado.getTotal());
-
-        return egressRepository.save(egressExistente);
+        return egressRepository.save(existentEgress);
     }
 
-    public void eliminar(UUID id) {
+    public void deleteEgress(UUID id) {
         if (!egressRepository.existsById(id)) {
-            throw new RuntimeException("Egreso no encontrado con id: " + id);
+            throw new IllegalArgumentException("Egreso no encontrado con id: " + id);
         }
         egressRepository.deleteById(id);
     }
 
-    public List<EgressDomain> buscarPorConcepto(String concept) {
+    public List<EgressDomain> getByConcept(String concept) {
+        validateConcept(concept);
         return egressRepository.findByConcept(concept);
     }
 
-    public List<EgressDomain> buscarPorRangoDeFechas(LocalDate startDate, LocalDate endDate) {
+    public List<EgressDomain> getByDateBetween(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null) {
+            throw new IllegalArgumentException("Las fechas de inicio y fin son obligatorias");
+        }
+        if (startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("La fecha de inicio no puede ser posterior a la fecha de fin");
+        }
         return egressRepository.findByDateBetween(startDate, endDate);
     }
 
-    public List<EgressDomain> buscarPorProvider(UUID providerId) {
+    public List<EgressDomain> getByProvider(UUID providerId) {
+        validateProvider(providerId);
         return egressRepository.findByProvider(providerId);
     }
 
-    public List<EgressDomain> buscarPorPayMethod(UUID payMethodId) {
+    public List<EgressDomain> getByPayMethod(UUID payMethodId) {
         return egressRepository.findByPayMethod(payMethodId);
+    }
+
+    public List<EgressDomain> getByPurchaseOrder(UUID purchaseOrderId){
+        return egressRepository.findByPurchaseOrder(purchaseOrderId);
+    }
+
+    private void validateEgress(EgressDomain egress) {
+        validateDate(egress.getDate());
+        validateProvider(egress.getProvider());
+        validatePurchaseOrder(egress.getPurchaseOrder());
+        validateConcept(egress.getConcept());
+        validateTotal(egress.getTotal());
+    }
+
+    private void validateDate(LocalDate date) {
+        if (date == null) {
+            throw new IllegalArgumentException("La fecha es obligatoria");
+        }
+        if (date.isAfter(LocalDate.now(ZoneId.of("Colombia/Medellin")))){
+            throw new IllegalArgumentException("La fecha no puede ser posterior a la fecha actual");
+        }
+    }
+
+    private void validateProvider(UUID provider) {
+        if (provider == null) {
+            throw new IllegalArgumentException("El proveedor es obligatorio");
+        }
+    }
+
+    private void validatePurchaseOrder(UUID purchaseOrder) {
+        if (purchaseOrder == null) {
+            throw new IllegalArgumentException("La orden de compra es obligatoria");
+        }
+    }
+
+    private void validateConcept(String concept) {
+        if (concept == null || concept.isBlank()) {
+            throw new IllegalArgumentException("El concepto es obligatorio");
+        }
+    }
+
+    private void validateTotal(Float total) {
+        if (total == null) {
+            throw new IllegalArgumentException("El total es obligatorio");
+        }
+        if (total <= 0) {
+            throw new IllegalArgumentException("El total no puede ser negativo ni cero");
+        }
     }
 }
