@@ -2,6 +2,7 @@ package com.uco.ucopetapi.controllers.purchases;
 
 import com.uco.ucopetapi.domain.purchases.PurchaseStatus;
 import com.uco.ucopetapi.dto.purchases.LinkExpenseRequestDTO;
+import com.uco.ucopetapi.dto.purchases.PurchaseIdResponseDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseRequestDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseResponseDTO;
 import com.uco.ucopetapi.service.purchases.PurchaseService;
@@ -55,6 +56,12 @@ public class PurchaseController {
     @GetMapping("/{id}")
     public ResponseEntity<PurchaseResponseDTO> findById(@PathVariable UUID id) {
         return ResponseEntity.ok(purchaseService.getPurchaseById(id));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/lookup")
+    public ResponseEntity<PurchaseIdResponseDTO> findIdByPurchaseNumber(@RequestParam String purchaseNumber) {
+        return ResponseEntity.ok(purchaseService.findIdByPurchaseNumber(purchaseNumber));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

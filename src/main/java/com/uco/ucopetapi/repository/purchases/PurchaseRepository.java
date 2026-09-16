@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface PurchaseRepository extends JpaRepository<Purchase, UUID> {
@@ -26,4 +27,6 @@ public interface PurchaseRepository extends JpaRepository<Purchase, UUID> {
     Page<Purchase> findByHeadquarterIdAndStatusAndSupplierId(UUID headquarterId, PurchaseStatus status, UUID supplierId, Pageable pageable);
 
     boolean existsByPurchaseNumber(String purchaseNumber);
+
+    Optional<Purchase> findByPurchaseNumber(String purchaseNumber);
 }

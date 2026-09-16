@@ -6,6 +6,9 @@ import com.uco.ucopetapi.service.purchases.exception.HeadquarterNotFoundExceptio
 import com.uco.ucopetapi.service.purchases.exception.ProductInactiveException;
 import com.uco.ucopetapi.service.purchases.exception.ProductNotFoundException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseNotFoundException;
+import com.uco.ucopetapi.service.purchases.exception.PurchaseNumberNotFoundException;
+import com.uco.ucopetapi.service.purchases.exception.ServiceItemNotFoundException;
+import com.uco.ucopetapi.service.purchases.exception.ServiceItemNotPurchasableException;
 import com.uco.ucopetapi.service.purchases.exception.SupplierNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +33,11 @@ public class PurchaseExceptionHandler {
 
     @ExceptionHandler(PurchaseNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handlePurchaseNotFound(PurchaseNotFoundException ex) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(PurchaseNumberNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handlePurchaseNumberNotFound(PurchaseNumberNotFoundException ex) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
@@ -60,6 +68,16 @@ public class PurchaseExceptionHandler {
 
     @ExceptionHandler(DuplicatePurchaseNumberException.class)
     public ResponseEntity<Map<String, Object>> handleDuplicatePurchaseNumber(DuplicatePurchaseNumberException ex) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(ServiceItemNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleServiceItemNotFound(ServiceItemNotFoundException ex) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(ServiceItemNotPurchasableException.class)
+    public ResponseEntity<Map<String, Object>> handleServiceItemNotPurchasable(ServiceItemNotPurchasableException ex) {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
     }
 

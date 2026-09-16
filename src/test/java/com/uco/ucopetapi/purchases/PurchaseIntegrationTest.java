@@ -2,6 +2,7 @@ package com.uco.ucopetapi.purchases;
 
 import com.uco.ucopetapi.domain.product.enums.ProductCategory;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
+import com.uco.ucopetapi.domain.purchases.ItemType;
 import com.uco.ucopetapi.domain.purchases.PurchaseStatus;
 import com.uco.ucopetapi.dto.provider.ProviderDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseItemRequestDTO;
@@ -285,7 +286,7 @@ class PurchaseIntegrationTest {
                 FIXED_SUPPLIER_ID,
                 FIXED_HEADQUARTER_ID,
                 false,
-                List.of(new PurchaseItemRequestDTO(FIXED_PRODUCT_ID, quantity, unitPrice))
+                List.of(new PurchaseItemRequestDTO(FIXED_PRODUCT_ID, ItemType.PRODUCT, quantity, unitPrice))
         );
     }
 }
