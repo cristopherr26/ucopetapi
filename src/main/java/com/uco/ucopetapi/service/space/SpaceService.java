@@ -31,9 +31,20 @@ public class SpaceService {
         String description = space.getDescription() != null ? space.getDescription().trim() : "Zona de baño";
         Boolean active = Optional.ofNullable(space.getActive()).orElse(true);
 
-        // - VALIDATE BLANK STRINGS -
+        // - VALIDATE BLANK STRINGS (OBLIGATORIOS) -
         if (code.isBlank() || type.isBlank() || description.isBlank()) {
-            throw new IllegalArgumentException("Ningún campo de texto puede estar vacío o en blanco.");
+            throw new IllegalArgumentException("Ningún campo de texto (código, tipo o descripción) puede estar vacío o en blanco.");
+        }
+
+        // - VALIDATE MAXIMUM LENGTH (LONGITUD MÁXIMA) -
+        if (code.length() > 10) {
+            throw new IllegalArgumentException("El código no puede superar los 10 caracteres.");
+        }
+        if (type.length() > 50 || description.length() < 5) {
+            throw new IllegalArgumentException("El tipo de espacio no puede superar los 50 caracteres y debe tener un mínimo de 5 caracteres..");
+        }
+        if (description.length() > 255 || description.length() < 10) {
+            throw new IllegalArgumentException("La descripción no puede superar los 255 caracteres y debe tener un mínimo de 10 caracteres.");
         }
 
         // - VALIDATE CODE DUPLICATION -
