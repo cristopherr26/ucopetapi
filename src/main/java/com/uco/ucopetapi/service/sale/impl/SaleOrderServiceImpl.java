@@ -6,12 +6,14 @@ import com.uco.ucopetapi.dto.sale.SaleOrderDTO;
 import com.uco.ucopetapi.dto.sale.enums.SaleOrderState;
 import com.uco.ucopetapi.repository.sale.SaleOrderRepository;
 import com.uco.ucopetapi.service.sale.SaleOrderService;
+import com.uco.ucopetapi.service.sale.exception.SaleOrderNotFoundException;
+import com.uco.ucopetapi.service.sale.exception.SaleOrderStateConflictException;
+import com.uco.ucopetapi.service.sale.exception.SaleOrderValidationException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -60,7 +62,7 @@ public class SaleOrderServiceImpl implements SaleOrderService {
         SaleOrderDomain existing = findExistingOrThrow(id);
 
         if (existing.getState() == SaleOrderState.FACTURADA || existing.getState() == SaleOrderState.ANULADA) {
-            throw new IllegalStateException(
+            throw new SaleOrderStateConflictException(
                     "No se puede editar una orden de venta en estado " + existing.getState()
                             + ". Solo las órdenes en BORRADOR son editables; use cancelSaleOrder para anular.");
         }
@@ -70,7 +72,7 @@ public class SaleOrderServiceImpl implements SaleOrderService {
             requestedState = existing.getState();
         }
         if (requestedState != SaleOrderState.BORRADOR && requestedState != SaleOrderState.FACTURADA) {
-            throw new IllegalArgumentException(
+            throw new SaleOrderStateConflictException(
                     "Desde BORRADOR solo se permite mantener BORRADOR o pasar a FACTURADO. "
                             + "Para anular use cancelSaleOrder.");
         }
@@ -96,7 +98,7 @@ public class SaleOrderServiceImpl implements SaleOrderService {
         SaleOrderDomain existing = findExistingOrThrow(id);
 
         if (existing.getState() == SaleOrderState.ANULADA) {
-            throw new IllegalStateException("La orden de venta ya se encuentra ANULADA.");
+            throw new SaleOrderStateConflictException("La orden de venta ya se encuentra ANULADA.");
         }
 
         existing.setState(SaleOrderState.ANULADA);
@@ -107,7 +109,7 @@ public class SaleOrderServiceImpl implements SaleOrderService {
     @Override
     public List<SaleOrderDTO> findSaleOrderByFilter(SaleOrderDTO filter, LocalDate dateFrom, LocalDate dateTo) {
         if (dateFrom != null && dateTo != null && dateFrom.isAfter(dateTo)) {
-            throw new IllegalArgumentException("dateFrom no puede ser posterior a dateTo.");
+            throw new SaleOrderValidationException("dateFrom no puede ser posterior a dateTo.");
         }
 
         return saleOrderRepository.findByFilter(filter, dateFrom, dateTo).stream()
@@ -124,26 +126,26 @@ public class SaleOrderServiceImpl implements SaleOrderService {
 
     private SaleOrderDomain findExistingOrThrow(UUID id) {
         return saleOrderRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("No existe una orden de venta con id " + id));
+                .orElseThrow(() -> new SaleOrderNotFoundException("No existe una orden de venta con id " + id));
     }
 
     private void validateRequiredReferences(SaleOrderDTO dto) {
         UUID defaultUUID = UUIDHelper.getUUIDHelper().getDefault();
 
         if (dto.getHeadquarterId() == null || dto.getHeadquarterId().equals(defaultUUID)) {
-            throw new IllegalArgumentException("headquarterId es obligatorio.");
+            throw new SaleOrderValidationException("headquarterId es obligatorio.");
         }
         if (dto.getClientID() == null || dto.getClientID().equals(defaultUUID)) {
-            throw new IllegalArgumentException("clientID es obligatorio.");
+            throw new SaleOrderValidationException("clientID es obligatorio.");
         }
         if (dto.getPetId() == null || dto.getPetId().equals(defaultUUID)) {
-            throw new IllegalArgumentException("petId es obligatorio.");
+            throw new SaleOrderValidationException("petId es obligatorio.");
         }
     }
 
     private void validateComment(String comment) {
         if (comment != null && comment.length() > COMMENT_MAX_LENGTH) {
-            throw new IllegalArgumentException(
+            throw new SaleOrderValidationException(
                     "comment no puede superar los " + COMMENT_MAX_LENGTH + " caracteres.");
         }
     }

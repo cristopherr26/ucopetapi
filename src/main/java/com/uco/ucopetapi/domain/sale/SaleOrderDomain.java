@@ -17,7 +17,11 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "saleOrder")
+@Table(name = "saleOrder",
+        uniqueConstraints = @jakarta.persistence.UniqueConstraint(
+                name = "uk_sale_order_headquarter_order_number",
+                columnNames = {"headquarter_id", "order_number"}
+        ))
 public class SaleOrderDomain implements Persistable<UUID> {
 
     @Id
@@ -27,7 +31,7 @@ public class SaleOrderDomain implements Persistable<UUID> {
     @Column(name = "headquarter_id", nullable = false)
     private UUID headquarterId;
 
-    @Column(name = "order_number", nullable = false, unique = true, length = 20)
+    @Column(name = "order_number", nullable = false, length = 20)
     private String orderNumber;
 
     @Column(name = "sale_date", nullable = false)
