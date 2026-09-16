@@ -34,4 +34,7 @@ public interface ServiceRepository extends JpaRepository<ServiceDomain, UUID> {
             @Param("taxCategory") TaxCategory taxCategory,
             @Param("headquarterId") UUID headquarterId
     );
+    boolean existsByNameIgnoreCase(String name);
+
+    boolean existsByNameIgnoreCaseAndIdNot(String name, UUID id);
 }

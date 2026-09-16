@@ -2,15 +2,15 @@ package com.uco.ucopetapi.service.product.impl;
 
 import com.uco.ucopetapi.domain.product.*;
 import com.uco.ucopetapi.domain.provider.ProviderDomain;
-import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
 import com.uco.ucopetapi.dto.product.AssociatedSupplierDTO;
 import com.uco.ucopetapi.dto.product.ServiceDTO;
+import com.uco.ucopetapi.repository.headquarter.HeadquarterRepository;
 import com.uco.ucopetapi.repository.product.ServiceHeadquarterRepository;
 import com.uco.ucopetapi.repository.product.ServiceProviderRepository;
 import com.uco.ucopetapi.repository.product.ServiceRepository;
 import com.uco.ucopetapi.repository.provider.ProviderJPARepository;
 import com.uco.ucopetapi.service.product.ServiceService;
-import jakarta.persistence.EntityManager;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.uco.ucopetapi.domain.product.enums.ServiceCategory;
@@ -29,24 +29,27 @@ public class ServiceServiceImpl implements ServiceService {
     private final ServiceProviderRepository serviceProviderRepository;
     private final ServiceHeadquarterRepository serviceHeadquarterRepository;
     private final ProviderJPARepository providerRepository;
-    private final EntityManager entityManager;
+    private final HeadquarterRepository headquarterRepository;
 
     public ServiceServiceImpl(ServiceRepository serviceRepository,
                               ServiceProviderRepository serviceProviderRepository,
                               ServiceHeadquarterRepository serviceHeadquarterRepository,
                               ProviderJPARepository providerRepository,
-                              EntityManager entityManager) {
+                              com.uco.ucopetapi.repository.headquarter.HeadquarterRepository headquarterRepository) {
         this.serviceRepository = serviceRepository;
         this.serviceProviderRepository = serviceProviderRepository;
         this.serviceHeadquarterRepository = serviceHeadquarterRepository;
         this.providerRepository = providerRepository;
-        this.entityManager = entityManager;
+        this.headquarterRepository = headquarterRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ServiceDTO> list(ServiceCategory category, Boolean active, Boolean purchasable, Boolean sellable,
                                  TaxCategory taxCategory, UUID headquarterId) {
+        if (headquarterId != null && !headquarterRepository.existsById(headquarterId)) {
+            throw new NoSuchElementException("Sede no encontrada: " + headquarterId);
+        }
         return serviceRepository.findByFilter(category, active, purchasable, sellable, taxCategory, headquarterId).stream()
                 .map(this::toDto)
                 .toList();
@@ -67,7 +70,7 @@ public class ServiceServiceImpl implements ServiceService {
                 request.getName(),
                 request.getDescription(),
                 request.getImageUrl(),
-                request.getPrice(),
+                Boolean.TRUE.equals(request.getSellable()) ? request.getPrice() : null,
                 request.getTaxCategory(),
                 request.getSellable(),
                 true,
@@ -85,6 +88,9 @@ public class ServiceServiceImpl implements ServiceService {
     public ServiceDTO update(UUID id, ServiceDTO request) {
         validateForUpdate(request);
         ServiceDomain service = findServiceOrThrow(id);
+        if (request.getName() != null && serviceRepository.existsByNameIgnoreCaseAndIdNot(request.getName(), id)) {
+            throw new IllegalArgumentException("Ya existe un servicio con este nombre");
+        }
 
         if (request.getName() != null) {
             service.setName(request.getName());
@@ -113,9 +119,21 @@ public class ServiceServiceImpl implements ServiceService {
         if (request.getImageUrl() != null) {
             service.setImageUrl(request.getImageUrl());
         }
+        if (Boolean.TRUE.equals(service.getSellable())) {
+            if (service.getPrice() == null || service.getPrice() <= 0) {
+                throw new IllegalArgumentException("Un servicio vendible necesita un precio mayor a cero");
+            }
+        } else {
+            service.setPrice(null);
+        }
         service = serviceRepository.save(service);
 
-        if (request.getProviders() != null) {
+        if (Boolean.FALSE.equals(service.getPurchasable())) {
+            if (request.getProviders() != null && !request.getProviders().isEmpty()) {
+                throw new IllegalArgumentException("Un servicio no comprable (purchasable = false) no puede tener proveedores asociados");
+            }
+            serviceProviderRepository.deleteByService_Id(service.getId());
+        } else if (request.getProviders() != null) {
             serviceProviderRepository.deleteByService_Id(service.getId());
             saveProviderAssociations(service, request.getProviders());
         }
@@ -142,6 +160,9 @@ public class ServiceServiceImpl implements ServiceService {
         if (request.getName().length() > 100) {
             throw new IllegalArgumentException("El nombre no puede superar los 100 caracteres");
         }
+        if (serviceRepository.existsByNameIgnoreCase(request.getName())) {
+            throw new IllegalArgumentException("Ya existe un servicio con este nombre");
+        }
         if (request.getCategory() == null) {
             throw new IllegalArgumentException("La categoría del servicio es obligatoria");
         }
@@ -157,6 +178,9 @@ public class ServiceServiceImpl implements ServiceService {
         if (Boolean.TRUE.equals(request.getSellable()) && (request.getPrice() == null || request.getPrice() <= 0)) {
             throw new IllegalArgumentException("Un servicio vendible necesita un precio mayor a cero");
         }
+        if (Boolean.FALSE.equals(request.getPurchasable()) && request.getProviders() != null && !request.getProviders().isEmpty()) {
+            throw new IllegalArgumentException("Un servicio no comprable (purchasable = false) no puede tener proveedores asociados");
+        }
         validateCommonFields(request);
     }
 
@@ -167,9 +191,10 @@ public class ServiceServiceImpl implements ServiceService {
         if (request.getName() != null && request.getName().length() > 100) {
             throw new IllegalArgumentException("El nombre no puede superar los 100 caracteres");
         }
-        if (Boolean.TRUE.equals(request.getSellable()) && request.getPrice() != null && request.getPrice() <= 0) {
+        if (request.getPrice() != null && request.getPrice() <= 0) {
             throw new IllegalArgumentException("El precio debe ser mayor a cero");
         }
+
         validateCommonFields(request);
     }
 
@@ -222,11 +247,11 @@ public class ServiceServiceImpl implements ServiceService {
             return;
         }
         for (UUID headquarterId : headquarterIds) {
-            HeadquarterDomain headquarter = entityManager.getReference(HeadquarterDomain.class, headquarterId);
+            com.uco.ucopetapi.domain.headquarter.HeadquarterDomain headquarter = headquarterRepository.findById(headquarterId)
+                    .orElseThrow(() -> new NoSuchElementException("Sede no encontrada: " + headquarterId));
             serviceHeadquarterRepository.save(new ServiceHeadquarterDomain(UUID.randomUUID(), service, headquarter));
         }
     }
-
     private ServiceDomain findServiceOrThrow(UUID id) {
         return serviceRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Servicio no encontrado: " + id));

@@ -1,9 +1,10 @@
 package com.uco.ucopetapi.service.product.impl;
 
+import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
 import com.uco.ucopetapi.domain.product.ProductDomain;
 import com.uco.ucopetapi.domain.product.StockDomain;
-import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
 import com.uco.ucopetapi.dto.product.StockDTO;
+import com.uco.ucopetapi.repository.headquarter.HeadquarterRepository;
 import com.uco.ucopetapi.repository.product.ProductRepository;
 import com.uco.ucopetapi.repository.product.StockRepository;
 import com.uco.ucopetapi.service.product.StockService;
@@ -20,12 +21,14 @@ public class StockServiceImpl implements StockService {
 
     private final StockRepository stockRepository;
     private final ProductRepository productRepository;
+    private final HeadquarterRepository headquarterRepository;
     private final EntityManager entityManager;
 
     public StockServiceImpl(StockRepository stockRepository, ProductRepository productRepository,
-                            EntityManager entityManager) {
+                            HeadquarterRepository headquarterRepository, EntityManager entityManager) {
         this.stockRepository = stockRepository;
         this.productRepository = productRepository;
+        this.headquarterRepository = headquarterRepository;
         this.entityManager = entityManager;
     }
 
@@ -38,6 +41,8 @@ public class StockServiceImpl implements StockService {
         if (!productRepository.existsById(productId)) {
             throw new NoSuchElementException("Producto no encontrado: " + productId);
         }
+        HeadquarterDomain headquarter = headquarterRepository.findById(headquarterId)
+                .orElseThrow(() -> new NoSuchElementException("Sede no encontrada: " + headquarterId));
 
         StockDomain stock = stockRepository.findByProduct_IdAndHeadquarter_Id(productId, headquarterId)
                 .orElse(null);
@@ -55,7 +60,6 @@ public class StockServiceImpl implements StockService {
                         "No existe stock de este producto en esta sede; no se puede restar de una cantidad que no existe");
             }
             ProductDomain product = entityManager.getReference(ProductDomain.class, productId);
-            HeadquarterDomain headquarter = entityManager.getReference(HeadquarterDomain.class, headquarterId);
             stock = new StockDomain(UUID.randomUUID(), product, headquarter, quantity);
         }
 
@@ -66,6 +70,12 @@ public class StockServiceImpl implements StockService {
     @Override
     @Transactional(readOnly = true)
     public StockDTO findByProductAndHeadquarter(UUID productId, UUID headquarterId) {
+        if (!productRepository.existsById(productId)) {
+            throw new NoSuchElementException("Producto no encontrado: " + productId);
+        }
+        if (!headquarterRepository.existsById(headquarterId)) {
+            throw new NoSuchElementException("Sede no encontrada: " + headquarterId);
+        }
         return stockRepository.findByProduct_IdAndHeadquarter_Id(productId, headquarterId)
                 .map(this::toDto)
                 .orElseGet(() -> new StockDTO(null, productId, headquarterId, 0));

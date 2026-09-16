@@ -27,21 +27,27 @@ public class ProductServiceImpl implements ProductService {
     private final ProductProviderRepository productProviderRepository;
     private final ProviderJPARepository providerRepository;
     private final StockService stockService;
+    private final com.uco.ucopetapi.repository.headquarter.HeadquarterRepository headquarterRepository;
 
     public ProductServiceImpl(ProductRepository productRepository,
                               ProductProviderRepository productProviderRepository,
                               ProviderJPARepository providerRepository,
-                              StockService stockService) {
+                              StockService stockService,
+                              com.uco.ucopetapi.repository.headquarter.HeadquarterRepository headquarterRepository) {
         this.productRepository = productRepository;
         this.productProviderRepository = productProviderRepository;
         this.providerRepository = providerRepository;
         this.stockService = stockService;
+        this.headquarterRepository = headquarterRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ProductDTO> list(ProductCategory category, Boolean active, Boolean sellable, TaxCategory taxCategory, UUID headquarterId) {
-        return productRepository.findByFilter(category, active, sellable, taxCategory).stream()
+        if (headquarterId != null && !headquarterRepository.existsById(headquarterId)) {
+            throw new NoSuchElementException("Sede no encontrada: " + headquarterId);
+        }
+        return productRepository.findByFilter(category, active, sellable, taxCategory, headquarterId).stream()
                 .map(product -> toDto(product, headquarterId))
                 .toList();
     }
@@ -61,7 +67,7 @@ public class ProductServiceImpl implements ProductService {
                 request.getName(),
                 request.getDescription(),
                 request.getImageUrl(),
-                request.getPrice(),
+                Boolean.TRUE.equals(request.getSellable()) ? request.getPrice() : null,
                 request.getTaxCategory(),
                 request.getSellable(),
                 true,
@@ -77,6 +83,9 @@ public class ProductServiceImpl implements ProductService {
     public ProductDTO update(UUID id, ProductDTO request) {
         validateForUpdate(request);
         ProductDomain product = findProductOrThrow(id);
+        if (request.getName() != null && productRepository.existsByNameIgnoreCaseAndIdNot(request.getName(), id)) {
+            throw new IllegalArgumentException("Ya existe un producto con este nombre");
+        }
 
         if (request.getName() != null) {
             product.setName(request.getName());
@@ -102,6 +111,14 @@ public class ProductServiceImpl implements ProductService {
         if (request.getImageUrl() != null) {
             product.setImageUrl(request.getImageUrl());
         }
+        if (Boolean.TRUE.equals(product.getSellable())) {
+            if (product.getPrice() == null || product.getPrice() <= 0) {
+                throw new IllegalArgumentException("Un producto vendible necesita un precio mayor a cero");
+            }
+        } else {
+            product.setPrice(null);
+        }
+        product = productRepository.save(product);
         product = productRepository.save(product);
 
         if (request.getProviders() != null) {
@@ -139,6 +156,9 @@ public class ProductServiceImpl implements ProductService {
         if (Boolean.TRUE.equals(request.getSellable()) && (request.getPrice() == null || request.getPrice() <= 0)) {
             throw new IllegalArgumentException("Un producto vendible necesita un precio mayor a cero");
         }
+        if (productRepository.existsByNameIgnoreCase(request.getName())) {
+            throw new IllegalArgumentException("Ya existe un producto con este nombre");
+        }
         validateCommonFields(request);
     }
 
@@ -149,7 +169,7 @@ public class ProductServiceImpl implements ProductService {
         if (request.getName() != null && request.getName().length() > 100) {
             throw new IllegalArgumentException("El nombre no puede superar los 100 caracteres");
         }
-        if (Boolean.TRUE.equals(request.getSellable()) && request.getPrice() != null && request.getPrice() <= 0) {
+        if (request.getPrice() != null && request.getPrice() <= 0) {
             throw new IllegalArgumentException("El precio debe ser mayor a cero");
         }
         validateCommonFields(request);

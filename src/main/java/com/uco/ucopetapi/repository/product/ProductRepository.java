@@ -15,16 +15,24 @@ import java.util.UUID;
 public interface ProductRepository extends JpaRepository<ProductDomain, UUID> {
 
     @Query("""
-        SELECT p FROM ProductDomain p
-        WHERE (:category IS NULL OR p.category = :category)
-          AND (:active IS NULL OR p.active = :active)
-          AND (:sellable IS NULL OR p.sellable = :sellable)
-          AND (:taxCategory IS NULL OR p.taxCategory = :taxCategory)
-        """)
+    SELECT p FROM ProductDomain p
+    WHERE (:category IS NULL OR p.category = :category)
+      AND (:active IS NULL OR p.active = :active)
+      AND (:sellable IS NULL OR p.sellable = :sellable)
+      AND (:taxCategory IS NULL OR p.taxCategory = :taxCategory)
+      AND (:headquarterId IS NULL OR EXISTS (
+            SELECT 1 FROM StockDomain s
+            WHERE s.product = p AND s.headquarter.id = :headquarterId
+          ))
+    """)
     List<ProductDomain> findByFilter(
             @Param("category") ProductCategory category,
             @Param("active") Boolean active,
             @Param("sellable") Boolean sellable,
-            @Param("taxCategory") TaxCategory taxCategory
+            @Param("taxCategory") TaxCategory taxCategory,
+            @Param("headquarterId") UUID headquarterId
     );
+    boolean existsByNameIgnoreCase(String name);
+
+    boolean existsByNameIgnoreCaseAndIdNot(String name, UUID id);
 }
