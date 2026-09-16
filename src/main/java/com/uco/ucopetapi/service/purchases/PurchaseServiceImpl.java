@@ -1,6 +1,7 @@
 package com.uco.ucopetapi.service.purchases;
 
 import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
+import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 import com.uco.ucopetapi.domain.purchases.Purchase;
 import com.uco.ucopetapi.domain.purchases.PurchaseItem;
 import com.uco.ucopetapi.domain.purchases.PurchaseStatus;
@@ -33,6 +34,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -74,11 +76,16 @@ public class PurchaseServiceImpl implements PurchaseService {
             throw new HeadquarterInactiveException(headquarter.getName());
         }
 
+        BigDecimal totalTaxes = BigDecimal.ZERO;
         for (PurchaseItemRequestDTO itemRequest : request.items()) {
-            validateProduct(itemRequest.productId(), request.headquarterId());
+            ProductDTO product = validateProduct(itemRequest.productId(), request.headquarterId());
+            BigDecimal itemSubtotal = itemRequest.unitPrice().multiply(BigDecimal.valueOf(itemRequest.quantity()));
+            BigDecimal itemTax = itemSubtotal.multiply(taxRateFor(product.getTaxCategory()))
+                    .setScale(2, RoundingMode.HALF_UP);
+            totalTaxes = totalTaxes.add(itemTax);
         }
 
-        Purchase purchase = toEntity(request);
+        Purchase purchase = toEntity(request, totalTaxes);
         Purchase saved = purchaseRepository.save(purchase);
         return toResponseDTO(saved);
     }
@@ -152,7 +159,7 @@ public class PurchaseServiceImpl implements PurchaseService {
                 .orElseThrow(() -> new HeadquarterNotFoundException(headquarterId));
     }
 
-    private void validateProduct(UUID productId, UUID headquarterId) {
+    private ProductDTO validateProduct(UUID productId, UUID headquarterId) {
         ProductDTO product;
         try {
             product = productService.getById(productId, headquarterId);
@@ -162,6 +169,15 @@ public class PurchaseServiceImpl implements PurchaseService {
         if (!Boolean.TRUE.equals(product.getActive())) {
             throw new ProductInactiveException(product.getName());
         }
+        return product;
+    }
+
+    private BigDecimal taxRateFor(TaxCategory category) {
+        return switch (category) {
+            case STANDARD -> new BigDecimal("0.19");
+            case REDUCED -> new BigDecimal("0.05");
+            case EXEMPT -> BigDecimal.ZERO;
+        };
     }
 
     private RelatedEntityDTO resolveSupplier(UUID supplierId) {
@@ -200,7 +216,7 @@ public class PurchaseServiceImpl implements PurchaseService {
         return UUID.fromString(SecurityContextHolder.getContext().getAuthentication().getName());
     }
 
-    private Purchase toEntity(PurchaseRequestDTO request) {
+    private Purchase toEntity(PurchaseRequestDTO request, BigDecimal totalTaxes) {
         List<PurchaseItem> items = request.items().stream()
                 .map(this::toItemEntity)
                 .toList();
@@ -208,7 +224,6 @@ public class PurchaseServiceImpl implements PurchaseService {
         BigDecimal subtotal = items.stream()
                 .map(PurchaseItem::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalTaxes = BigDecimal.ZERO;
 
         UUID currentPersonId = currentPersonId();
 

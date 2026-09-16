@@ -26,6 +26,7 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -199,7 +200,8 @@ class PurchaseIntegrationTest {
     /**
      * Camino feliz: crear una orden de compra con supplier, headquarter y
      * product válidos debe persistir correctamente, calcular
-     * subtotal/total, y quedar en estado PENDING.
+     * subtotal/totalTaxes/total (el fixture de producto tiene
+     * taxCategory = STANDARD, 19%), y quedar en estado PENDING.
      */
     @Test
     void shouldCreatePurchaseSuccessfully() {
@@ -209,11 +211,15 @@ class PurchaseIntegrationTest {
 
         PurchaseResponseDTO response = purchaseService.createPurchase(request);
 
-        BigDecimal expectedTotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
+        BigDecimal expectedSubtotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
+        BigDecimal expectedTaxes = expectedSubtotal.multiply(new BigDecimal("0.19"))
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal expectedTotal = expectedSubtotal.add(expectedTaxes);
 
         assertNotNull(response.id());
         assertEquals(PurchaseStatus.PENDING, response.status());
-        assertEquals(0, expectedTotal.compareTo(response.subtotal()));
+        assertEquals(0, expectedSubtotal.compareTo(response.subtotal()));
+        assertEquals(0, expectedTaxes.compareTo(response.totalTaxes()));
         assertEquals(0, expectedTotal.compareTo(response.total()));
         assertEquals(FIXED_SUPPLIER_ID, response.supplier().id());
         assertEquals(FIXED_HEADQUARTER_ID, response.headquarter().id());
