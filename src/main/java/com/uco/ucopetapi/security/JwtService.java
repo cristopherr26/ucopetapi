@@ -25,37 +25,37 @@ public class JwtService {
     private static final Logger LOG = LoggerFactory.getLogger(JwtService.class);
 
     private final SecretKey key;
-    private final long minutos;
+    private final long minutes;
 
-    public JwtService(@Value("${ucopet.jwt.secret:}") String secreto,
-                      @Value("${ucopet.jwt.expiration-minutes:720}") long minutos) {
-        this.minutos = minutos;
-        if (secreto == null || secreto.isBlank()) {
+    public JwtService(@Value("${ucopet.jwt.secret:}") String secret,
+                      @Value("${ucopet.jwt.expiration-minutes:720}") long minutes) {
+        this.minutes = minutes;
+        if (secret == null || secret.isBlank()) {
             this.key = Jwts.SIG.HS256.key().build();
-            LOG.warn("UCOPET_JWT_SECRET no esta definida. Se genero una clave temporal: "
-                    + "los tokens emitidos ahora NO van a servir despues de reiniciar.");
-        } else if (secreto.getBytes(StandardCharsets.UTF_8).length < 32) {
+            LOG.warn("UCOPET_JWT_SECRET no esta definida. Se genero una key temporal: "
+                    + "los tokens emitidos now NO van a servir despues de reiniciar.");
+        } else if (secret.getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalStateException(
                     "UCOPET_JWT_SECRET debe tener al menos 32 caracteres para HS256.");
         } else {
-            this.key = Keys.hmacShaKeyFor(secreto.getBytes(StandardCharsets.UTF_8));
+            this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         }
     }
 
-    public String generar(UUID personId, String fullName, List<Role> roles, int tokenVersion) {
-        Instant ahora = Instant.now();
+    public String generate(UUID personId, String fullName, List<Role> roles, int tokenVersion) {
+        Instant now = Instant.now();
         return Jwts.builder()
                 .subject(personId.toString())
                 .claim("name", fullName)
                 .claim("roles", roles.stream().map(Role::name).toList())
                 .claim("tv", tokenVersion)
-                .issuedAt(java.util.Date.from(ahora))
-                .expiration(java.util.Date.from(ahora.plusSeconds(minutos * 60)))
+                .issuedAt(java.util.Date.from(now))
+                .expiration(java.util.Date.from(now.plusSeconds(minutes * 60)))
                 .signWith(key)
                 .compact();
     }
 
-    public Jws<Claims> validar(String token) throws JwtException {
+    public Jws<Claims> validate(String token) throws JwtException {
         return Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
     }
 }
