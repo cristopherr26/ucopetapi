@@ -18,7 +18,7 @@ public record PurchaseResponseDTO(
         BigDecimal total,
         PurchaseStatus status,
         UUID expenseId,
-        UUID headquarterId,
+        RelatedEntityDTO headquarterId,
         Boolean hasDiscount,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
