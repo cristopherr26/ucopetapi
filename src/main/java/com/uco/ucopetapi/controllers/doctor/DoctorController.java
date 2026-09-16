@@ -6,7 +6,6 @@ import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.service.doctor.DoctorService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -72,18 +71,25 @@ public class DoctorController {
         return ResponseEntity.ok(doctors);
     }
 
-    // Crea un doctor nuevo. El id que venga en el body se ignora
+    // Crea un doctor nuevo. El id que venga en el body se ignora.
+    // Las validaciones (obligatoriedad, longitud y formato del licenseNumber) se hacen
+    // en DoctorService.validateFields(...), que lanza BusinessException con el mensaje
+    // de negocio correspondiente si algo esta mal.
     @PostMapping
-    public ResponseEntity<DoctorDTO> createNewDoctor(@Valid @RequestBody DoctorDTO doctor) {
-        DoctorDomain createdDoctor = doctorService.createNewDoctor(toDomain(doctor));
-        return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(createdDoctor));
+    public ResponseEntity<Object> createNewDoctor(@RequestBody DoctorDTO doctor) {
+        try {
+            DoctorDomain createdDoctor = doctorService.createNewDoctor(toDomain(doctor));
+            return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(createdDoctor));
+        } catch (BusinessException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(MESSAGE_KEY, e.getMessage()));
+        }
     }
 
     // Actualiza los datos de un doctor existente (licencia e idPerson). Si el id no existe, responde 404 con mensaje claro (mismo manejo que arriba).
     @PutMapping
     public ResponseEntity<Object> updateDoctor(
             @RequestParam(required = true) UUID id,
-            @Valid @RequestBody DoctorDTO doctor) {
+            @RequestBody DoctorDTO doctor) {
 
         try {
             DoctorDomain updatedDoctor = doctorService.updateDoctor(id, toDomain(doctor));

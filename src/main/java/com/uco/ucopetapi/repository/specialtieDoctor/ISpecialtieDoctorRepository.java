@@ -7,8 +7,9 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ISpecialtieDoctorRepository extends JpaRepository<SpecialtieDoctorDomain, UUID> {
-
     List<SpecialtieDoctorDomain> findByDoctor_Id(UUID idDoctor);
-
     List<SpecialtieDoctorDomain> findByIdSpecialtie(UUID idSpecialtie);
+
+    // Para validar relacion duplicada en SpecialtieDoctorService.
+    boolean existsByDoctor_IdAndIdSpecialtie(UUID idDoctor, UUID idSpecialtie);
 }
