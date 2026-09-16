@@ -1,11 +1,20 @@
 package com.uco.ucopetapi.domain.order;
 
+import com.uco.ucopetapi.domain.pet.PetDomain;
+import com.uco.ucopetapi.domain.procedure.ProcedureDomain;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Generated;
+import org.hibernate.generator.EventType;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -18,20 +27,25 @@ public class OrderDomain {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    @Column(name = "id_order", nullable = false, length = 20)
-    private String idOrder;
+    @Column(name = "id_order", nullable = false, unique = true, insertable = false, updatable = false,
+            columnDefinition = "BIGSERIAL")
+    @Generated(event = EventType.INSERT)
+    private Long idOrder;
 
-    @Column(name = "tutor", nullable = false, length = 100)
-    private String tutor;
+    @Column(name = "tutor_id", nullable = false)
+    private UUID tutorId;
 
-    @Column(name = "pet", nullable = false, length = 50)
-    private String pet;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pet_id", nullable = false)
+    private PetDomain pet;
 
-    @Column(name = "procedure_name", nullable = false, length = 150)
-    private String procedure;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "procedure_id", nullable = false)
+    private ProcedureDomain procedure;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "state", nullable = false)
-    private String state;
+    private OrderState state;
 
     @Column(name = "date", nullable = false)
     private LocalDateTime date;
@@ -43,11 +57,11 @@ public class OrderDomain {
     }
 
     @SuppressWarnings("java:S107")
-    public OrderDomain(UUID id, String idOrder, String tutor, String pet, String procedure,
-                       String state, LocalDateTime date, Boolean isAuthorized) {
+    public OrderDomain(UUID id, Long idOrder, UUID tutorId, PetDomain pet, ProcedureDomain procedure,
+                       OrderState state, LocalDateTime date, Boolean isAuthorized) {
         this.id = id;
         this.idOrder = idOrder;
-        this.tutor = tutor;
+        this.tutorId = tutorId;
         this.pet = pet;
         this.procedure = procedure;
         this.state = state;
@@ -55,67 +69,29 @@ public class OrderDomain {
         this.isAuthorized = isAuthorized;
     }
 
-    public UUID getId() {
-        return id;
-    }
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
+    public Long getIdOrder() { return idOrder; }
+    public void setIdOrder(Long idOrder) { this.idOrder = idOrder; }
 
-    public String getIdOrder() {
-        return idOrder;
-    }
+    public UUID getTutorId() { return tutorId; }
+    public void setTutorId(UUID tutorId) { this.tutorId = tutorId; }
 
-    public void setIdOrder(String idOrder) {
-        this.idOrder = idOrder;
-    }
+    public PetDomain getPet() { return pet; }
+    public void setPet(PetDomain pet) { this.pet = pet; }
+    public UUID getPetId() { return pet != null ? pet.getId() : null; }
 
-    public String getTutor() {
-        return tutor;
-    }
+    public ProcedureDomain getProcedure() { return procedure; }
+    public void setProcedure(ProcedureDomain procedure) { this.procedure = procedure; }
+    public UUID getProcedureId() { return procedure != null ? procedure.getId() : null; }
 
-    public void setTutor(String tutor) {
-        this.tutor = tutor;
-    }
+    public OrderState getState() { return state; }
+    public void setState(OrderState state) { this.state = state; }
 
-    public String getPet() {
-        return pet;
-    }
+    public LocalDateTime getDate() { return date; }
+    public void setDate(LocalDateTime date) { this.date = date; }
 
-    public void setPet(String pet) {
-        this.pet = pet;
-    }
-
-    public String getProcedure() {
-        return procedure;
-    }
-
-    public void setProcedure(String procedure) {
-        this.procedure = procedure;
-    }
-
-    public String getState() {
-        return state;
-    }
-
-    public void setState(String state) {
-        this.state = state;
-    }
-
-    public LocalDateTime getDate() {
-        return date;
-    }
-
-    public void setDate(LocalDateTime date) {
-        this.date = date;
-    }
-
-    public Boolean getAuthorized() {
-        return isAuthorized;
-    }
-
-    public void setAuthorized(Boolean authorized) {
-        isAuthorized = authorized;
-    }
+    public Boolean getIsAuthorized() { return isAuthorized; }
+    public void setIsAuthorized(Boolean isAuthorized) { this.isAuthorized = isAuthorized; }
 }

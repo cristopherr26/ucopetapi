@@ -24,15 +24,41 @@ public class SpaceService {
 
     @Transactional
     public SpaceDomain createSpace(SpaceDomain space) {
-        Boolean active = (space.getActive() != null) ? space.getActive() : true;
 
-        SpaceDomain newSpace = new SpaceDomain(
-                UUID.randomUUID(),
-                space.getCode(),
-                space.getType(),
-                space.getDescription(),
-                active
-        );
+        // - ASSIGN DEFAULT VALUES IF NULL -
+        String code = space.getCode() != null ? space.getCode().trim() : "ESP-01";
+        String type = space.getType() != null ? space.getType().trim() : "Peluquería";
+        String description = space.getDescription() != null ? space.getDescription().trim() : "Zona de baño";
+        Boolean active = Optional.ofNullable(space.getActive()).orElse(true);
+
+        // - VALIDATE BLANK STRINGS (OBLIGATORIOS) -
+        if (code.isBlank() || type.isBlank() || description.isBlank()) {
+            throw new IllegalArgumentException("Ningún campo de texto (código, tipo o descripción) puede estar vacío o en blanco.");
+        }
+
+        // - VALIDATE MAXIMUM LENGTH (LONGITUD MÁXIMA) -
+        if (code.length() > 10) {
+            throw new IllegalArgumentException("El código no puede superar los 10 caracteres.");
+        }
+        if (type.length() > 50 || description.length() < 5) {
+            throw new IllegalArgumentException("El tipo de espacio no puede superar los 50 caracteres y debe tener un mínimo de 5 caracteres..");
+        }
+        if (description.length() > 255 || description.length() < 10) {
+            throw new IllegalArgumentException("La descripción no puede superar los 255 caracteres y debe tener un mínimo de 10 caracteres.");
+        }
+
+        // - VALIDATE CODE DUPLICATION -
+        if (spaceRepository.findByCode(code).isPresent()) {
+            throw new IllegalArgumentException("El código del espacio ya existe en el sistema.");
+        }
+
+        // - VALIDATE CODE FORMAT USING REGEX -
+        if (!code.matches("^[A-Z]{3}-\\d+$")) {
+            throw new IllegalArgumentException("El código debe tener el formato de 3 letras mayúsculas, un guion y números (Ej: CON-101).");
+        }
+
+        // - SAVE AND RETURN SPACE -
+        SpaceDomain newSpace = new SpaceDomain(UUID.randomUUID(), code, type, description, active);
         return spaceRepository.save(newSpace);
     }
 

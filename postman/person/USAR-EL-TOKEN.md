@@ -45,7 +45,7 @@ public ResponseEntity<X> crear(Authentication authentication) {
 
 ---
 
-## 🔧 ¿Necesitás otros permisos? Escribime
+## ¿Necesitás otros permisos? Escribime
 
 **A lo tuyo ya se le pusieron reglas**, agrupadas por los cinco procesadores del tablero —Usuarios,
 Salud, Comercial, Inventario, Pagos—. Pero **las escribí yo sin consultarles**, porque cerrar la API
