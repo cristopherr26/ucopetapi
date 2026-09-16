@@ -1,12 +1,12 @@
 package com.uco.ucopetapi.dto.product;
 
-import com.uco.ucopetapi.domain.product.enums.ProductCategory;
+import com.uco.ucopetapi.domain.product.enums.ServiceCategory;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 
 import java.util.List;
 import java.util.UUID;
 
-public class ProductDTO {
+public class ServiceDTO {
 
     private final UUID id;
     private String name;
@@ -16,14 +16,15 @@ public class ProductDTO {
     private TaxCategory taxCategory;
     private Boolean sellable;
     private Boolean active;
-    private ProductCategory category;
+    private ServiceCategory category;
+    private Boolean purchasable;
     private List<AssociatedSupplierDTO> providers;
-    private Integer stockAtLocation;
+    private List<UUID> headquarterIds;
 
-    public ProductDTO(final UUID id, final String name, final String description, final String imageUrl,
+    public ServiceDTO(final UUID id, final String name, final String description, final String imageUrl,
                       final Integer price, final TaxCategory taxCategory, final Boolean sellable,
-                      final Boolean active, final ProductCategory category,
-                      final List<AssociatedSupplierDTO> providers, final Integer stockAtLocation) {
+                      final Boolean active, final ServiceCategory category, final Boolean purchasable,
+                      final List<AssociatedSupplierDTO> providers, final List<UUID> headquarterIds) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -33,8 +34,9 @@ public class ProductDTO {
         this.sellable = sellable;
         this.active = active;
         this.category = category;
+        this.purchasable = purchasable;
         this.providers = providers;
-        this.stockAtLocation = stockAtLocation;
+        this.headquarterIds = headquarterIds;
     }
 
     public UUID getId() {
@@ -97,12 +99,20 @@ public class ProductDTO {
         this.active = active;
     }
 
-    public ProductCategory getCategory() {
+    public ServiceCategory getCategory() {
         return category;
     }
 
-    public void setCategory(ProductCategory category) {
+    public void setCategory(ServiceCategory category) {
         this.category = category;
+    }
+
+    public Boolean getPurchasable() {
+        return purchasable;
+    }
+
+    public void setPurchasable(Boolean purchasable) {
+        this.purchasable = purchasable;
     }
 
     public List<AssociatedSupplierDTO> getProviders() {
@@ -113,11 +123,11 @@ public class ProductDTO {
         this.providers = providers;
     }
 
-    public Integer getStockAtLocation() {
-        return stockAtLocation;
+    public List<UUID> getHeadquarterIds() {
+        return headquarterIds;
     }
 
-    public void setStockAtLocation(Integer stockAtLocation) {
-        this.stockAtLocation = stockAtLocation;
+    public void setHeadquarterIds(List<UUID> headquarterIds) {
+        this.headquarterIds = headquarterIds;
     }
 }
