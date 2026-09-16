@@ -2,6 +2,8 @@ package com.uco.ucopetapi.repository.purchases;
 
 import com.uco.ucopetapi.domain.purchases.Purchase;
 import com.uco.ucopetapi.domain.purchases.PurchaseStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -15,11 +17,11 @@ public interface PurchaseRepository extends JpaRepository<Purchase, UUID> {
 
     List<Purchase> findByStatusAndSupplierId(PurchaseStatus status, UUID supplierId);
 
-    List<Purchase> findByHeadquarterId(UUID headquarterId);
+    Page<Purchase> findByHeadquarterId(UUID headquarterId, Pageable pageable);
 
-    List<Purchase> findByHeadquarterIdAndStatus(UUID headquarterId, PurchaseStatus status);
+    Page<Purchase> findByHeadquarterIdAndStatus(UUID headquarterId, PurchaseStatus status, Pageable pageable);
 
-    List<Purchase> findByHeadquarterIdAndSupplierId(UUID headquarterId, UUID supplierId);
+    Page<Purchase> findByHeadquarterIdAndSupplierId(UUID headquarterId, UUID supplierId, Pageable pageable);
 
-    List<Purchase> findByHeadquarterIdAndStatusAndSupplierId(UUID headquarterId, PurchaseStatus status, UUID supplierId);
+    Page<Purchase> findByHeadquarterIdAndStatusAndSupplierId(UUID headquarterId, PurchaseStatus status, UUID supplierId, Pageable pageable);
 }

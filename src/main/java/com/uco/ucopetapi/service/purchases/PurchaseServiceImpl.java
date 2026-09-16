@@ -21,6 +21,8 @@ import com.uco.ucopetapi.service.purchases.exception.HeadquarterInactiveExceptio
 import com.uco.ucopetapi.service.purchases.exception.HeadquarterNotFoundException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseNotFoundException;
 import com.uco.ucopetapi.service.purchases.exception.SupplierNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -71,18 +73,18 @@ public class PurchaseServiceImpl implements PurchaseService {
     }
 
     @Override
-    public List<PurchaseResponseDTO> listPurchases(UUID headquarterId, PurchaseStatus status, UUID supplierId) {
-        List<Purchase> purchases;
+    public Page<PurchaseResponseDTO> listPurchases(UUID headquarterId, PurchaseStatus status, UUID supplierId, Pageable pageable) {
+        Page<Purchase> purchases;
         if (status != null && supplierId != null) {
-            purchases = purchaseRepository.findByHeadquarterIdAndStatusAndSupplierId(headquarterId, status, supplierId);
+            purchases = purchaseRepository.findByHeadquarterIdAndStatusAndSupplierId(headquarterId, status, supplierId, pageable);
         } else if (status != null) {
-            purchases = purchaseRepository.findByHeadquarterIdAndStatus(headquarterId, status);
+            purchases = purchaseRepository.findByHeadquarterIdAndStatus(headquarterId, status, pageable);
         } else if (supplierId != null) {
-            purchases = purchaseRepository.findByHeadquarterIdAndSupplierId(headquarterId, supplierId);
+            purchases = purchaseRepository.findByHeadquarterIdAndSupplierId(headquarterId, supplierId, pageable);
         } else {
-            purchases = purchaseRepository.findByHeadquarterId(headquarterId);
+            purchases = purchaseRepository.findByHeadquarterId(headquarterId, pageable);
         }
-        return purchases.stream().map(this::toResponseDTO).toList();
+        return purchases.map(this::toResponseDTO);
     }
 
     @Override
