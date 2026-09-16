@@ -201,39 +201,37 @@ public class PurchaseServiceImpl implements PurchaseService {
     }
 
     private Purchase toEntity(PurchaseRequestDTO request) {
-        Purchase purchase = new Purchase();
-        purchase.setSupplierId(request.supplierId());
-        purchase.setPurchaseNumber(request.purchaseNumber());
-        purchase.setHeadquarterId(request.headquarterId());
-        purchase.setHasDiscount(request.hasDiscount() == null ? false : request.hasDiscount());
-        purchase.setPurchaseDate(LocalDateTime.now());
-        purchase.setStatus(PurchaseStatus.PENDING);
-        purchase.setCreatedAt(LocalDateTime.now());
-        purchase.setUpdatedAt(LocalDateTime.now());
-        UUID currentPersonId = currentPersonId();
-        purchase.setCreatedByPersonId(currentPersonId);
-        purchase.setUpdatedByPersonId(currentPersonId);
-
         List<PurchaseItem> items = request.items().stream()
-                .map(itemRequest -> toItemEntity(itemRequest, purchase))
+                .map(this::toItemEntity)
                 .toList();
-        items.forEach(purchase::addItem);
 
         BigDecimal subtotal = items.stream()
                 .map(PurchaseItem::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalTaxes = BigDecimal.ZERO;
 
-        purchase.setSubtotal(subtotal);
-        purchase.setTotalTaxes(totalTaxes);
-        purchase.setTotal(subtotal.add(totalTaxes));
+        UUID currentPersonId = currentPersonId();
 
-        return purchase;
+        return Purchase.builder()
+                .supplierId(request.supplierId())
+                .purchaseNumber(request.purchaseNumber())
+                .headquarterId(request.headquarterId())
+                .hasDiscount(request.hasDiscount() == null ? false : request.hasDiscount())
+                .purchaseDate(LocalDateTime.now())
+                .status(PurchaseStatus.PENDING)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .createdByPersonId(currentPersonId)
+                .updatedByPersonId(currentPersonId)
+                .subtotal(subtotal)
+                .totalTaxes(totalTaxes)
+                .total(subtotal.add(totalTaxes))
+                .items(items)
+                .build();
     }
 
-    private PurchaseItem toItemEntity(PurchaseItemRequestDTO request, Purchase purchase) {
+    private PurchaseItem toItemEntity(PurchaseItemRequestDTO request) {
         PurchaseItem item = new PurchaseItem();
-        item.setPurchase(purchase);
         item.setProductId(request.productId());
         item.setQuantity(request.quantity());
         item.setUnitPrice(request.unitPrice());

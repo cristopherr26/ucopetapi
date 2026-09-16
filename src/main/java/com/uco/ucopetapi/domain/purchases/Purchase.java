@@ -74,30 +74,8 @@ public class Purchase {
     public Purchase() {
     }
 
-    public Purchase(UUID id, UUID supplierId, String purchaseNumber, LocalDateTime purchaseDate,
-                     BigDecimal subtotal, BigDecimal totalTaxes, BigDecimal total, PurchaseStatus status,
-                     UUID expenseId, UUID headquarterId, boolean hasDiscount, LocalDateTime createdAt,
-                     LocalDateTime updatedAt, UUID createdByPersonId, UUID updatedByPersonId,
-                     List<PurchaseItem> items) {
-        this.id = id;
-        this.supplierId = supplierId;
-        this.purchaseNumber = purchaseNumber;
-        this.purchaseDate = purchaseDate;
-        this.subtotal = subtotal;
-        this.totalTaxes = totalTaxes;
-        this.total = total;
-        this.status = status;
-        this.expenseId = expenseId;
-        this.headquarterId = headquarterId;
-        this.hasDiscount = hasDiscount;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.createdByPersonId = createdByPersonId;
-        this.updatedByPersonId = updatedByPersonId;
-        this.items = new ArrayList<>(items);
-        for (PurchaseItem item : this.items) {
-            item.setPurchase(this);
-        }
+    public static Builder builder() {
+        return new Builder();
     }
 
     public UUID getId() {
@@ -227,5 +205,130 @@ public class Purchase {
     public void addItem(PurchaseItem item) {
         item.setPurchase(this);
         this.items.add(item);
+    }
+
+    public static class Builder {
+
+        private UUID id;
+        private UUID supplierId;
+        private String purchaseNumber;
+        private LocalDateTime purchaseDate;
+        private BigDecimal subtotal;
+        private BigDecimal totalTaxes;
+        private BigDecimal total;
+        private PurchaseStatus status;
+        private UUID expenseId;
+        private UUID headquarterId;
+        private boolean hasDiscount;
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
+        private UUID createdByPersonId;
+        private UUID updatedByPersonId;
+        private List<PurchaseItem> items;
+
+        public Builder id(UUID id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder supplierId(UUID supplierId) {
+            this.supplierId = supplierId;
+            return this;
+        }
+
+        public Builder purchaseNumber(String purchaseNumber) {
+            this.purchaseNumber = purchaseNumber;
+            return this;
+        }
+
+        public Builder purchaseDate(LocalDateTime purchaseDate) {
+            this.purchaseDate = purchaseDate;
+            return this;
+        }
+
+        public Builder subtotal(BigDecimal subtotal) {
+            this.subtotal = subtotal;
+            return this;
+        }
+
+        public Builder totalTaxes(BigDecimal totalTaxes) {
+            this.totalTaxes = totalTaxes;
+            return this;
+        }
+
+        public Builder total(BigDecimal total) {
+            this.total = total;
+            return this;
+        }
+
+        public Builder status(PurchaseStatus status) {
+            this.status = status;
+            return this;
+        }
+
+        public Builder expenseId(UUID expenseId) {
+            this.expenseId = expenseId;
+            return this;
+        }
+
+        public Builder headquarterId(UUID headquarterId) {
+            this.headquarterId = headquarterId;
+            return this;
+        }
+
+        public Builder hasDiscount(boolean hasDiscount) {
+            this.hasDiscount = hasDiscount;
+            return this;
+        }
+
+        public Builder createdAt(LocalDateTime createdAt) {
+            this.createdAt = createdAt;
+            return this;
+        }
+
+        public Builder updatedAt(LocalDateTime updatedAt) {
+            this.updatedAt = updatedAt;
+            return this;
+        }
+
+        public Builder createdByPersonId(UUID createdByPersonId) {
+            this.createdByPersonId = createdByPersonId;
+            return this;
+        }
+
+        public Builder updatedByPersonId(UUID updatedByPersonId) {
+            this.updatedByPersonId = updatedByPersonId;
+            return this;
+        }
+
+        public Builder items(List<PurchaseItem> items) {
+            this.items = items;
+            return this;
+        }
+
+        public Purchase build() {
+            Purchase purchase = new Purchase();
+            purchase.setId(id);
+            purchase.setSupplierId(supplierId);
+            purchase.setPurchaseNumber(purchaseNumber);
+            purchase.setPurchaseDate(purchaseDate);
+            purchase.setSubtotal(subtotal);
+            purchase.setTotalTaxes(totalTaxes);
+            purchase.setTotal(total);
+            purchase.setStatus(status);
+            purchase.setExpenseId(expenseId);
+            purchase.setHeadquarterId(headquarterId);
+            purchase.setHasDiscount(hasDiscount);
+            purchase.setCreatedAt(createdAt);
+            purchase.setUpdatedAt(updatedAt);
+            purchase.setCreatedByPersonId(createdByPersonId);
+            purchase.setUpdatedByPersonId(updatedByPersonId);
+            if (items != null) {
+                for (PurchaseItem item : items) {
+                    purchase.addItem(item);
+                }
+            }
+            return purchase;
+        }
     }
 }
