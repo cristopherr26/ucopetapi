@@ -6,6 +6,9 @@ import com.uco.ucopetapi.dto.purchases.PurchaseRequestDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseResponseDTO;
 import com.uco.ucopetapi.service.purchases.PurchaseService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -38,12 +40,15 @@ public class PurchaseController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
-    public ResponseEntity<List<PurchaseResponseDTO>> findByFilter(
+    public ResponseEntity<Page<PurchaseResponseDTO>> findByFilter(
             @RequestParam(required = true) UUID headquarterId,
             @RequestParam(required = false) PurchaseStatus status,
-            @RequestParam(required = false) UUID supplierId
+            @RequestParam(required = false) UUID supplierId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
     ) {
-        return ResponseEntity.ok(purchaseService.listPurchases(headquarterId, status, supplierId));
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return ResponseEntity.ok(purchaseService.listPurchases(headquarterId, status, supplierId, pageable));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
