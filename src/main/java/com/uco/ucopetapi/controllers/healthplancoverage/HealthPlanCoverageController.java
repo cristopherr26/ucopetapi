@@ -6,9 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -33,6 +31,17 @@ public class HealthPlanCoverageController {
                     )
             );
         }
+
+    @GetMapping("/{coverageId}")
+    public ResponseEntity<HealthPlanCoverageDTO> findById(
+            @PathVariable UUID healthPlanId,
+            @PathVariable UUID coverageId
+    ) {
+
+        return ResponseEntity.ok(
+                coverageService.findById(healthPlanId, coverageId)
+        );
+    }
 
 
 
