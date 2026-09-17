@@ -24,9 +24,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @Rollback
 class OrderIntegrationTest {
 
-    private static final UUID EXISTING_PET_ID = UUID.fromString("1532ced0-1bb4-43d0-a63d-a40062826e82");
+    private static final UUID EXISTING_PET_ID = UUID.fromString("293454c3-3088-4b7d-aef5-2437649165cd");
 
-    private static final UUID EXISTING_PROCEDURE_ID = UUID.fromString("ea5fb7fa-da1a-4153-ba33-fe73c6e9dd4f");
+    private static final UUID EXISTING_PROCEDURE_ID = UUID.fromString("740280a8-cb34-438f-ae8f-57f7d36c4308");
 
     @Autowired
     private IOrderService orderService;
@@ -60,7 +60,7 @@ class OrderIntegrationTest {
                 () -> orderService.delete(orderId)
         );
 
-        assertTrue(exception.getMessage().contains("PENDIENTE"));
+        assertTrue(exception.getMessage().contains("PENDING"));
     }
 
     @Test
