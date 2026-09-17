@@ -2,6 +2,8 @@ package com.uco.ucopetapi.controllers.egress;
 
 import com.uco.ucopetapi.domain.egress.EgressDomain;
 import com.uco.ucopetapi.service.egress.EgressService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +21,16 @@ public class EgressController {
 
     private final EgressService egressService;
     private final RestClient restClient = RestClient.create();
-    private static final String PAY_METHOD_SERVICE_URL = "http://localhost:8080/api/v1/PayMethods/getIdByName";
     private static final String MESSAGE = "error";
+
+    @Value("${paymethod.service.url}")
+    private String payMethodServiceUrl;
+
+    @Value("${provider.service.url}")
+    private String providerServiceUrl;
+
+    @Value("${purchaseorder.service.url}")
+    private String purchaseOrderServiceUrl;
 
     public EgressController(EgressService egressService) {
         this.egressService = egressService;
@@ -52,26 +62,38 @@ public class EgressController {
     }
 
     @GetMapping("/getByProvider")
-    public ResponseEntity<List<EgressDomain>> getByProvider(@RequestParam String provider) {
-        UUID providerId = getProviderIdByName(provider);
+    public ResponseEntity<List<EgressDomain>> getByProvider(
+            @RequestParam String provider,
+            HttpServletRequest httpRequest) {
+
+        UUID providerId = getProviderIdByName(provider, authHeader(httpRequest));
         return ResponseEntity.ok(egressService.getByProvider(providerId));
     }
 
     @GetMapping("/getByPayMethod")
-    public ResponseEntity<List<EgressDomain>> getByPayMethod(@RequestParam String payMethod) {
-        UUID payMethodId = getPayMethodIdByName(payMethod);
+    public ResponseEntity<List<EgressDomain>> getByPayMethod(
+            @RequestParam String payMethod,
+            HttpServletRequest httpRequest) {
+
+        UUID payMethodId = getPayMethodIdByName(payMethod, authHeader(httpRequest));
         return ResponseEntity.ok(egressService.getByPayMethod(payMethodId));
     }
 
     @GetMapping("/getByPurchaseOrder")
-    public ResponseEntity<List<EgressDomain>> getByPurchaseOrder(@RequestParam String purchaseOrder) {
-        UUID purchaseOrderId = getPurchaseOrderIdByName(purchaseOrder);
+    public ResponseEntity<List<EgressDomain>> getByPurchaseOrder(
+            @RequestParam String purchaseOrder,
+            HttpServletRequest httpRequest) {
+
+        UUID purchaseOrderId = getPurchaseOrderIdByNumber(purchaseOrder, authHeader(httpRequest));
         return ResponseEntity.ok(egressService.getByPurchaseOrder(purchaseOrderId));
     }
 
     @PostMapping("/newEgress")
-    public ResponseEntity<EgressDomain> createEgress(@RequestBody Map<String, Object> request) {
-        EgressDomain newEgress = buildEgressFromNames(null, request);
+    public ResponseEntity<EgressDomain> createEgress(
+            @RequestBody Map<String, Object> request,
+            HttpServletRequest httpRequest) {
+
+        EgressDomain newEgress = buildEgressFromNames(null, request, authHeader(httpRequest));
         EgressDomain savedEgress = egressService.saveEgress(newEgress);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedEgress);
     }
@@ -79,9 +101,10 @@ public class EgressController {
     @PutMapping("/{id}")
     public ResponseEntity<EgressDomain> updateEgress(
             @PathVariable UUID id,
-            @RequestBody Map<String, Object> request) {
+            @RequestBody Map<String, Object> request,
+            HttpServletRequest httpRequest) {
 
-        EgressDomain updatedEgress = buildEgressFromNames(id, request);
+        EgressDomain updatedEgress = buildEgressFromNames(id, request, authHeader(httpRequest));
         EgressDomain result = egressService.updateEgress(id, updatedEgress);
         return ResponseEntity.ok(result);
     }
@@ -92,10 +115,10 @@ public class EgressController {
         return ResponseEntity.noContent().build();
     }
 
-    private EgressDomain buildEgressFromNames(UUID id, Map<String, Object> request) {
-        UUID providerId = getProviderIdByName((String) request.get("provider"));
-        UUID purchaseOrderId = getPurchaseOrderIdByName((String) request.get("purchaseOrder"));
-        UUID payMethodId = getPayMethodIdByName((String) request.get("payMethod"));
+    private EgressDomain buildEgressFromNames(UUID id, Map<String, Object> request, String authHeader) {
+        UUID providerId = getProviderIdByName((String) request.get("provider"), authHeader);
+        UUID purchaseOrderId = getPurchaseOrderIdByNumber((String) request.get("purchaseOrder"), authHeader);
+        UUID payMethodId = getPayMethodIdByName((String) request.get("payMethod"), authHeader);
 
         return new EgressDomain(
                 id,
@@ -108,26 +131,45 @@ public class EgressController {
         );
     }
 
-    private UUID getProviderIdByName(String nombre) {
-        // TODO: consumir endpoint del microservicio de Provider (ej. GET /api/v1/Providers/buscarPorNombre?nombre=...)
-        // y devolver únicamente el UUID, sin depender del Domain/DTO de ese módulo.
+    private String authHeader(HttpServletRequest httpRequest) {
+        return httpRequest.getHeader("Authorization");
+    }
+
+    private UUID getProviderIdByName(String nombre, String authHeader) {
+        // TODO: confirmar el query param real cuando exista el endpoint en Provider (ej. ?providerName=...)
         throw new UnsupportedOperationException("Integración con el microservicio de Provider pendiente");
     }
 
-    private UUID getPurchaseOrderIdByName(String nombre) {
-        // TODO: consumir endpoint del microservicio de PurchaseOrder (ej. GET /api/v1/PurchaseOrders/buscarPorNombre?nombre=...)
-        // y devolver únicamente el UUID.
-        throw new UnsupportedOperationException("Integración con el microservicio de PurchaseOrder pendiente");
+    private record PurchaseIdResponse(UUID id) {}
+
+    private UUID getPurchaseOrderIdByNumber(String purchaseNumber, String authHeader) {
+        if (purchaseNumber == null || purchaseNumber.isBlank()) {
+            throw new IllegalArgumentException("El campo 'purchaseOrder' es obligatorio");
+        }
+        try {
+            PurchaseIdResponse response = restClient.get()
+                    .uri(purchaseOrderServiceUrl + "?purchaseNumber={purchaseNumber}", purchaseNumber)
+                    .header("Authorization", authHeader)
+                    .retrieve()
+                    .body(PurchaseIdResponse.class);
+
+            if (response == null || response.id() == null) {
+                throw new IllegalArgumentException("Orden de compra no encontrada: " + purchaseNumber);
+            }
+            return response.id();
+        } catch (HttpClientErrorException.NotFound _) {
+            throw new IllegalArgumentException("Orden de compra no encontrada: " + purchaseNumber);
+        }
     }
 
-    private UUID getPayMethodIdByName(String nombre) {
+    private UUID getPayMethodIdByName(String nombre, String authHeader) {
         if (nombre == null || nombre.isBlank()) {
             throw new IllegalArgumentException("El campo 'payMethod' es obligatorio");
         }
-
         try {
             UUID id = restClient.get()
-                    .uri(PAY_METHOD_SERVICE_URL + "?name={name}", nombre)
+                    .uri(payMethodServiceUrl + "?name={name}", nombre)
+                    .header("Authorization", authHeader)
                     .retrieve()
                     .body(UUID.class);
 
