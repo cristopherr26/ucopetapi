@@ -1,6 +1,6 @@
-package com.uco.ucopetapi.repository.healthplancoverage;
+package com.uco.ucopetapi.repository.healthPlanCoverage;
 
-import com.uco.ucopetapi.domain.healthplancoverage.HealthPlanCoverageDomain;
+import com.uco.ucopetapi.domain.healthPlanCoverage.HealthPlanCoverageDomain;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

@@ -1,7 +1,7 @@
-package com.uco.ucopetapi.controllers.healthplancoverage;
+package com.uco.ucopetapi.controllers.healthPlanCoverage;
 
-import com.uco.ucopetapi.dto.healthplancoverage.HealthPlanCoverageDTO;
-import com.uco.ucopetapi.service.healthplancoverage.HealthPlanCoverageService;
+import com.uco.ucopetapi.dto.healthPlanCoverage.HealthPlanCoverageDTO;
+import com.uco.ucopetapi.service.healthPlanCoverage.HealthPlanCoverageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

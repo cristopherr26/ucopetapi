@@ -1,4 +1,4 @@
-package com.uco.ucopetapi.dto.healthplancoverage;
+package com.uco.ucopetapi.dto.healthPlanCoverage;
 
 import java.util.UUID;
 import java.math.BigDecimal;

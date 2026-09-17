@@ -1,6 +1,6 @@
-package com.uco.ucopetapi.dto.healthplan;
+package com.uco.ucopetapi.dto.healthPlan;
 
-import com.uco.ucopetapi.dto.healthplancoverage.HealthPlanCoverageDTO;
+import com.uco.ucopetapi.dto.healthPlanCoverage.HealthPlanCoverageDTO;
 
 import java.util.ArrayList;
 import java.util.UUID;

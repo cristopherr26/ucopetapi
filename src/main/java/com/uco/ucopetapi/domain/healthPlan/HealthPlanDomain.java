@@ -1,6 +1,6 @@
-package com.uco.ucopetapi.domain.healthplan;
+package com.uco.ucopetapi.domain.healthPlan;
 
-import com.uco.ucopetapi.domain.healthplancoverage.HealthPlanCoverageDomain;
+import com.uco.ucopetapi.domain.healthPlanCoverage.HealthPlanCoverageDomain;
 import jakarta.persistence.*;
 
 import java.util.ArrayList;

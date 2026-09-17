@@ -1,17 +1,17 @@
-package com.uco.ucopetapi.service.healthplancoverage;
+package com.uco.ucopetapi.service.healthPlanCoverage;
 
-import com.uco.ucopetapi.domain.healthplan.HealthPlanDomain;
-import com.uco.ucopetapi.domain.healthplancoverage.HealthPlanCoverageDomain;
-import com.uco.ucopetapi.dto.healthplancoverage.HealthPlanCoverageDTO;
-import com.uco.ucopetapi.repository.healthplan.IHealthPlanRepository;
-import com.uco.ucopetapi.repository.healthplancoverage.IHealthPlanCoverageRepository;
+import com.uco.ucopetapi.domain.healthPlan.HealthPlanDomain;
+import com.uco.ucopetapi.domain.healthPlanCoverage.HealthPlanCoverageDomain;
+import com.uco.ucopetapi.dto.healthPlanCoverage.HealthPlanCoverageDTO;
+import com.uco.ucopetapi.repository.healthPlan.IHealthPlanRepository;
+import com.uco.ucopetapi.repository.healthPlanCoverage.IHealthPlanCoverageRepository;
 import com.uco.ucopetapi.dto.procedure.ProcedureDTO;
-import com.uco.ucopetapi.exception.healthplan.CoverageLimitExceededException;
-import com.uco.ucopetapi.exception.healthplan.CoverageNotFoundException;
-import com.uco.ucopetapi.exception.healthplan.DuplicateCoverageException;
-import com.uco.ucopetapi.exception.healthplan.HealthPlanNotFoundException;
-import com.uco.ucopetapi.exception.healthplan.ProcedureNotFoundException;
-import com.uco.ucopetapi.exception.healthplan.ProcedureServiceException;
+import com.uco.ucopetapi.exception.healthPlan.CoverageLimitExceededException;
+import com.uco.ucopetapi.exception.healthPlan.CoverageNotFoundException;
+import com.uco.ucopetapi.exception.healthPlan.DuplicateCoverageException;
+import com.uco.ucopetapi.exception.healthPlan.HealthPlanNotFoundException;
+import com.uco.ucopetapi.exception.healthPlan.ProcedureNotFoundException;
+import com.uco.ucopetapi.exception.healthPlan.ProcedureServiceException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +19,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Arrays;
 import java.util.List;

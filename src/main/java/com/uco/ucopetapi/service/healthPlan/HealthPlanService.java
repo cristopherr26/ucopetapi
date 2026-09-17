@@ -1,11 +1,11 @@
-package com.uco.ucopetapi.service.healthplan;
+package com.uco.ucopetapi.service.healthPlan;
 
-import com.uco.ucopetapi.domain.healthplan.HealthPlanDomain;
-import com.uco.ucopetapi.domain.healthplancoverage.HealthPlanCoverageDomain;
-import com.uco.ucopetapi.dto.healthplan.HealthPlanDTO;
-import com.uco.ucopetapi.dto.healthplancoverage.HealthPlanCoverageDTO;
-import com.uco.ucopetapi.exception.healthplan.HealthPlanNotFoundException;
-import com.uco.ucopetapi.repository.healthplan.IHealthPlanRepository;
+import com.uco.ucopetapi.domain.healthPlan.HealthPlanDomain;
+import com.uco.ucopetapi.domain.healthPlanCoverage.HealthPlanCoverageDomain;
+import com.uco.ucopetapi.dto.healthPlan.HealthPlanDTO;
+import com.uco.ucopetapi.dto.healthPlanCoverage.HealthPlanCoverageDTO;
+import com.uco.ucopetapi.exception.healthPlan.HealthPlanNotFoundException;
+import com.uco.ucopetapi.repository.healthPlan.IHealthPlanRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

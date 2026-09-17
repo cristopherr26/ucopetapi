@@ -1,4 +1,4 @@
-package com.uco.ucopetapi.exception.healthplan;
+package com.uco.ucopetapi.exception.healthPlan;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;

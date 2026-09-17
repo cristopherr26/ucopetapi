@@ -1,4 +1,4 @@
-package com.uco.ucopetapi.exception.healthplan;
+package com.uco.ucopetapi.exception.healthPlan;
 
 public class HealthPlanNotFoundException extends RuntimeException {
     public HealthPlanNotFoundException() {
