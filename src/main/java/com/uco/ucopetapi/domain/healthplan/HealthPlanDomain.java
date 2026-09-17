@@ -1,6 +1,8 @@
 package com.uco.ucopetapi.domain.healthplan;
+
 import com.uco.ucopetapi.domain.healthplancoverage.HealthPlanCoverageDomain;
 import jakarta.persistence.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -17,15 +19,21 @@ public class HealthPlanDomain {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private String insuranceCompany;
 
     private String description;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Status status;
+
+    @Column(nullable = false)
+    private boolean deleted = false;
+
     @OneToMany(
             mappedBy = "healthPlan",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
+            cascade = CascadeType.ALL
     )
     private List<HealthPlanCoverageDomain> coverages = new ArrayList<>();
 
@@ -37,12 +45,16 @@ public class HealthPlanDomain {
             String name,
             String insuranceCompany,
             String description,
+            Status status,
+            boolean deleted,
             List<HealthPlanCoverageDomain> coverages) {
 
         this.id = id;
         this.name = name;
         this.insuranceCompany = insuranceCompany;
         this.description = description;
+        this.status = status;
+        this.deleted = deleted;
         this.coverages = coverages;
     }
 
@@ -78,11 +90,20 @@ public class HealthPlanDomain {
         this.description = description;
     }
 
-    public List<HealthPlanCoverageDomain> getCoverages() {
-        return coverages;
-    }
+    public Status getStatus() {return status;}
 
-    public void setCoverages(List<HealthPlanCoverageDomain> coverages) {
-        this.coverages = coverages;
+    public void setStatus(Status status) {this.status = status;}
+
+    public boolean isDeleted() {return deleted;}
+
+    public void setDeleted(boolean deleted) {this.deleted = deleted;}
+
+    public List<HealthPlanCoverageDomain> getCoverages() {return coverages;}
+
+    public void setCoverages(List<HealthPlanCoverageDomain> coverages) {this.coverages = coverages;}
+
+    public enum Status {
+        ACTIVA,
+        INACTIVA
     }
 }

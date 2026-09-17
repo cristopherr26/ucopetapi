@@ -28,13 +28,9 @@ public class HealthPlanCoverageDTO {
         this.coverageLimit = coverageLimit;
     }
 
-    public UUID getId() {
-        return id;
-    }
+    public UUID getId() {return id;}
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
+    public void setId(UUID id) {this.id = id;}
 
     public UUID getHealthPlanId() {
         return healthPlanId;

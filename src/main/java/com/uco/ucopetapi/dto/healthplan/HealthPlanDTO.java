@@ -2,6 +2,7 @@ package com.uco.ucopetapi.dto.healthplan;
 
 import com.uco.ucopetapi.dto.healthplancoverage.HealthPlanCoverageDTO;
 
+import java.util.ArrayList;
 import java.util.UUID;
 import java.util.List;
 
@@ -11,7 +12,8 @@ public class HealthPlanDTO {
     private String name;
     private String insuranceCompany;
     private String description;
-    private List<HealthPlanCoverageDTO> coverages;
+    private String status;
+    private List<HealthPlanCoverageDTO> coverages = new ArrayList<>();
 
     public HealthPlanDTO() {
     }
@@ -21,12 +23,14 @@ public class HealthPlanDTO {
             String name,
             String insuranceCompany,
             String description,
+            String status,
             List<HealthPlanCoverageDTO> coverages) {
 
         this.id = id;
         this.name = name;
         this.insuranceCompany = insuranceCompany;
         this.description = description;
+        this.status = status;
         this.coverages = coverages;
     }
 
@@ -61,6 +65,10 @@ public class HealthPlanDTO {
     public void setDescription(String description) {
         this.description = description;
     }
+
+    public String getStatus() {return status;}
+
+    public void setStatus(String status) {this.status = status;}
 
     public List<HealthPlanCoverageDTO> getCoverages() {
         return coverages;

@@ -9,7 +9,14 @@ import java.util.UUID;
 
 
 @Entity
-@Table(name = "health_plan_coverages")
+@Table(
+        name = "health_plan_coverages",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        columnNames = {"health_plan_id", "procedure_id"}
+                )
+        }
+)
 public class HealthPlanCoverageDomain {
 
     @Id
@@ -29,6 +36,9 @@ public class HealthPlanCoverageDomain {
     @Column(precision = 15, scale = 2)
     private BigDecimal coverageLimit;
 
+    @Column(nullable = false)
+    private boolean deleted = false;
+
     public HealthPlanCoverageDomain() {
     }
 
@@ -37,14 +47,16 @@ public class HealthPlanCoverageDomain {
             HealthPlanDomain healthPlan,
             UUID procedureId,
             Integer coveragePercentage,
-            BigDecimal coverageLimit) {
-
+            BigDecimal coverageLimit,
+            boolean deleted
+    ) {
 
         this.id = id;
         this.healthPlan = healthPlan;
         this.procedureId = procedureId;
         this.coveragePercentage = coveragePercentage;
         this.coverageLimit = coverageLimit;
+        this.deleted = deleted;
     }
 
     public UUID getId() {
@@ -86,4 +98,9 @@ public class HealthPlanCoverageDomain {
     public void setCoverageLimit(BigDecimal coverageLimit) {
         this.coverageLimit = coverageLimit;
     }
+
+    public boolean isDeleted() {return deleted;}
+
+    public void setDeleted(boolean deleted) {this.deleted = deleted;}
+
 }

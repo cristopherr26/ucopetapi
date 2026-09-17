@@ -6,31 +6,38 @@ import com.uco.ucopetapi.dto.healthplan.HealthPlanDTO;
 import com.uco.ucopetapi.dto.healthplancoverage.HealthPlanCoverageDTO;
 import com.uco.ucopetapi.repository.healthplan.IHealthPlanRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @Service
+@Transactional
+
 public class HealthPlanService {
 
-    private final IHealthPlanRepository iHealthPlanRepository;
+    private final IHealthPlanRepository healthPlanRepository;
 
-    public HealthPlanService(IHealthPlanRepository iHealthPlanRepository) {
-        this.iHealthPlanRepository = iHealthPlanRepository;
+    public HealthPlanService(IHealthPlanRepository healthPlanRepository) {
+        this.healthPlanRepository = healthPlanRepository;
     }
 
+    @Transactional(readOnly = true)
     public List<HealthPlanDTO> findAll() {
 
-        return iHealthPlanRepository.findAll()
+        return healthPlanRepository.findByDeletedFalse()
                 .stream()
                 .map(this::toDTO)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public HealthPlanDTO findById(UUID id) {
 
-        HealthPlanDomain healthPlanDomain = iHealthPlanRepository.findById(id)
+        HealthPlanDomain healthPlanDomain = healthPlanRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
                         new RuntimeException("Health plan not found")
                 );
@@ -38,11 +45,22 @@ public class HealthPlanService {
         return toDTO(healthPlanDomain);
     }
 
+    @Transactional(readOnly = true)
+    public List<HealthPlanDTO> findByName(String name) {
+
+        return healthPlanRepository
+                .findByNameContainingIgnoreCaseAndDeletedFalse(name)
+                .stream()
+                .map(this::toDTO)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<HealthPlanDTO> findByInsuranceCompany(
             String insuranceCompany) {
 
-        return iHealthPlanRepository
-                .findByInsuranceCompanyIgnoreCase(insuranceCompany)
+        return healthPlanRepository
+                .findByInsuranceCompanyIgnoreCaseAndDeletedFalse(insuranceCompany)
                 .stream()
                 .map(this::toDTO)
                 .toList();
@@ -56,25 +74,79 @@ public class HealthPlanService {
         healthPlan.setInsuranceCompany(dto.getInsuranceCompany());
         healthPlan.setDescription(dto.getDescription());
 
+        if (dto.getStatus() == null || dto.getStatus().isBlank()) {
+            healthPlan.setStatus(
+                    HealthPlanDomain.Status.ACTIVA
+            );
+        } else {
+            healthPlan.setStatus(
+                    HealthPlanDomain.Status.valueOf(
+                            dto.getStatus().toUpperCase()
+                    )
+            );
+        }
+
+        healthPlan.setDeleted(false);
+        healthPlan.setCoverages(new ArrayList<>());
+
         HealthPlanDomain savedHealthPlan =
-                iHealthPlanRepository.save(healthPlan);
+                healthPlanRepository.save(healthPlan);
 
         return toDTO(savedHealthPlan);
     }
 
     public HealthPlanDTO update(UUID id, HealthPlanDTO dto) {
 
-        HealthPlanDomain healthPlan = iHealthPlanRepository.findById(id)
+        HealthPlanDomain healthPlan = healthPlanRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
                         new RuntimeException("Health plan not found")
                 );
 
         healthPlan.setName(dto.getName());
-        healthPlan.setInsuranceCompany(dto.getInsuranceCompany());
         healthPlan.setDescription(dto.getDescription());
 
+        if (dto.getStatus() != null &&
+                !dto.getStatus().isBlank()) {
+
+            healthPlan.setStatus(
+                    HealthPlanDomain.Status.valueOf(
+                            dto.getStatus().toUpperCase()
+                    )
+            );
+        }
+
         HealthPlanDomain updatedHealthPlan =
-                iHealthPlanRepository.save(healthPlan);
+                healthPlanRepository.save(healthPlan);
+
+        return toDTO(updatedHealthPlan);
+    }
+
+    public HealthPlanDTO patch( UUID id, HealthPlanDTO dto) {
+
+        HealthPlanDomain healthPlan =
+                healthPlanRepository.findByIdAndDeletedFalse(id)
+                        .orElseThrow(() ->
+                                new RuntimeException("Health plan not found")
+                        );
+
+        if (dto.getName() != null) {
+            healthPlan.setName(dto.getName());
+        }
+
+        if (dto.getDescription() != null) {
+            healthPlan.setDescription(dto.getDescription());
+        }
+
+        if (dto.getStatus() != null) {
+            healthPlan.setStatus(
+                    HealthPlanDomain.Status.valueOf(
+                            dto.getStatus().toUpperCase()
+                    )
+            );
+        }
+
+        HealthPlanDomain updatedHealthPlan =
+                healthPlanRepository.save(healthPlan);
 
         return toDTO(updatedHealthPlan);
     }
@@ -82,13 +154,16 @@ public class HealthPlanService {
     public void delete(UUID id) {
 
 
-        if (!iHealthPlanRepository.existsById(id)) {
-            throw new NoSuchElementException(
-                    "Health Plan not found with id: " + id
-            );
-        }
+        HealthPlanDomain healthPlan =
+                healthPlanRepository.findByIdAndDeletedFalse(id)
+                        .orElseThrow(() ->
+                                new RuntimeException("Health plan not found")
+                        );
 
-        iHealthPlanRepository.deleteById(id);
+        healthPlan.setDeleted(true);
+        healthPlan.setStatus( HealthPlanDomain.Status.INACTIVA );
+
+        healthPlanRepository.save(healthPlan);
     }
 
     private HealthPlanDTO toDTO(HealthPlanDomain healthPlan) {
@@ -96,6 +171,7 @@ public class HealthPlanService {
         List<HealthPlanCoverageDTO> coverageDTOs =
                 healthPlan.getCoverages()
                         .stream()
+                        .filter(coverage -> !coverage.isDeleted())
                         .map(this::toCoverageDTO)
                         .toList();
 
@@ -104,6 +180,7 @@ public class HealthPlanService {
                 healthPlan.getName(),
                 healthPlan.getInsuranceCompany(),
                 healthPlan.getDescription(),
+                healthPlan.getStatus().name(),
                 coverageDTOs
         );
     }

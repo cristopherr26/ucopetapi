@@ -6,12 +6,13 @@ import com.uco.ucopetapi.dto.healthplancoverage.HealthPlanCoverageDTO;
 import com.uco.ucopetapi.repository.healthplan.IHealthPlanRepository;
 import com.uco.ucopetapi.repository.healthplancoverage.IHealthPlanCoverageRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.NoSuchElementException;
 
 @Service
+@Transactional
 public class HealthPlanCoverageService {
 
     private final IHealthPlanCoverageRepository coverageRepository;
@@ -25,107 +26,222 @@ public class HealthPlanCoverageService {
         this.healthPlanRepository = healthPlanRepository;
     }
 
-    public List<HealthPlanCoverageDTO> findAll() {
+    @Transactional(readOnly = true)
+    public List<HealthPlanCoverageDTO> findByHealthPlanId(
+            UUID healthPlanId
+    ) {
 
-        return coverageRepository.findAll()
+        validateHealthPlan(healthPlanId);
+
+        return coverageRepository
+                .findByHealthPlanIdAndDeletedFalse(healthPlanId)
                 .stream()
                 .map(this::toDTO)
                 .toList();
     }
 
-    public HealthPlanCoverageDTO findById(UUID id) {
+    public HealthPlanCoverageDTO save( UUID healthPlanId, HealthPlanCoverageDTO dto) {
 
-        HealthPlanCoverageDomain coverage =
-                coverageRepository.findById(id)
+        HealthPlanDomain healthPlan =
+                validateHealthPlan(healthPlanId);
+
+        validatePercentage(
+                dto.getCoveragePercentage()
+        );
+
+        boolean duplicated =
+                coverageRepository
+                        .existsByHealthPlanIdAndProcedureIdAndDeletedFalse(
+                                healthPlanId,
+                                dto.getProcedureId()
+                        );
+
+        if (duplicated) {
+            throw new RuntimeException(
+                    "The service already has a coverage in this health plan"
+            );
+        }
+
+        HealthPlanCoverageDomain healthPlanCoverage =
+                new HealthPlanCoverageDomain();
+
+        healthPlanCoverage.setHealthPlan(healthPlan);
+        healthPlanCoverage.setProcedureId(dto.getProcedureId());
+        healthPlanCoverage.setCoveragePercentage(dto.getCoveragePercentage());
+        healthPlanCoverage.setCoverageLimit(dto.getCoverageLimit());
+        healthPlanCoverage.setDeleted(false);
+
+        HealthPlanCoverageDomain saved =
+                coverageRepository.save(healthPlanCoverage);
+
+        return toDTO(saved);
+    }
+
+    public HealthPlanCoverageDTO update(UUID healthPlanId, UUID coverageId, HealthPlanCoverageDTO dto) {
+
+        validateHealthPlan(healthPlanId);
+
+        HealthPlanCoverageDomain healthPlanCoverage =
+                coverageRepository
+                        .findByIdAndHealthPlanIdAndDeletedFalse(
+                                coverageId,
+                                healthPlanId
+                        )
                         .orElseThrow(() ->
                                 new RuntimeException(
                                         "Coverage not found"
                                 )
                         );
 
-        return toDTO(coverage);
+        validatePercentage(
+                dto.getCoveragePercentage()
+        );
+
+        if (dto.getProcedureId() != null &&
+                !dto.getProcedureId()
+                        .equals(healthPlanCoverage.getProcedureId())) {
+
+            boolean duplicated =
+                    coverageRepository
+                            .existsByHealthPlanIdAndProcedureIdAndIdNotAndDeletedFalse(
+                                    healthPlanId,
+                                    dto.getProcedureId(),
+                                    coverageId
+                            );
+
+            if (duplicated) {
+                throw new RuntimeException(
+                        "The Procedure already has a coverage in this health plan"
+                );
+            }
+
+            healthPlanCoverage.setProcedureId(dto.getProcedureId());
+        }
+
+        healthPlanCoverage.setCoveragePercentage(dto.getCoveragePercentage());
+
+        healthPlanCoverage.setCoverageLimit(dto.getCoverageLimit());
+
+        HealthPlanCoverageDomain updated =
+                coverageRepository.save(healthPlanCoverage);
+
+        return toDTO(updated);
     }
 
-    public List<HealthPlanCoverageDTO> findByHealthPlanId(
-            UUID healthPlanId) {
+    public HealthPlanCoverageDTO patch(UUID healthPlanId, UUID coverageId, HealthPlanCoverageDTO dto) {
 
-        return coverageRepository
-                .findByHealthPlanId(healthPlanId)
-                .stream()
-                .map(this::toDTO)
-                .toList();
+        validateHealthPlan(healthPlanId);
+
+        HealthPlanCoverageDomain healthPlanCoverage =
+                coverageRepository
+                        .findByIdAndHealthPlanIdAndDeletedFalse(
+                                coverageId,
+                                healthPlanId
+                        )
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Coverage not found"
+                                )
+                        );
+
+        if (dto.getProcedureId() != null &&
+                !dto.getProcedureId()
+                        .equals(healthPlanCoverage.getProcedureId())) {
+
+            boolean duplicated =
+                    coverageRepository
+                            .existsByHealthPlanIdAndProcedureIdAndIdNotAndDeletedFalse(
+                                    healthPlanId,
+                                    dto.getProcedureId(),
+                                    coverageId
+                            );
+
+            if (duplicated) {
+                throw new RuntimeException(
+                        "The procedure already has a coverage in this health plan"
+                );
+            }
+
+            healthPlanCoverage.setProcedureId(
+                    dto.getProcedureId()
+            );
+        }
+
+        if (dto.getCoveragePercentage() != null) {
+
+            validatePercentage(dto.getCoveragePercentage());
+
+            healthPlanCoverage.setCoveragePercentage(dto.getCoveragePercentage());
+        }
+
+        if (dto.getCoverageLimit() != null) {
+            healthPlanCoverage.setCoverageLimit(dto.getCoverageLimit());
+        }
+
+        HealthPlanCoverageDomain updated =
+                coverageRepository.save(healthPlanCoverage);
+
+        return toDTO(updated);
     }
 
-    public HealthPlanCoverageDTO save(
-            HealthPlanCoverageDTO dto) {
+    public void delete(UUID healthPlanId, UUID coverageId) {
 
-        if (dto.getCoveragePercentage() < 0 ||
-                dto.getCoveragePercentage() > 100) {
+        validateHealthPlan(healthPlanId);
+
+        HealthPlanCoverageDomain healthPlanCoverage =
+                coverageRepository
+                        .findByIdAndHealthPlanIdAndDeletedFalse(
+                                coverageId,
+                                healthPlanId
+                        )
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Coverage not found"
+                                )
+                        );
+
+        healthPlanCoverage.setDeleted(true);
+
+        coverageRepository.save(healthPlanCoverage);
+    }
+
+    private HealthPlanDomain validateHealthPlan(
+            UUID healthPlanId
+    ) {
+
+        return healthPlanRepository
+                .findByIdAndDeletedFalse(healthPlanId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Health plan not found"
+                        )
+                );
+    }
+
+    private void validatePercentage(
+            Integer percentage
+    ) {
+
+        if (percentage == null ||
+                percentage < 0 ||
+                percentage > 100) {
 
             throw new IllegalArgumentException(
                     "Coverage percentage must be between 0 and 100"
             );
         }
-
-        HealthPlanDomain healthPlan =
-                healthPlanRepository.findById(dto.getHealthPlanId())
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Health plan not found"
-                                )
-                        );
-
-        boolean exists =
-                coverageRepository
-                        .existsByHealthPlanIdAndProcedureId(
-                                dto.getHealthPlanId(),
-                                dto.getProcedureId()
-                        );
-
-        if (exists) {
-            throw new IllegalArgumentException(
-                    "This service already exists in this health plan"
-            );
-        }
-
-        HealthPlanCoverageDomain coverage =
-                new HealthPlanCoverageDomain();
-
-        coverage.setHealthPlan(healthPlan);
-        coverage.setProcedureId(dto.getProcedureId());
-        coverage.setCoveragePercentage(
-                dto.getCoveragePercentage()
-        );
-        coverage.setCoverageLimit(
-                dto.getCoverageLimit()
-        );
-
-        HealthPlanCoverageDomain saved =
-                coverageRepository.save(coverage);
-
-        return toDTO(saved);
-    }
-
-    public void delete(UUID id) {
-
-        if (!coverageRepository.existsById(id)) {
-            throw new NoSuchElementException(
-                    "Coverage not found with id: " + id
-            );
-        }
-
-        coverageRepository.deleteById(id);
     }
 
     private HealthPlanCoverageDTO toDTO(
-            HealthPlanCoverageDomain coverage) {
+            HealthPlanCoverageDomain healthPlanCoverage
+    ) {
 
         return new HealthPlanCoverageDTO(
-                coverage.getId(),
-                coverage.getHealthPlan().getId(),
-                coverage.getProcedureId(),
-                coverage.getCoveragePercentage(),
-                coverage.getCoverageLimit()
+                healthPlanCoverage.getId(),
+                healthPlanCoverage.getHealthPlan().getId(),
+                healthPlanCoverage.getProcedureId(),
+                healthPlanCoverage.getCoveragePercentage(),
+                healthPlanCoverage.getCoverageLimit()
         );
     }
 }
