@@ -34,12 +34,6 @@ public class ProviderController {
         return ResponseEntity.ok(providerService.deactivate(id));
     }
 
-    @GetMapping("/filter")
-    public ResponseEntity<List<ProviderDTO>> findByFilter(@RequestParam(required = false) UUID idType,
-                                                          @RequestParam(required = false) Boolean isActive) {
-        return ResponseEntity.ok(providerService.findByFilter(idType, isActive));
-    }
-
     @GetMapping("/{id}")
     public ResponseEntity<ProviderDTO> findById(@PathVariable UUID id) {
         return ResponseEntity.ok(providerService.findById(id));
@@ -48,5 +42,12 @@ public class ProviderController {
     @GetMapping
     public ResponseEntity<List<ProviderDTO>> findAll() {
         return ResponseEntity.ok(providerService.findAll());
+    }
+
+    @GetMapping("/filter")
+    public ResponseEntity<List<UUID>> findByProviderName(
+            @RequestParam(required = false) String providerName) {
+
+        return ResponseEntity.ok(providerService.findByProviderName(providerName));
     }
 }

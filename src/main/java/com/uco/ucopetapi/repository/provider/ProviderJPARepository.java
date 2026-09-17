@@ -15,4 +15,6 @@ public interface ProviderJPARepository extends JpaRepository<ProviderDomain, UUI
     List<ProviderDomain> findByActive(boolean active);
 
     List<ProviderDomain> findByIdTypeAndActive(UUID idType, boolean active);
+
+    List<ProviderDomain> findByProviderNameContainingIgnoreCase(String providerName);
 }

@@ -11,11 +11,13 @@ public interface ProviderService {
 
     ProviderDTO findById(UUID id);
 
-    List<ProviderDTO> findByFilter(UUID idType, Boolean active);
+    List<ProviderDTO> findByFilter(String providerName);
 
     ProviderDTO create(ProviderDTO request);
 
     ProviderDTO update(UUID id, ProviderDTO request);
 
     ProviderDTO deactivate(UUID id);
+
+    List<UUID> findByProviderName(String providerName);
 }
