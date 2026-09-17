@@ -71,7 +71,14 @@ public class Purchase {
     @OneToMany(mappedBy = "purchase", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PurchaseItem> items = new ArrayList<>();
 
+    /**
+     * Constructor vacío requerido por JPA/Hibernate para poder
+     * instanciar la entidad vía reflexión al recuperarla de la base
+     * de datos. No debe usarse directamente desde el código de
+     * negocio — para eso está Purchase.builder().
+     */
     public Purchase() {
+        // Intencionalmente vacío: JPA lo exige.
     }
 
     public static Builder builder() {
