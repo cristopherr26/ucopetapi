@@ -17,14 +17,14 @@ public interface IHealthPlanCoverageRepository extends JpaRepository<HealthPlanC
             UUID healthPlanId
     );
 
-    boolean existsByHealthPlanIdAndProcedureIdAndDeletedFalse(
+    boolean existsByHealthPlanIdAndServiceIdAndDeletedFalse(
             UUID healthPlanId,
-            UUID procedureId
+            UUID serviceId
     );
 
-    boolean existsByHealthPlanIdAndProcedureIdAndIdNotAndDeletedFalse(
+    boolean existsByHealthPlanIdAndServiceIdAndIdNotAndDeletedFalse(
             UUID healthPlanId,
-            UUID procedureId,
+            UUID serviceId,
             UUID id
     );
 }

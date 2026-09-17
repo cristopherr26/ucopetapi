@@ -18,8 +18,8 @@ public class HealthPlanExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    @ExceptionHandler(ProcedureNotFoundException.class)
-    public ProblemDetail handleProcedureNotFound(ProcedureNotFoundException ex) {
+    @ExceptionHandler(ServiceNotFoundException.class)
+    public ProblemDetail handleServiceNotFound(ServiceNotFoundException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
     }
 
@@ -33,8 +33,8 @@ public class HealthPlanExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
-    @ExceptionHandler(ProcedureServiceException.class)
-    public ProblemDetail handleProcedureServiceException(ProcedureServiceException ex) {
+    @ExceptionHandler(ServiceServiceException.class)
+    public ProblemDetail handleServiceServiceException(ServiceServiceException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY, ex.getMessage());
     }
 

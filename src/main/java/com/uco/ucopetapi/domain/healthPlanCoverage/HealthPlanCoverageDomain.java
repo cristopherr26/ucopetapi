@@ -13,7 +13,7 @@ import java.util.UUID;
         name = "health_plan_coverages",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        columnNames = {"health_plan_id", "procedure_id"}
+                        columnNames = {"health_plan_id", "service_id"}
                 )
         }
 )
@@ -27,8 +27,8 @@ public class HealthPlanCoverageDomain {
     @JoinColumn(name = "health_plan_id",  nullable = false)
     private HealthPlanDomain healthPlan;
 
-    @Column(name = "procedure_id", nullable = false)
-    private UUID procedureId;
+    @Column(name = "service_id", nullable = false)
+    private UUID serviceId;
 
     @Column(nullable = false)
     private Integer coveragePercentage;
@@ -45,7 +45,7 @@ public class HealthPlanCoverageDomain {
     public HealthPlanCoverageDomain(
             UUID id,
             HealthPlanDomain healthPlan,
-            UUID procedureId,
+            UUID serviceId,
             Integer coveragePercentage,
             BigDecimal coverageLimit,
             boolean deleted
@@ -53,7 +53,7 @@ public class HealthPlanCoverageDomain {
 
         this.id = id;
         this.healthPlan = healthPlan;
-        this.procedureId = procedureId;
+        this.serviceId = serviceId;
         this.coveragePercentage = coveragePercentage;
         this.coverageLimit = coverageLimit;
         this.deleted = deleted;
@@ -75,12 +75,12 @@ public class HealthPlanCoverageDomain {
         this.healthPlan = healthPlan;
     }
 
-    public UUID getProcedureId() {
-        return procedureId;
+    public UUID getServiceId() {
+        return serviceId;
     }
 
-    public void setProcedureId(UUID serviceId) {
-        this.procedureId = serviceId;
+    public void setServiceId(UUID serviceId) {
+        this.serviceId = serviceId;
     }
 
     public Integer getCoveragePercentage() {

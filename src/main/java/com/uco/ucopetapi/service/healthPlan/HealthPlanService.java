@@ -185,7 +185,7 @@ public class HealthPlanService {
         return new HealthPlanCoverageDTO(
                 coverage.getId(),
                 coverage.getHealthPlan().getId(),
-                coverage.getProcedureId(),
+                coverage.getServiceId(),
                 coverage.getCoveragePercentage(),
                 coverage.getCoverageLimit()
         );

@@ -5,13 +5,13 @@ import com.uco.ucopetapi.domain.healthPlanCoverage.HealthPlanCoverageDomain;
 import com.uco.ucopetapi.dto.healthPlanCoverage.HealthPlanCoverageDTO;
 import com.uco.ucopetapi.repository.healthPlan.IHealthPlanRepository;
 import com.uco.ucopetapi.repository.healthPlanCoverage.IHealthPlanCoverageRepository;
-import com.uco.ucopetapi.dto.procedure.ProcedureDTO;
+import com.uco.ucopetapi.dto.product.ServiceDTO;
 import com.uco.ucopetapi.exception.healthPlan.CoverageLimitExceededException;
 import com.uco.ucopetapi.exception.healthPlan.CoverageNotFoundException;
 import com.uco.ucopetapi.exception.healthPlan.DuplicateCoverageException;
 import com.uco.ucopetapi.exception.healthPlan.HealthPlanNotFoundException;
-import com.uco.ucopetapi.exception.healthPlan.ProcedureNotFoundException;
-import com.uco.ucopetapi.exception.healthPlan.ProcedureServiceException;
+import com.uco.ucopetapi.exception.healthPlan.ServiceNotFoundException;
+import com.uco.ucopetapi.exception.healthPlan.ServiceServiceException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +19,6 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Arrays;
 import java.util.List;
@@ -72,14 +71,14 @@ public class HealthPlanCoverageService {
                 validateHealthPlan(healthPlanId);
 
         validatePercentage(dto.getCoveragePercentage());
-        validateProcedure(dto.getProcedureId());
+        validateService(dto.getServiceId());
         validateCoverageLimit(healthPlanId);
 
         boolean duplicated =
                 coverageRepository
-                        .existsByHealthPlanIdAndProcedureIdAndDeletedFalse(
+                        .existsByHealthPlanIdAndServiceIdAndDeletedFalse(
                                 healthPlanId,
-                                dto.getProcedureId()
+                                dto.getServiceId()
                         );
 
         if (duplicated) {
@@ -90,7 +89,7 @@ public class HealthPlanCoverageService {
                 new HealthPlanCoverageDomain();
 
         healthPlanCoverage.setHealthPlan(healthPlan);
-        healthPlanCoverage.setProcedureId(dto.getProcedureId());
+        healthPlanCoverage.setServiceId(dto.getServiceId());
         healthPlanCoverage.setCoveragePercentage(dto.getCoveragePercentage());
         healthPlanCoverage.setCoverageLimit(dto.getCoverageLimit());
         healthPlanCoverage.setDeleted(false);
@@ -108,7 +107,7 @@ public class HealthPlanCoverageService {
 
             validatePercentage(dto.getCoveragePercentage());
 
-            applyProcedureChangeIfNeeded(healthPlanId, coverageId, dto, healthPlanCoverage);
+            applyServiceChangeIfNeeded(healthPlanId, coverageId, dto, healthPlanCoverage);
 
             healthPlanCoverage.setCoveragePercentage(dto.getCoveragePercentage());
             healthPlanCoverage.setCoverageLimit(dto.getCoverageLimit());
@@ -125,7 +124,7 @@ public class HealthPlanCoverageService {
 
         HealthPlanCoverageDomain healthPlanCoverage = findCoverageOrThrow(healthPlanId, coverageId);
 
-        applyProcedureChangeIfNeeded(healthPlanId, coverageId, dto, healthPlanCoverage);
+        applyServiceChangeIfNeeded(healthPlanId, coverageId, dto, healthPlanCoverage);
 
         if (dto.getCoveragePercentage() != null) {
             validatePercentage(dto.getCoveragePercentage());
@@ -158,24 +157,24 @@ public class HealthPlanCoverageService {
                 .orElseThrow(CoverageNotFoundException::new);
     }
 
-    private void applyProcedureChangeIfNeeded(
+    private void applyServiceChangeIfNeeded(
             UUID healthPlanId,
             UUID coverageId,
             HealthPlanCoverageDTO dto,
             HealthPlanCoverageDomain healthPlanCoverage
     ) {
 
-        if (dto.getProcedureId() == null ||
-                dto.getProcedureId().equals(healthPlanCoverage.getProcedureId())) {
+        if (dto.getServiceId() == null ||
+                dto.getServiceId().equals(healthPlanCoverage.getServiceId())) {
             return;
         }
 
-        validateProcedure(dto.getProcedureId());
+        validateService(dto.getServiceId());
 
         boolean duplicated = coverageRepository
-                .existsByHealthPlanIdAndProcedureIdAndIdNotAndDeletedFalse(
+                .existsByHealthPlanIdAndServiceIdAndIdNotAndDeletedFalse(
                         healthPlanId,
-                        dto.getProcedureId(),
+                        dto.getServiceId(),
                         coverageId
                 );
 
@@ -183,7 +182,7 @@ public class HealthPlanCoverageService {
             throw new DuplicateCoverageException();
         }
 
-        healthPlanCoverage.setProcedureId(dto.getProcedureId());
+        healthPlanCoverage.setServiceId(dto.getServiceId());
     }
 
     private HealthPlanDomain validateHealthPlan(UUID healthPlanId) {
@@ -202,18 +201,18 @@ public class HealthPlanCoverageService {
         }
     }
 
-    private void validateProcedure(UUID procedureId) {
+    private void validateService(UUID serviceId) {
 
-        ProcedureDTO[] procedures = fetchActiveProcedures();
+        ServiceDTO[] services = fetchActiveServices();
 
-        boolean validProcedure = Arrays.stream(procedures)
-                .anyMatch(procedure ->
-                        procedure.getId().equals(procedureId) &&
-                                Boolean.TRUE.equals(procedure.getActive())
+        boolean validService = Arrays.stream(services)
+                .anyMatch(service ->
+                        service.getId().equals(serviceId) &&
+                                Boolean.TRUE.equals(service.getActive())
                 );
 
-        if (!validProcedure) {
-            throw new ProcedureNotFoundException();
+        if (!validService) {
+            throw new ServiceNotFoundException();
         }
     }
 
@@ -223,32 +222,32 @@ public class HealthPlanCoverageService {
                 .findByHealthPlanIdAndDeletedFalse(healthPlanId)
                 .size();
 
-        long availableProcedures = fetchActiveProcedures().length;
+        long availableservices = fetchActiveServices().length;
 
-        if (currentCoverages >= availableProcedures) {
+        if (currentCoverages >= availableservices) {
             throw new CoverageLimitExceededException();
         }
     }
 
-    private ProcedureDTO[] fetchActiveProcedures() {
+    private ServiceDTO[] fetchActiveServices() {
 
         try {
-            ProcedureDTO[] procedures = restClient
+            ServiceDTO[] services = restClient
                     .get()
-                    .uri("/api/v1/procedures")
+                    .uri("/api/v1/services")
                     .header(HttpHeaders.AUTHORIZATION, currentAuthorizationHeader())
                     .retrieve()
-                    .body(ProcedureDTO[].class);
+                    .body(ServiceDTO[].class);
 
-            return procedures == null
-                    ? new ProcedureDTO[0]
-                    : Arrays.stream(procedures)
-                    .filter(procedure -> Boolean.TRUE.equals(procedure.getActive()))
-                    .toArray(ProcedureDTO[]::new);
+            return services == null
+                    ? new ServiceDTO[0]
+                    : Arrays.stream(services)
+                    .filter(service -> Boolean.TRUE.equals(service.getActive()))
+                    .toArray(ServiceDTO[]::new);
 
         } catch (RestClientException ex) {
-            throw new ProcedureServiceException(
-                    "Could not validate procedure: the procedures service is unavailable",
+            throw new ServiceServiceException(
+                    "Could not validate service: the services service is unavailable",
                     ex
             );
         }
@@ -260,7 +259,7 @@ public class HealthPlanCoverageService {
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
 
         if (attrs == null) {
-            throw new ProcedureServiceException(
+            throw new ServiceServiceException(
                     "No active HTTP request found to propagate the authorization header"
             );
         }
@@ -273,7 +272,7 @@ public class HealthPlanCoverageService {
         return new HealthPlanCoverageDTO(
                 healthPlanCoverage.getId(),
                 healthPlanCoverage.getHealthPlan().getId(),
-                healthPlanCoverage.getProcedureId(),
+                healthPlanCoverage.getServiceId(),
                 healthPlanCoverage.getCoveragePercentage(),
                 healthPlanCoverage.getCoverageLimit()
         );
