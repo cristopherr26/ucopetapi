@@ -4,6 +4,7 @@ import com.uco.ucopetapi.domain.healthplan.HealthPlanDomain;
 import com.uco.ucopetapi.domain.healthplancoverage.HealthPlanCoverageDomain;
 import com.uco.ucopetapi.dto.healthplan.HealthPlanDTO;
 import com.uco.ucopetapi.dto.healthplancoverage.HealthPlanCoverageDTO;
+import com.uco.ucopetapi.exception.healthplan.HealthPlanNotFoundException;
 import com.uco.ucopetapi.repository.healthplan.IHealthPlanRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @Service
@@ -37,10 +37,9 @@ public class HealthPlanService {
     @Transactional(readOnly = true)
     public HealthPlanDTO findById(UUID id) {
 
-        HealthPlanDomain healthPlanDomain = healthPlanRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Health plan not found")
-                );
+        HealthPlanDomain healthPlanDomain = healthPlanRepository
+                .findByIdAndDeletedFalse(id)
+                .orElseThrow(HealthPlanNotFoundException::new);
 
         return toDTO(healthPlanDomain);
     }
@@ -97,10 +96,9 @@ public class HealthPlanService {
 
     public HealthPlanDTO update(UUID id, HealthPlanDTO dto) {
 
-        HealthPlanDomain healthPlan = healthPlanRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Health plan not found")
-                );
+        HealthPlanDomain healthPlan = healthPlanRepository
+                .findByIdAndDeletedFalse(id)
+                .orElseThrow(HealthPlanNotFoundException::new);
 
         healthPlan.setName(dto.getName());
         healthPlan.setDescription(dto.getDescription());
@@ -123,11 +121,9 @@ public class HealthPlanService {
 
     public HealthPlanDTO patch( UUID id, HealthPlanDTO dto) {
 
-        HealthPlanDomain healthPlan =
-                healthPlanRepository.findByIdAndDeletedFalse(id)
-                        .orElseThrow(() ->
-                                new RuntimeException("Health plan not found")
-                        );
+        HealthPlanDomain healthPlan = healthPlanRepository
+                .findByIdAndDeletedFalse(id)
+                .orElseThrow(HealthPlanNotFoundException::new);
 
         if (dto.getName() != null) {
             healthPlan.setName(dto.getName());
@@ -154,11 +150,9 @@ public class HealthPlanService {
     public void delete(UUID id) {
 
 
-        HealthPlanDomain healthPlan =
-                healthPlanRepository.findByIdAndDeletedFalse(id)
-                        .orElseThrow(() ->
-                                new RuntimeException("Health plan not found")
-                        );
+        HealthPlanDomain healthPlan = healthPlanRepository
+                .findByIdAndDeletedFalse(id)
+                .orElseThrow(HealthPlanNotFoundException::new);
 
         healthPlan.setDeleted(true);
         healthPlan.setStatus( HealthPlanDomain.Status.INACTIVA );
