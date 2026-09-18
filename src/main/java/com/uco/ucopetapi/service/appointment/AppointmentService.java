@@ -8,6 +8,7 @@ import com.uco.ucopetapi.dto.appointmentType.AppointmentTypeDTO;
 import com.uco.ucopetapi.dto.person.PersonDTO;
 import com.uco.ucopetapi.dto.pets.PetDTO;
 import com.uco.ucopetapi.dto.tutorPet.TutorPetDTO;
+import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.repository.appointment.IAppointmentRepository;
 import com.uco.ucopetapi.service.appointmentType.AppointmentTypeService;
 import com.uco.ucopetapi.service.doctor.DoctorService;
@@ -20,15 +21,18 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.UUID;
 
 @Service
 public class AppointmentService {
 
+    private static final ZoneId APPLICATION_ZONE_ID = ZoneId.systemDefault();
     private static final String PENDING_STATUS = "PENDING";
     private static final String CONFIRMED_STATUS = "CONFIRMED";
     private static final String CANCELLED_STATUS = "CANCELLED";
@@ -179,7 +183,7 @@ public class AppointmentService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "La fecha de la cita es obligatoria");
         }
-        if (appointment.getAppointmentDate().isBefore(LocalDate.now())) {
+        if (appointment.getAppointmentDate().isBefore(LocalDate.now(APPLICATION_ZONE_ID))) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "La fecha de la cita no puede estar en el pasado");
         }
@@ -234,9 +238,9 @@ public class AppointmentService {
 
         try {
             doctorService.findById(doctorId);
-        } catch (NoSuchElementException exception) {
+        } catch (BusinessException | NoSuchElementException _) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                    "No existe un medico con el id indicado", exception);
+                    "No existe un medico con el id indicado");
         }
     }
 
@@ -254,9 +258,9 @@ public class AppointmentService {
         PetDTO pet;
         try {
             pet = petService.getById(petId);
-        } catch (NoSuchElementException exception) {
+        } catch (NoSuchElementException _) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                    "No existe una mascota con el id indicado", exception);
+                    "No existe una mascota con el id indicado");
         }
 
         if (!tutor.getId().equals(pet.getTutorId())) {
@@ -331,11 +335,11 @@ public class AppointmentService {
         AppointmentDTO appointmentDTO = new AppointmentDTO();
         appointmentDTO.setId(appointment.getId());
         appointmentDTO.setTutorId(appointment.getTutorId());
-        appointmentDTO.setTutorName(findTutorName(appointment.getTutorId()));
+        appointmentDTO.setTutorName(findRelatedName(() -> findTutorName(appointment.getTutorId())));
         appointmentDTO.setPetId(appointment.getPetId());
-        appointmentDTO.setPetName(findPetName(appointment.getPetId()));
+        appointmentDTO.setPetName(findRelatedName(() -> findPetName(appointment.getPetId())));
         appointmentDTO.setDoctorId(appointment.getDoctorId());
-        appointmentDTO.setDoctorName(findDoctorName(appointment.getDoctorId()));
+        appointmentDTO.setDoctorName(findRelatedName(() -> findDoctorName(appointment.getDoctorId())));
         appointmentDTO.setAppointmentTypeId(appointment.getAppointmentTypeId());
         appointmentDTO.setAppointmentTypeName(findAppointmentTypeName(appointment.getAppointmentTypeId()));
         appointmentDTO.setAppointmentDate(appointment.getAppointmentDate());
@@ -343,5 +347,13 @@ public class AppointmentService {
         appointmentDTO.setStatus(appointment.getStatus());
         appointmentDTO.setCancellationReason(appointment.getCancellationReason());
         return appointmentDTO;
+    }
+
+    private String findRelatedName(Supplier<String> nameSupplier) {
+        try {
+            return nameSupplier.get();
+        } catch (BusinessException | NoSuchElementException | ResponseStatusException _) {
+            return null;
+        }
     }
 }
