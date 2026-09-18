@@ -1,8 +1,11 @@
 package com.uco.ucopetapi.service.sale.impl;
 
+import com.uco.ucopetapi.crosscutting.helpers.UUIDHelper;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 import com.uco.ucopetapi.domain.sale.ItemSaleDomain;
 import com.uco.ucopetapi.domain.sale.SaleOrderDomain;
+import com.uco.ucopetapi.dto.healthplan.HealthPlanDTO;
+import com.uco.ucopetapi.dto.healthplancoverage.HealthPlanCoverageDTO;
 import com.uco.ucopetapi.dto.product.ProductDTO;
 import com.uco.ucopetapi.dto.product.ServiceDTO;
 import com.uco.ucopetapi.dto.sale.AddItemSaleRequestDTO;
@@ -13,6 +16,7 @@ import com.uco.ucopetapi.dto.sale.enums.ItemType;
 import com.uco.ucopetapi.dto.sale.enums.SaleOrderState;
 import com.uco.ucopetapi.repository.sale.ItemSaleRepository;
 import com.uco.ucopetapi.repository.sale.SaleOrderRepository;
+import com.uco.ucopetapi.service.healthplan.HealthPlanService;
 import com.uco.ucopetapi.service.product.ProductService;
 import com.uco.ucopetapi.service.product.ServiceService;
 import com.uco.ucopetapi.service.sale.ItemSaleService;
@@ -22,6 +26,8 @@ import com.uco.ucopetapi.service.sale.exception.SaleOrderValidationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -35,12 +41,15 @@ public class ItemSaleServiceImpl implements ItemSaleService {
     private final SaleOrderRepository saleOrderRepository;
     private final ProductService productService;
     private final ServiceService serviceService;
+    private final HealthPlanService healthPlanService;
 
-    public ItemSaleServiceImpl(ItemSaleRepository itemSaleRepository, SaleOrderRepository saleOrderRepository, ProductService productService, ServiceService serviceService) {
+
+    public ItemSaleServiceImpl(ItemSaleRepository itemSaleRepository, SaleOrderRepository saleOrderRepository, ProductService productService, ServiceService serviceService, HealthPlanService healthPlanService) {
         this.itemSaleRepository = itemSaleRepository;
         this.saleOrderRepository = saleOrderRepository;
         this.productService = productService;
         this.serviceService = serviceService;
+        this.healthPlanService = healthPlanService;
     }
 
     @Override
@@ -202,11 +211,51 @@ public class ItemSaleServiceImpl implements ItemSaleService {
             totalTaxes += item.getSubtotal() * item.getTaxCategory().getPercentage() / 100;
         }
 
+        int totalDiscount = calculateTotalDiscount(order.getHealthPlanId(), items);
+
         order.setSubtotal(subtotal);
         order.setTotalTaxes(totalTaxes);
-        order.setTotal(subtotal - order.getTotalDiscount() + totalTaxes);
+        order.setTotalDiscount(totalDiscount);
+        order.setTotal(subtotal - totalDiscount + totalTaxes);
     }
 
+    private int calculateTotalDiscount(UUID healthPlanId, List<ItemSaleDomain> items) {
 
+        UUID defaultUUID = UUIDHelper.getUUIDHelper().getDefault();
+        if (healthPlanId == null || healthPlanId.equals(defaultUUID)) {
+            return 0;
+        }
+
+        HealthPlanDTO healthPlan = healthPlanService.findById(healthPlanId);
+
+        BigDecimal totalDiscount = BigDecimal.ZERO;
+        for (ItemSaleDomain item : items) {
+            if (item.getItemType() != ItemType.SERVICIO) {
+                continue;
+            }
+            HealthPlanCoverageDTO coverage = findCoverageForService(healthPlan, item.getItemId());
+            if (coverage == null) {
+                continue;
+            }
+            totalDiscount = totalDiscount.add(calculateLineDiscount(item, coverage));
+        }
+
+            return totalDiscount.setScale(0, RoundingMode.HALF_UP).intValue();
+    }
+
+    private HealthPlanCoverageDTO findCoverageForService(HealthPlanDTO healthPlan, UUID serviceId) {
+        return healthPlan.getCoverages().stream()
+                .filter(coverage -> coverage.getServiceId().equals(serviceId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private BigDecimal calculateLineDiscount(ItemSaleDomain item, HealthPlanCoverageDTO coverage) {
+        BigDecimal percentage = BigDecimal.valueOf(coverage.getCoveragePercentage())
+                .divide(BigDecimal.valueOf(100));
+        BigDecimal perUnitDiscount = BigDecimal.valueOf(item.getUnitPrice()).multiply(percentage);
+        BigDecimal cappedPerUnit = perUnitDiscount.min(coverage.getCoverageLimit());
+        return cappedPerUnit.multiply(BigDecimal.valueOf(item.getQuantity()));
+    }
 
 }
