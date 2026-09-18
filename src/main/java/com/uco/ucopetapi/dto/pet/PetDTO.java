@@ -1,4 +1,4 @@
-package com.uco.ucopetapi.dto.pets;
+package com.uco.ucopetapi.dto.pet;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -14,14 +14,14 @@ public class PetDTO {
     private UUID tutorId;
     private UUID policyId;
     private UUID headquarterId;
-    private boolean isActive;
+    private Boolean isActive;
 
     public PetDTO() {
     }
 
     public PetDTO(final UUID id, final String name, final LocalDate birthDate, final String breed,
                   final String species, final String gender, final String photoUrl,
-                  final UUID tutorId, final UUID policyId, final UUID headquarterId, final boolean isActive) {
+                  final UUID tutorId, final UUID policyId, final UUID headquarterId, final Boolean isActive) {
         setId(id);
         setName(name);
         setBirthDate(birthDate);
@@ -106,6 +106,7 @@ public class PetDTO {
     public void setPolicyId(final UUID policyId) {
         this.policyId = policyId;
     }
+
     public UUID getHeadquarterId() {
         return headquarterId;
     }
@@ -114,11 +115,11 @@ public class PetDTO {
         this.headquarterId = headquarterId;
     }
 
-    public boolean isActive() {
+    public Boolean isActive() {
         return isActive;
     }
 
-    public void setActive(final boolean active) {
+    public void setActive(final Boolean active) {
         isActive = active;
     }
 }
