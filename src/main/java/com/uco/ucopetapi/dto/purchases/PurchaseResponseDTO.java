@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.dto.purchases;
 
+import com.uco.ucopetapi.domain.purchases.ItemType;
 import com.uco.ucopetapi.domain.purchases.PurchaseStatus;
 
 import java.math.BigDecimal;
@@ -28,6 +29,6 @@ public record PurchaseResponseDTO(
     public record RelatedEntityDTO(UUID id, String name) {
     }
 
-    public record Item(RelatedEntityDTO product, Integer quantity, BigDecimal unitPrice, BigDecimal subtotal) {
+    public record Item(RelatedEntityDTO catalogItem, ItemType itemType, Integer quantity, BigDecimal unitPrice, BigDecimal subtotal) {
     }
 }

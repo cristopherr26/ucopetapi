@@ -2,6 +2,8 @@ package com.uco.ucopetapi.domain.purchases;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -27,6 +29,10 @@ public class PurchaseItem {
     @Column(nullable = false)
     private UUID productId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ItemType itemType;
+
     @Column(nullable = false)
     private Integer quantity;
 
@@ -39,11 +45,12 @@ public class PurchaseItem {
     public PurchaseItem() {
     }
 
-    public PurchaseItem(UUID id, Purchase purchase, UUID productId, Integer quantity,
+    public PurchaseItem(UUID id, Purchase purchase, UUID productId, ItemType itemType, Integer quantity,
                          BigDecimal unitPrice, BigDecimal subtotal) {
         this.id = id;
         this.purchase = purchase;
         this.productId = productId;
+        this.itemType = itemType;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
         this.subtotal = subtotal;
@@ -71,6 +78,14 @@ public class PurchaseItem {
 
     public void setProductId(UUID productId) {
         this.productId = productId;
+    }
+
+    public ItemType getItemType() {
+        return itemType;
+    }
+
+    public void setItemType(ItemType itemType) {
+        this.itemType = itemType;
     }
 
     public Integer getQuantity() {
