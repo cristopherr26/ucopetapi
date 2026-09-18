@@ -9,7 +9,7 @@ postman/
 
 | Módulo | Carpeta | Estado |
 |---|---|---|
-| Person + Login | [`person/`](person/) | ✅ 77 peticiones · 424 aserciones |
+| Person + Login | [`person/`](person/) | 94 peticiones |
 
 ## Para agregar la tuya
 

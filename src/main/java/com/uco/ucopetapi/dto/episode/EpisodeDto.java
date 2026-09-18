@@ -14,6 +14,9 @@ public class EpisodeDto {
     private DischargeType dischargeType;
     private String dischargeNotes;
 
+    public EpisodeDto() {
+    }
+
     public EpisodeDto (final UUID id, final String episodeNumber, final UUID pet, final String description, final LocalDateTime startDate,
                        final LocalDateTime dischargeDate, final EpisodeStatus episodeStatus, final DischargeType dischargeType, final String dischargeNotes){
         this.id = id;
@@ -61,6 +64,14 @@ public class EpisodeDto {
 
     public String getDischargeNotes() {
         return dischargeNotes;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public void setPet(UUID pet) {
+        this.pet = pet;
     }
 
     public void setEpisodeNumber(String episodeNumber) {
