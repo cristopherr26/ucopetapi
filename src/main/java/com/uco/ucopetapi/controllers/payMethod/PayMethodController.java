@@ -1,6 +1,7 @@
 package com.uco.ucopetapi.controllers.payMethod;
 
 import com.uco.ucopetapi.domain.payMethod.PayMethodDomain;
+import com.uco.ucopetapi.dto.payMethod.PayMethodDTO;
 import com.uco.ucopetapi.service.payMethod.PayMethodService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +21,7 @@ public class PayMethodController {
     }
 
     @GetMapping()
-    public ResponseEntity<List<PayMethodDomain>> getAll() {
+    public ResponseEntity<List<PayMethodDTO>> getAll() {
         return ResponseEntity.ok(payMethodService.getAll());
     }
 
@@ -30,7 +31,7 @@ public class PayMethodController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PayMethodDomain> getById(@PathVariable UUID id) {
+    public ResponseEntity<PayMethodDTO> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(payMethodService.findById(id));
     }
 

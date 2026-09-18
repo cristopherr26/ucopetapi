@@ -1,6 +1,7 @@
 package com.uco.ucopetapi.service.payMethod;
 
 import com.uco.ucopetapi.domain.payMethod.PayMethodDomain;
+import com.uco.ucopetapi.dto.payMethod.PayMethodDTO;
 import com.uco.ucopetapi.repository.payMethod.PayMethodRepository;
 import org.springframework.stereotype.Service;
 
@@ -16,17 +17,26 @@ public class PayMethodService {
         this.payMethodRepository = payMethodRepository;
     }
 
-    public List<PayMethodDomain> getAll() {
-        return payMethodRepository.findAll();
+    public List<PayMethodDTO> getAll() {
+        return payMethodRepository.findAll()
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
 
-    public PayMethodDomain findByName(String name) {
-        return payMethodRepository.findByName(name)
+    public PayMethodDTO findByName(String name) {
+        PayMethodDomain domain = payMethodRepository.findByName(name)
                 .orElseThrow(() -> new RuntimeException("Metodo de pago no encontrado con el nombre: " + name));
+        return toDTO(domain);
     }
 
-    public PayMethodDomain findById(UUID id) {
-        return payMethodRepository.findById(id)
+    public PayMethodDTO findById(UUID id) {
+        PayMethodDomain domain = payMethodRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Metodo de pago no encontrado con el id: " + id));
+        return toDTO(domain);
+    }
+
+    private PayMethodDTO toDTO(PayMethodDomain domain) {
+        return new PayMethodDTO(domain.getId(), domain.getName());
     }
 }

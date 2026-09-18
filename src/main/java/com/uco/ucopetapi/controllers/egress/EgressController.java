@@ -1,6 +1,8 @@
 package com.uco.ucopetapi.controllers.egress;
 
 import com.uco.ucopetapi.domain.egress.EgressDomain;
+import com.uco.ucopetapi.dto.egress.EgressDTO;
+import com.uco.ucopetapi.dto.egress.EgressRequestDTO;
 import com.uco.ucopetapi.service.egress.EgressService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,13 +25,13 @@ public class EgressController {
     private final RestClient restClient = RestClient.create();
     private static final String MESSAGE = "error";
 
-    @Value("${paymethod.service.url}")
+    @Value("${paymethod.service.url:http://localhost:8080/api/v1/PayMethods/getIdByName}")
     private String payMethodServiceUrl;
 
-    @Value("${provider.service.url}")
-    private String providerServiceUrl;
+    /*@Value("${provider.service.url}")
+    private String providerServiceUrl;*/
 
-    @Value("${purchaseorder.service.url}")
+    @Value("${purchaseorder.service.url:http://localhost:8080/api/v1/purchases/lookup}")
     private String purchaseOrderServiceUrl;
 
     public EgressController(EgressService egressService) {
@@ -37,22 +39,22 @@ public class EgressController {
     }
 
     @GetMapping()
-    public ResponseEntity<List<EgressDomain>> getAllEgresses() {
+    public ResponseEntity<List<EgressDTO>> getAllEgresses() {
         return ResponseEntity.ok(egressService.getAll());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EgressDomain> getEgressById(@PathVariable UUID id) {
+    public ResponseEntity<EgressDTO> getEgressById(@PathVariable UUID id) {
         return ResponseEntity.ok(egressService.getById(id));
     }
 
     @GetMapping("/getByConcept")
-    public ResponseEntity<List<EgressDomain>> getByConcept(@RequestParam String concept) {
+    public ResponseEntity<List<EgressDTO>> getByConcept(@RequestParam String concept) {
         return ResponseEntity.ok(egressService.getByConcept(concept));
     }
 
     @GetMapping("/getByDateRange")
-    public ResponseEntity<List<EgressDomain>> getByDateRange(
+    public ResponseEntity<List<EgressDTO>> getByDateRange(
             @RequestParam("startDate") String startDate,
             @RequestParam("endDate") String endDate) {
 
@@ -62,7 +64,7 @@ public class EgressController {
     }
 
     @GetMapping("/getByProvider")
-    public ResponseEntity<List<EgressDomain>> getByProvider(
+    public ResponseEntity<List<EgressDTO>> getByProvider(
             @RequestParam String provider,
             HttpServletRequest httpRequest) {
 
@@ -71,7 +73,7 @@ public class EgressController {
     }
 
     @GetMapping("/getByPayMethod")
-    public ResponseEntity<List<EgressDomain>> getByPayMethod(
+    public ResponseEntity<List<EgressDTO>> getByPayMethod(
             @RequestParam String payMethod,
             HttpServletRequest httpRequest) {
 
@@ -80,7 +82,7 @@ public class EgressController {
     }
 
     @GetMapping("/getByPurchaseOrder")
-    public ResponseEntity<List<EgressDomain>> getByPurchaseOrder(
+    public ResponseEntity<List<EgressDTO>> getByPurchaseOrder(
             @RequestParam String purchaseOrder,
             HttpServletRequest httpRequest) {
 
@@ -89,23 +91,23 @@ public class EgressController {
     }
 
     @PostMapping("/newEgress")
-    public ResponseEntity<EgressDomain> createEgress(
-            @RequestBody Map<String, Object> request,
+    public ResponseEntity<EgressDTO> createEgress(
+            @RequestBody EgressRequestDTO request,
             HttpServletRequest httpRequest) {
 
         EgressDomain newEgress = buildEgressFromNames(null, request, authHeader(httpRequest));
-        EgressDomain savedEgress = egressService.saveEgress(newEgress);
+        EgressDTO savedEgress = egressService.saveEgress(newEgress);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedEgress);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<EgressDomain> updateEgress(
+    public ResponseEntity<EgressDTO> updateEgress(
             @PathVariable UUID id,
-            @RequestBody Map<String, Object> request,
+            @RequestBody EgressRequestDTO request,
             HttpServletRequest httpRequest) {
 
         EgressDomain updatedEgress = buildEgressFromNames(id, request, authHeader(httpRequest));
-        EgressDomain result = egressService.updateEgress(id, updatedEgress);
+        EgressDTO result = egressService.updateEgress(id, updatedEgress);
         return ResponseEntity.ok(result);
     }
 
@@ -115,19 +117,19 @@ public class EgressController {
         return ResponseEntity.noContent().build();
     }
 
-    private EgressDomain buildEgressFromNames(UUID id, Map<String, Object> request, String authHeader) {
-        UUID providerId = getProviderIdByName((String) request.get("provider"), authHeader);
-        UUID purchaseOrderId = getPurchaseOrderIdByNumber((String) request.get("purchaseOrder"), authHeader);
-        UUID payMethodId = getPayMethodIdByName((String) request.get("payMethod"), authHeader);
+    private EgressDomain buildEgressFromNames(UUID id, EgressRequestDTO request, String authHeader) {
+        UUID providerId = getProviderIdByName(request.getProvider(), authHeader);
+        UUID purchaseOrderId = getPurchaseOrderIdByNumber(request.getPurchaseOrder(), authHeader);
+        UUID payMethodId = getPayMethodIdByName(request.getPayMethod(), authHeader);
 
         return new EgressDomain(
                 id,
-                parseDate((String) request.get("date"), "date"),
+                parseDate(request.getDate(), "date"),
                 providerId,
                 payMethodId,
                 purchaseOrderId,
-                (String) request.get("concept"),
-                parseFloat(request.get("total"), "total")
+                request.getConcept(),
+                request.getTotal()
         );
     }
 
@@ -190,17 +192,6 @@ public class EgressController {
             return LocalDate.parse(value);
         } catch (Exception _) {
             throw new IllegalArgumentException("El campo '" + fieldName + "' no tiene un formato de fecha válido (yyyy-MM-dd)");
-        }
-    }
-
-    private Float parseFloat(Object value, String fieldName) {
-        if (value == null) {
-            throw new IllegalArgumentException("El campo '" + fieldName + "' es obligatorio");
-        }
-        try {
-            return Float.valueOf(value.toString());
-        } catch (NumberFormatException _) {
-            throw new IllegalArgumentException("El campo '" + fieldName + "' no tiene un formato numérico válido");
         }
     }
 

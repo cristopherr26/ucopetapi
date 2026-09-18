@@ -1,6 +1,7 @@
 package com.uco.ucopetapi.service.egress;
 
 import com.uco.ucopetapi.domain.egress.EgressDomain;
+import com.uco.ucopetapi.dto.egress.EgressDTO;
 import com.uco.ucopetapi.repository.egress.EgressRepository;
 import org.springframework.stereotype.Service;
 
@@ -18,22 +19,24 @@ public class EgressService {
         this.egressRepository = egressRepository;
     }
 
-    public List<EgressDomain> getAll() {
-        return egressRepository.findAll();
+    public List<EgressDTO> getAll() {
+        return egressRepository.findAll()
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
 
-    public EgressDomain getById(UUID id) {
-        return egressRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Egreso no encontrado con id: " + id));
+    public EgressDTO getById(UUID id) {
+        return toDTO(getEntityById(id));
     }
 
-    public EgressDomain saveEgress(EgressDomain egress) {
+    public EgressDTO saveEgress(EgressDomain egress) {
         validateEgress(egress);
-        return egressRepository.save(egress);
+        return toDTO(egressRepository.save(egress));
     }
 
-    public EgressDomain updateEgress(UUID id, EgressDomain updatedEgress) {
-        EgressDomain existentEgress = getById(id);
+    public EgressDTO updateEgress(UUID id, EgressDomain updatedEgress) {
+        EgressDomain existentEgress = getEntityById(id);
         validateEgress(updatedEgress);
         existentEgress.setDate(updatedEgress.getDate());
         existentEgress.setProvider(updatedEgress.getProvider());
@@ -42,7 +45,7 @@ public class EgressService {
         existentEgress.setConcept(updatedEgress.getConcept());
         existentEgress.setTotal(updatedEgress.getTotal());
 
-        return egressRepository.save(existentEgress);
+        return toDTO(egressRepository.save(existentEgress));
     }
 
     public void deleteEgress(UUID id) {
@@ -52,32 +55,64 @@ public class EgressService {
         egressRepository.deleteById(id);
     }
 
-    public List<EgressDomain> getByConcept(String concept) {
+    public List<EgressDTO> getByConcept(String concept) {
         validateConcept(concept);
-        return egressRepository.findByConcept(concept);
+        return egressRepository.findByConcept(concept)
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
 
-    public List<EgressDomain> getByDateBetween(LocalDate startDate, LocalDate endDate) {
+    public List<EgressDTO> getByDateBetween(LocalDate startDate, LocalDate endDate) {
         if (startDate == null || endDate == null) {
             throw new IllegalArgumentException("Las fechas de inicio y fin son obligatorias");
         }
         if (startDate.isAfter(endDate)) {
             throw new IllegalArgumentException("La fecha de inicio no puede ser posterior a la fecha de fin");
         }
-        return egressRepository.findByDateBetween(startDate, endDate);
+        return egressRepository.findByDateBetween(startDate, endDate)
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
 
-    public List<EgressDomain> getByProvider(UUID providerId) {
+    public List<EgressDTO> getByProvider(UUID providerId) {
         validateProvider(providerId);
-        return egressRepository.findByProvider(providerId);
+        return egressRepository.findByProvider(providerId)
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
 
-    public List<EgressDomain> getByPayMethod(UUID payMethodId) {
-        return egressRepository.findByPayMethod(payMethodId);
+    public List<EgressDTO> getByPayMethod(UUID payMethodId) {
+        return egressRepository.findByPayMethod(payMethodId)
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
 
-    public List<EgressDomain> getByPurchaseOrder(UUID purchaseOrderId){
-        return egressRepository.findByPurchaseOrder(purchaseOrderId);
+    public List<EgressDTO> getByPurchaseOrder(UUID purchaseOrderId) {
+        return egressRepository.findByPurchaseOrder(purchaseOrderId)
+                .stream()
+                .map(this::toDTO)
+                .toList();
+    }
+
+    private EgressDomain getEntityById(UUID id) {
+        return egressRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Egreso no encontrado con id: " + id));
+    }
+
+    private EgressDTO toDTO(EgressDomain egress) {
+        return new EgressDTO(
+                egress.getId(),
+                egress.getDate(),
+                egress.getProvider(),
+                egress.getPayMethod(),
+                egress.getPurchaseOrder(),
+                egress.getConcept(),
+                egress.getTotal()
+        );
     }
 
     private void validateEgress(EgressDomain egress) {
@@ -92,7 +127,7 @@ public class EgressService {
         if (date == null) {
             throw new IllegalArgumentException("La fecha es obligatoria");
         }
-        if (date.isAfter(LocalDate.now(ZoneId.of("Colombia/Medellin")))){
+        if (date.isAfter(LocalDate.now(ZoneId.of("America/Bogota")))) {
             throw new IllegalArgumentException("La fecha no puede ser posterior a la fecha actual");
         }
     }
