@@ -45,9 +45,10 @@ public class ProviderController {
     }
 
     @GetMapping("/filter")
-    public ResponseEntity<List<UUID>> findByProviderName(
+    public ResponseEntity<UUID> findByProviderName(
             @RequestParam(required = false) String providerName) {
 
         return ResponseEntity.ok(providerService.findByProviderName(providerName));
     }
+
 }

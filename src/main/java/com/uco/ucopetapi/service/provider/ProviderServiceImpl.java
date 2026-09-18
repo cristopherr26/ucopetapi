@@ -49,14 +49,10 @@ public class ProviderServiceImpl implements ProviderService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<UUID> findByProviderName(final String providerName) {
-        List<ProviderDomain> providers = (providerName != null && !providerName.isBlank())
-                ? providerJPARepository.findByProviderNameContainingIgnoreCase(providerName)
-                : providerJPARepository.findAll();
-
-        return providers.stream()
+    public UUID findByProviderName(final String providerName) {
+        return providerJPARepository.findByProviderName(providerName)
                 .map(ProviderDomain::getId)
-                .toList();
+                .orElseThrow(() -> new NoSuchElementException("Proveedor no encontrado: " + providerName));
     }
 
     @Override

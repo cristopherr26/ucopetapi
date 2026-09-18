@@ -19,5 +19,5 @@ public interface ProviderService {
 
     ProviderDTO deactivate(UUID id);
 
-    List<UUID> findByProviderName(String providerName);
+    UUID findByProviderName(String providerName);
 }
