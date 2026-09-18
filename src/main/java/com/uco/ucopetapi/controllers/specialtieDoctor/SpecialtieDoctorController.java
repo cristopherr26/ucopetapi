@@ -6,7 +6,6 @@ import com.uco.ucopetapi.dto.specialtieDoctor.SpecialtieDoctorDTO;
 import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.service.doctor.DoctorService;
 import com.uco.ucopetapi.service.specialtieDoctor.SpecialtieDoctorService;
-import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,13 +14,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-// Un doctor puede tener varias especialidades;
 @RestController
 @RequestMapping("api/v1/specialtiedoctor")
 public class SpecialtieDoctorController {
 
     private static final String MESSAGE_KEY = "message";
-
 
     private final SpecialtieDoctorService specialtieDoctorService;
     private final DoctorService doctorService;
@@ -32,31 +29,24 @@ public class SpecialtieDoctorController {
     }
 
     private SpecialtieDoctorDTO toDTO(SpecialtieDoctorDomain specialtieDoctor) {
-        return new SpecialtieDoctorDTO(
-                specialtieDoctor.getId(),
-                specialtieDoctor.getDoctor().getId(),
-                specialtieDoctor.getIdSpecialtie()
-        );
+        UUID doctorId = specialtieDoctor.getDoctor() != null ? specialtieDoctor.getDoctor().getId() : null;
+        return new SpecialtieDoctorDTO(specialtieDoctor.getId(), doctorId, specialtieDoctor.getIdSpecialtie());
     }
 
-    // Convierte el DTO recibido a la entidad de base de datos.
-    // Busca el doctor real con DoctorService.findById: si el idDoctor que mandaron no existe, esto lanza BusinessException
-    private SpecialtieDoctorDomain toDomain(SpecialtieDoctorDTO specialtieDoctor) {
-        DoctorDomain doctor = doctorService.findById(specialtieDoctor.getDoctor());
-        return new SpecialtieDoctorDomain(specialtieDoctor.getId(), doctor, specialtieDoctor.getSpecialtie());
+    // Solo busca el doctor si viene idDoctor en el body; si no viene, se deja
+    // null y es validateFields(...) el que lanza el BusinessException (400),
+    // en vez de que doctorService.findById(null) tire un error sin controlar.
+    private SpecialtieDoctorDomain toDomain(SpecialtieDoctorDTO dto) {
+        DoctorDomain doctor = dto.getDoctor() != null ? doctorService.findById(dto.getDoctor()) : null;
+        return new SpecialtieDoctorDomain(dto.getId(), doctor, dto.getSpecialtie());
     }
 
-    // Devuelve todas las relaciones doctor-especialidad.
     @GetMapping
     public ResponseEntity<List<SpecialtieDoctorDTO>> findAllSpecialtieDoctor() {
-        List<SpecialtieDoctorDTO> specialtieDoctors = specialtieDoctorService.findAll().stream()
-                .map(this::toDTO)
-                .toList();
-
-        return ResponseEntity.ok(specialtieDoctors);
+        List<SpecialtieDoctorDTO> specialtieDoctor = specialtieDoctorService.findAll().stream().map(this::toDTO).toList();
+        return ResponseEntity.ok(specialtieDoctor);
     }
 
-    // Busca una relacion puntual por su propio id.
     @GetMapping("/{id}")
     public ResponseEntity<Object> findById(@PathVariable UUID id) {
         try {
@@ -66,47 +56,37 @@ public class SpecialtieDoctorController {
         }
     }
 
-    // Filtra relaciones por doctor o por especialidad (ambos parametros son opcionales; si no se manda ninguno, devuelve todas).
     @GetMapping("/filter")
     public ResponseEntity<List<SpecialtieDoctorDTO>> findByIdFilter(
             @RequestParam(required = false) UUID idDoctor,
             @RequestParam(required = false) UUID idSpecialtie) {
-
-        List<SpecialtieDoctorDTO> specialtieDoctors = specialtieDoctorService.findByFilter(idDoctor, idSpecialtie).stream()
-                .map(this::toDTO)
-                .toList();
-
-        return ResponseEntity.ok(specialtieDoctors);
+        List<SpecialtieDoctorDTO> specialtieDoctor = specialtieDoctorService.findByFilter(idDoctor, idSpecialtie)
+                .stream().map(this::toDTO).toList();
+        return ResponseEntity.ok(specialtieDoctor);
     }
 
-    // Crea una nueva relacion doctor-especialidad. Si el idDoctor enviado no corresponde a un doctor real, toDomain()
-    // lanza BusinessException y se responde 404 con mensaje claro.
     @PostMapping
-    public ResponseEntity<Object> createNewSpecialtieDoctor(@Valid @RequestBody SpecialtieDoctorDTO specialtieDoctor) {
+    public ResponseEntity<Object> createNewSpecialtieDoctor(@RequestBody SpecialtieDoctorDTO specialtieDoctor) {
         try {
-            SpecialtieDoctorDomain createdSpecialtieDoctor = specialtieDoctorService.createNewSpecialtieDoctor(toDomain(specialtieDoctor));
-            return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(createdSpecialtieDoctor));
+            SpecialtieDoctorDomain created = specialtieDoctorService.createNewSpecialtieDoctor(toDomain(specialtieDoctor));
+            return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(created));
         } catch (BusinessException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(MESSAGE_KEY, e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(MESSAGE_KEY, e.getMessage()));
         }
     }
 
-    // Actualiza una relacion existente (puede cambiar el doctor o la especialidad).
     @PutMapping
     public ResponseEntity<Object> updateSpecialtieDoctor(
             @RequestParam(required = true) UUID id,
-            @Valid @RequestBody SpecialtieDoctorDTO specialtieDoctor) {
-
+            @RequestBody SpecialtieDoctorDTO specialtieDoctor) {
         try {
-            SpecialtieDoctorDomain updatedSpecialtieDoctor = specialtieDoctorService.updateSpecialtieDoctor(id, toDomain(specialtieDoctor));
-            return ResponseEntity.ok(toDTO(updatedSpecialtieDoctor));
+            SpecialtieDoctorDomain updated = specialtieDoctorService.updateSpecialtieDoctor(id, toDomain(specialtieDoctor));
+            return ResponseEntity.ok(toDTO(updated));
         } catch (BusinessException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(MESSAGE_KEY, e.getMessage()));
         }
     }
 
-    // "Desactivar" aqui es borrar la fila de verdad: esta tabla no tiene un
-    // campo active, porque la relacion en si no tiene sentido si no esta vigente.
     @PutMapping("/deactivate")
     public ResponseEntity<Object> deactivateSpecialtieDoctor(@RequestParam(required = true) UUID id) {
         try {
@@ -116,5 +96,4 @@ public class SpecialtieDoctorController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(MESSAGE_KEY, e.getMessage()));
         }
     }
-
 }
