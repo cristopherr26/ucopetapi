@@ -7,6 +7,7 @@ import com.uco.ucopetapi.dto.product.ProductDTO;
 import com.uco.ucopetapi.repository.product.ProductProviderRepository;
 import com.uco.ucopetapi.repository.product.ProductRepository;
 import com.uco.ucopetapi.repository.provider.ProviderJPARepository;
+import com.uco.ucopetapi.service.product.CatalogValidationUtils;
 import com.uco.ucopetapi.service.product.ProductService;
 import com.uco.ucopetapi.service.product.StockService;
 import org.springframework.stereotype.Service;
@@ -14,10 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.uco.ucopetapi.domain.product.enums.ProductCategory;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -82,11 +81,21 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductDTO update(UUID id, ProductDTO request) {
         validateForUpdate(request);
-        ProductDomain product = findProductOrThrow(id);
         if (request.getName() != null && productRepository.existsByNameIgnoreCaseAndIdNot(request.getName(), id)) {
             throw new IllegalArgumentException("Ya existe un producto con este nombre");
         }
+        ProductDomain product = findProductOrThrow(id);
 
+        applyUpdatableFields(product, request);
+        applyPriceConsistency(product);
+        product = productRepository.save(product);
+
+        applyProviderChanges(product, request.getProviders());
+
+        return toDto(product, null);
+    }
+
+    private void applyUpdatableFields(ProductDomain product, ProductDTO request) {
         if (request.getName() != null) {
             product.setName(request.getName());
         }
@@ -111,6 +120,9 @@ public class ProductServiceImpl implements ProductService {
         if (request.getImageUrl() != null) {
             product.setImageUrl(request.getImageUrl());
         }
+    }
+
+    private void applyPriceConsistency(ProductDomain product) {
         if (Boolean.TRUE.equals(product.getSellable())) {
             if (product.getPrice() == null || product.getPrice() <= 0) {
                 throw new IllegalArgumentException("Un producto vendible necesita un precio mayor a cero");
@@ -118,15 +130,13 @@ public class ProductServiceImpl implements ProductService {
         } else {
             product.setPrice(null);
         }
-        product = productRepository.save(product);
-        product = productRepository.save(product);
+    }
 
-        if (request.getProviders() != null) {
+    private void applyProviderChanges(ProductDomain product, List<AssociatedSupplierDTO> providers) {
+        if (providers != null) {
             productProviderRepository.deleteByProduct_Id(product.getId());
-            saveProviderAssociations(product, request.getProviders());
+            saveProviderAssociations(product, providers);
         }
-
-        return toDto(product, null);
     }
 
     @Override
@@ -179,20 +189,7 @@ public class ProductServiceImpl implements ProductService {
         if (request.getDescription() != null && request.getDescription().length() > 255) {
             throw new IllegalArgumentException("La descripción no puede superar los 255 caracteres");
         }
-        if (request.getProviders() != null) {
-            Set<UUID> vistos = new HashSet<>();
-            for (AssociatedSupplierDTO supplier : request.getProviders()) {
-                if (supplier.getProviderId() == null) {
-                    throw new IllegalArgumentException("Cada proveedor asociado necesita un providerId");
-                }
-                if (!vistos.add(supplier.getProviderId())) {
-                    throw new IllegalArgumentException("No puedes asociar el mismo proveedor más de una vez en la misma petición");
-                }
-                if (supplier.getReferencePrice() != null && supplier.getReferencePrice() < 0) {
-                    throw new IllegalArgumentException("El precio de referencia no puede ser negativo");
-                }
-            }
-        }
+        CatalogValidationUtils.validateProviders(request.getProviders());
     }
 
     private void saveProviderAssociations(ProductDomain product, List<AssociatedSupplierDTO> providers) {
