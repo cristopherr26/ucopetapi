@@ -3,7 +3,7 @@ package com.uco.ucopetapi.service.order;
 import com.uco.ucopetapi.domain.order.OrderDomain;
 import com.uco.ucopetapi.domain.order.OrderState;
 import com.uco.ucopetapi.domain.procedure.ProcedureDomain;
-import com.uco.ucopetapi.dto.pets.PetDTO;
+import com.uco.ucopetapi.dto.pet.PetDTO;
 import com.uco.ucopetapi.repository.order.IOrderRepository;
 import com.uco.ucopetapi.service.order.exception.InvalidOrderRequestException;
 import com.uco.ucopetapi.service.order.exception.InvalidOrderStateException;
