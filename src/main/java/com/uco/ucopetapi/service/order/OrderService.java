@@ -3,7 +3,7 @@ package com.uco.ucopetapi.service.order;
 import com.uco.ucopetapi.domain.order.OrderDomain;
 import com.uco.ucopetapi.domain.order.OrderState;
 import com.uco.ucopetapi.domain.procedure.ProcedureDomain;
-import com.uco.ucopetapi.dto.pets.PetDTO;
+import com.uco.ucopetapi.dto.pet.PetDTO;
 import com.uco.ucopetapi.repository.order.IOrderRepository;
 import com.uco.ucopetapi.service.order.exception.InvalidOrderRequestException;
 import com.uco.ucopetapi.service.order.exception.InvalidOrderStateException;
@@ -72,7 +72,7 @@ public class OrderService implements IOrderService {
         }
 
         OrderDomain order = findById(id);
-        requireStatus(order, OrderState.PENDIENTE, "cambiar el procedimiento de");
+        requireStatus(order, OrderState.PENDING, "cambiar el procedimiento de");
 
         if (newProcedureId.equals(order.getProcedureId())) {
             throw new InvalidOrderRequestException("El nuevo procedimiento debe ser diferente al actual.");
@@ -87,10 +87,10 @@ public class OrderService implements IOrderService {
     @Override
     public OrderDomain processAuthorization(UUID id, boolean isApproved) {
         OrderDomain order = findById(id);
-        requireStatus(order, OrderState.PENDIENTE, "procesar la autorización de");
+        requireStatus(order, OrderState.PENDING, "procesar la autorización de");
 
         order.setIsAuthorized(isApproved);
-        order.setState(isApproved ? OrderState.AUTORIZADO : OrderState.DENEGADO);
+        order.setState(isApproved ? OrderState.AUTHORIZED : OrderState.DENIED);
 
         return orderRepository.save(order);
     }
@@ -98,7 +98,7 @@ public class OrderService implements IOrderService {
     @Override
     public void delete(UUID id) {
         OrderDomain order = findById(id);
-        requireStatus(order, OrderState.PENDIENTE, "eliminar");
+        requireStatus(order, OrderState.PENDING, "eliminar");
         orderRepository.delete(order);
     }
 
@@ -122,7 +122,7 @@ public class OrderService implements IOrderService {
     }
 
     private void initializeDefaultValues(OrderDomain order) {
-        order.setState(OrderState.PENDIENTE);
+        order.setState(OrderState.PENDING);
         order.setIsAuthorized(false);
         order.setDate(LocalDateTime.now(ZoneId.of("America/Bogota")));
     }
