@@ -1,6 +1,7 @@
 package com.uco.ucopetapi.service.doctor;
 
 import com.uco.ucopetapi.domain.doctor.DoctorDomain;
+import com.uco.ucopetapi.dto.person.PersonDTO;
 import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.repository.doctor.IDoctorRepository;
 import com.uco.ucopetapi.service.person.PersonService;
@@ -40,7 +41,7 @@ public class DoctorService {
 
     public DoctorDomain createNewDoctor(DoctorDomain doctor) {
         validateFields(doctor);
-        doctor.setId(null); // que la base de datos genere el id, aunque llegue uno en el body
+        doctor.setId(null);
         return doctorRepository.save(doctor);
     }
 
@@ -55,6 +56,22 @@ public class DoctorService {
         // DoctorDomain no tiene su propio campo "active": ese estado vive en Person.
         DoctorDomain doctor = findById(id);
         personService.delete(doctor.getIdPerson());
+    }
+
+    public void activateDoctor(UUID id) {
+        // Mismo enfoque que deactivateDoctor: no toco PersonService, solo uso
+        // su API publica (findById/update) para reactivar la Person asociada.
+        DoctorDomain doctor = findById(id);
+        PersonDTO current = personService.findById(doctor.getIdPerson());
+
+        PersonDTO reactivated = new PersonDTO(
+                current.id(), current.documentType(), current.documentNumber(),
+                current.firstName(), current.lastName(), current.email(),
+                current.address(), current.phone(), current.admin(),
+                true, current.deactivatedAt()
+        );
+
+        personService.update(doctor.getIdPerson(), reactivated);
     }
 
     private void validateFields(DoctorDomain doctor) {
