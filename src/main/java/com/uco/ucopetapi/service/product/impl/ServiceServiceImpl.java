@@ -249,9 +249,6 @@ public class ServiceServiceImpl implements ServiceService {
                 .orElseThrow(() -> new NoSuchElementException("Servicio no encontrado: " + id));
     }
 
-
-
-
     @Override
     @Transactional(readOnly = true)
     public boolean isActive(UUID id) {
