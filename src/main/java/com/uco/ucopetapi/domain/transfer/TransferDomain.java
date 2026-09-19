@@ -62,20 +62,10 @@ public class TransferDomain {
     private LocalDateTime updatedAt;
 
     public TransferDomain() {
-    }
-
-    public TransferDomain(UUID id, HeadquarterDomain originHeadquarter, HeadquarterDomain destinationHeadquarter,
-                          UUID productId, Integer quantity, TransferStatus status, String observations,
-                          PersonDomain createdBy, LocalDateTime createdAt) {
-        this.id = id;
-        this.originHeadquarter = originHeadquarter;
-        this.destinationHeadquarter = destinationHeadquarter;
-        this.productId = productId;
-        this.quantity = quantity;
-        this.status = status;
-        this.observations = observations;
-        this.createdBy = createdBy;
-        this.createdAt = createdAt;
+        // Constructor vacio requerido por JPA/Hibernate: lo usa por reflexion para
+        // instanciar la entidad antes de poblarla con los setters (ej. al leer de BD).
+        // La construccion "completa" se hace con este constructor + setters desde
+        // TransferService.
     }
 
     public UUID getId() {
