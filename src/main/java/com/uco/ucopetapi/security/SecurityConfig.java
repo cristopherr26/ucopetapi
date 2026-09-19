@@ -73,6 +73,12 @@ public class SecurityConfig {
         "/api/v1/receipts", "/api/v1/receipts/**"
     };
 
+    private static final String[] CATALOG = {
+        "/api/v1/products", "/api/v1/products/**",
+        "/api/v1/services", "/api/v1/services/**",
+        "/api/v1/stock", "/api/v1/stock/**"
+    };
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     private final List<String> allowedOrigins;
@@ -113,6 +119,10 @@ public class SecurityConfig {
                     .requestMatchers(COMMERCIAL).hasRole(Role.ADMIN.name())
                     .requestMatchers(INVENTORY).hasRole(Role.ADMIN.name())
                     .requestMatchers(PAYMENTS).hasRole(Role.ADMIN.name())
+
+                    .requestMatchers(HttpMethod.GET, CATALOG)
+                            .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
+                    .requestMatchers(CATALOG).hasRole(Role.ADMIN.name())
 
                     .anyRequest().authenticated())
             .exceptionHandling(e -> e.authenticationEntryPoint(

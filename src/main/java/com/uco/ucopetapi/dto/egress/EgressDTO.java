@@ -30,7 +30,7 @@ public class EgressDTO {
         return id;
     }
 
-    private void setId(UUID id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
@@ -38,7 +38,7 @@ public class EgressDTO {
         return date;
     }
 
-    private void setDate(LocalDate date) {
+    public void setDate(LocalDate date) {
         this.date = date;
     }
 
@@ -46,7 +46,7 @@ public class EgressDTO {
         return provider;
     }
 
-    private void setProvider(UUID provider) {
+    public void setProvider(UUID provider) {
         this.provider = provider;
     }
 
@@ -54,7 +54,7 @@ public class EgressDTO {
         return payMethod;
     }
 
-    private void setPayMethod(UUID payMethod) {
+    public void setPayMethod(UUID payMethod) {
         this.payMethod = payMethod;
     }
 
