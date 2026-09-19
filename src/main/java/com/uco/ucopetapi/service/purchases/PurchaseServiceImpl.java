@@ -1,11 +1,11 @@
 package com.uco.ucopetapi.service.purchases;
 
-import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 import com.uco.ucopetapi.domain.purchases.ItemType;
 import com.uco.ucopetapi.domain.purchases.Purchase;
 import com.uco.ucopetapi.domain.purchases.PurchaseItem;
 import com.uco.ucopetapi.domain.purchases.PurchaseStatus;
+import com.uco.ucopetapi.dto.headquarter.HeadquarterDTO;
 import com.uco.ucopetapi.dto.person.PersonDTO;
 import com.uco.ucopetapi.dto.product.ProductDTO;
 import com.uco.ucopetapi.dto.product.ServiceDTO;
@@ -26,7 +26,6 @@ import com.uco.ucopetapi.service.product.ServiceService;
 import com.uco.ucopetapi.service.provider.ProviderService;
 import com.uco.ucopetapi.service.purchases.exception.DuplicatePurchaseNumberException;
 import com.uco.ucopetapi.service.purchases.exception.HeadquarterInactiveException;
-import com.uco.ucopetapi.service.purchases.exception.HeadquarterNotFoundException;
 import com.uco.ucopetapi.service.purchases.exception.ProductInactiveException;
 import com.uco.ucopetapi.service.purchases.exception.ProductNotFoundException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseNotFoundException;
@@ -81,7 +80,7 @@ public class PurchaseServiceImpl implements PurchaseService {
         }
 
         resolveSupplier(request.supplierId());
-        HeadquarterDomain headquarter = findHeadquarterOrThrow(request.headquarterId());
+        HeadquarterDTO headquarter = findHeadquarterOrThrow(request.headquarterId());
         if (!Boolean.TRUE.equals(headquarter.getIsActive())) {
             throw new HeadquarterInactiveException(headquarter.getName());
         }
@@ -174,9 +173,8 @@ public class PurchaseServiceImpl implements PurchaseService {
                 .orElseThrow(() -> new PurchaseNotFoundException(id));
     }
 
-    private HeadquarterDomain findHeadquarterOrThrow(UUID headquarterId) {
-        return headquarterService.findById(headquarterId)
-                .orElseThrow(() -> new HeadquarterNotFoundException(headquarterId));
+    private HeadquarterDTO findHeadquarterOrThrow(UUID headquarterId) {
+        return headquarterService.findById(headquarterId);
     }
 
     private ProductDTO validateProduct(UUID productId, UUID headquarterId) {
@@ -223,7 +221,7 @@ public class PurchaseServiceImpl implements PurchaseService {
     }
 
     private RelatedEntityDTO resolveHeadquarter(UUID headquarterId) {
-        HeadquarterDomain headquarter = findHeadquarterOrThrow(headquarterId);
+        HeadquarterDTO headquarter = findHeadquarterOrThrow(headquarterId);
         return new RelatedEntityDTO(headquarterId, headquarter.getName());
     }
 
