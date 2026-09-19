@@ -37,20 +37,22 @@ public class ProviderServiceImpl implements ProviderService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProviderDTO> findByFilter(final UUID idType, final Boolean isActive) {
-        List<ProviderDomain> providers;
-        if (idType != null && isActive != null) {
-            providers = providerJPARepository.findByIdTypeAndActive(idType, isActive);
-        } else if (idType != null) {
-            providers = providerJPARepository.findByIdType(idType);
-        } else if (isActive != null) {
-            providers = providerJPARepository.findByActive(isActive);
-        } else {
-            providers = providerJPARepository.findAll();
-        }
+    public List<ProviderDTO> findByFilter(final String providerName) {
+        List<ProviderDomain> providers = (providerName != null && !providerName.isBlank())
+                ? providerJPARepository.findByProviderNameContainingIgnoreCase(providerName)
+                : providerJPARepository.findAll();
+
         return providers.stream()
                 .map(this::toDto)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UUID findByProviderName(final String providerName) {
+        return providerJPARepository.findByProviderName(providerName)
+                .map(ProviderDomain::getId)
+                .orElseThrow(() -> new NoSuchElementException("Proveedor no encontrado: " + providerName));
     }
 
     @Override
