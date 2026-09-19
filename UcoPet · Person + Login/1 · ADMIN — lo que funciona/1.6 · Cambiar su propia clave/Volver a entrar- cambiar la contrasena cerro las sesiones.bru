@@ -1,0 +1,32 @@
+meta {
+  name: Volver a entrar: cambiar la contrasena cerro las sesiones
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{adminEmail}}",
+    "password": "{{adminPassword}}"
+  }
+}
+
+script:post-response {
+  test('200 — hay que reautenticarse tras cambiar la clave', () =>
+      expect(res.getStatus()).to.equal(200));
+  bru.setVar('token', res.getBody().token);
+}
+
+settings {
+  encodeUrl: true
+}

@@ -1,0 +1,38 @@
+meta {
+  name: Crear sin nombre → 400 (@NotBlank)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/persons
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "88888888",
+    "firstName": "",
+    "lastName": "Sin Nombre",
+    "email": "sin.nombre@ucopet.com",
+    "address": "Calle 50 # 51-25, Rionegro",
+    "phone": "300",
+    "admin": false,
+    "active": true
+  }
+}
+
+script:post-response {
+  test("400 — lo atrapa @NotBlank antes de llegar al servicio", () =>
+      expect(res.getStatus()).to.equal(400));
+}
+
+settings {
+  encodeUrl: true
+}

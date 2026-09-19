@@ -1,0 +1,41 @@
+meta {
+  name: BUG 3 · crear un admin desechable
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/persons
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "{{docDesechable}}",
+    "firstName": "Admin",
+    "lastName": "Desechable",
+    "email": "desechable+{{docDesechable}}@ucopet.com",
+    "admin": true,
+    "active": true
+  }
+}
+
+script:pre-request {
+  const n = Date.now().toString().slice(-7);
+  bru.setVar('docDesechable', '95' + n);
+}
+
+script:post-response {
+  test("201", () => expect(res.getStatus()).to.equal(201));
+  bru.setVar("idDesechable", res.getBody().id);
+}
+
+settings {
+  encodeUrl: true
+}

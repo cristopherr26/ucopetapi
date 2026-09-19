@@ -1,0 +1,24 @@
+meta {
+  name: LOGOUT · el mismo token ya no sirve -> 401
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/persons/me
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenParaCerrar}}
+}
+
+script:post-response {
+  test('401 — revocado de verdad, no solo en el front', () =>
+      expect(res.getStatus()).to.equal(401));
+}
+
+settings {
+  encodeUrl: true
+}

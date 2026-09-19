@@ -1,0 +1,26 @@
+meta {
+  name: CORS · preflight a endpoint PROTEGIDO → 200, no 401
+  type: http
+  seq: 2
+}
+
+options {
+  url: {{baseUrl}}/persons/me
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: http://localhost:4200
+  Access-Control-Request-Method: GET
+  Access-Control-Request-Headers: authorization
+}
+
+script:post-response {
+  test("200 — el preflight no lleva token y no debe fallar", () =>
+      expect(res.getStatus()).to.equal(200));
+}
+
+settings {
+  encodeUrl: true
+}

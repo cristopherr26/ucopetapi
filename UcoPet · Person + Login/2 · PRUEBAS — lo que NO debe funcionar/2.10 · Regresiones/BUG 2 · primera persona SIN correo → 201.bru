@@ -1,0 +1,37 @@
+meta {
+  name: BUG 2 · primera persona SIN correo → 201
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/persons
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "{{docSinCorreo1}}",
+    "firstName": "Sin",
+    "lastName": "Correo Uno",
+    "phone": "3000000000",
+    "admin": false,
+    "active": true,
+    "address": "Calle 50 # 51-25, Rionegro"
+  }
+}
+
+script:post-response {
+  test("201", () => expect(res.getStatus()).to.equal(201));
+  bru.setVar("sinCorreo1", res.getBody().id);
+}
+
+settings {
+  encodeUrl: true
+}
