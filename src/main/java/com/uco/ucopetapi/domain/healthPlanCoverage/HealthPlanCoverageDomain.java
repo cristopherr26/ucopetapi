@@ -1,6 +1,6 @@
-package com.uco.ucopetapi.domain.healthplancoverage;
+package com.uco.ucopetapi.domain.healthPlanCoverage;
 
-import com.uco.ucopetapi.domain.healthplan.HealthPlanDomain;
+import com.uco.ucopetapi.domain.healthPlan.HealthPlanDomain;
 
 import jakarta.persistence.*;
 
@@ -9,7 +9,14 @@ import java.util.UUID;
 
 
 @Entity
-@Table(name = "health_plan_coverages")
+@Table(
+        name = "health_plan_coverages",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        columnNames = {"health_plan_id", "service_id"}
+                )
+        }
+)
 public class HealthPlanCoverageDomain {
 
     @Id
@@ -20,9 +27,8 @@ public class HealthPlanCoverageDomain {
     @JoinColumn(name = "health_plan_id",  nullable = false)
     private HealthPlanDomain healthPlan;
 
-    //TO DOOOO: Cambiar para obtener el id de procedureDomain
-    @Column(name = "procedure_id", nullable = false)
-    private UUID procedureId;
+    @Column(name = "service_id", nullable = false)
+    private UUID serviceId;
 
     @Column(nullable = false)
     private Integer coveragePercentage;
@@ -30,24 +36,27 @@ public class HealthPlanCoverageDomain {
     @Column(precision = 15, scale = 2)
     private BigDecimal coverageLimit;
 
+    @Column(nullable = false)
+    private boolean deleted = false;
+
     public HealthPlanCoverageDomain() {
     }
 
     public HealthPlanCoverageDomain(
             UUID id,
             HealthPlanDomain healthPlan,
-            //TO DO
-            UUID procedureId,
+            UUID serviceId,
             Integer coveragePercentage,
-            BigDecimal coverageLimit) {
-
+            BigDecimal coverageLimit,
+            boolean deleted
+    ) {
 
         this.id = id;
         this.healthPlan = healthPlan;
-        //TO DO
-        this.procedureId = procedureId;
+        this.serviceId = serviceId;
         this.coveragePercentage = coveragePercentage;
         this.coverageLimit = coverageLimit;
+        this.deleted = deleted;
     }
 
     public UUID getId() {
@@ -66,14 +75,12 @@ public class HealthPlanCoverageDomain {
         this.healthPlan = healthPlan;
     }
 
-    //TO DO
-    public UUID getProcedureId() {
-        return procedureId;
+    public UUID getServiceId() {
+        return serviceId;
     }
 
-    //TO DO
-    public void setProcedureId(UUID serviceId) {
-        this.procedureId = serviceId;
+    public void setServiceId(UUID serviceId) {
+        this.serviceId = serviceId;
     }
 
     public Integer getCoveragePercentage() {
@@ -91,4 +98,9 @@ public class HealthPlanCoverageDomain {
     public void setCoverageLimit(BigDecimal coverageLimit) {
         this.coverageLimit = coverageLimit;
     }
+
+    public boolean isDeleted() {return deleted;}
+
+    public void setDeleted(boolean deleted) {this.deleted = deleted;}
+
 }

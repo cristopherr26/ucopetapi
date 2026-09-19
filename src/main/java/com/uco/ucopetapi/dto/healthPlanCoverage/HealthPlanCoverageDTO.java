@@ -1,4 +1,4 @@
-package com.uco.ucopetapi.dto.healthplancoverage;
+package com.uco.ucopetapi.dto.healthPlanCoverage;
 
 import java.util.UUID;
 import java.math.BigDecimal;
@@ -7,7 +7,7 @@ public class HealthPlanCoverageDTO {
 
     private UUID id;
     private UUID healthPlanId;
-    private UUID procedureId;
+    private UUID serviceId;
     private Integer coveragePercentage;
     private BigDecimal coverageLimit;
 
@@ -17,24 +17,20 @@ public class HealthPlanCoverageDTO {
     public HealthPlanCoverageDTO(
             UUID id,
             UUID healthPlanId,
-            UUID procedureId,
+            UUID serviceId,
             Integer coveragePercentage,
             BigDecimal coverageLimit) {
 
         this.id = id;
         this.healthPlanId = healthPlanId;
-        this.procedureId = procedureId;
+        this.serviceId = serviceId;
         this.coveragePercentage = coveragePercentage;
         this.coverageLimit = coverageLimit;
     }
 
-    public UUID getId() {
-        return id;
-    }
+    public UUID getId() {return id;}
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
+    public void setId(UUID id) {this.id = id;}
 
     public UUID getHealthPlanId() {
         return healthPlanId;
@@ -44,12 +40,12 @@ public class HealthPlanCoverageDTO {
         this.healthPlanId = healthPlanId;
     }
 
-    public UUID getProcedureId() {
-        return procedureId;
+    public UUID getServiceId() {
+        return serviceId;
     }
 
-    public void setProcedureId(UUID procedureId) {
-        this.procedureId = procedureId;
+    public void setServiceId(UUID serviceId) {
+        this.serviceId = serviceId;
     }
 
     public Integer getCoveragePercentage() {
