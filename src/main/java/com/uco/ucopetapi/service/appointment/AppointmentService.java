@@ -1,48 +1,69 @@
 package com.uco.ucopetapi.service.appointment;
 
 import com.uco.ucopetapi.domain.appointment.AppointmentDomain;
+import com.uco.ucopetapi.domain.doctor.DoctorDomain;
 import com.uco.ucopetapi.dto.appointment.AppointmentDTO;
+import com.uco.ucopetapi.dto.appointment.AppointmentStatusDTO;
 import com.uco.ucopetapi.dto.appointmentType.AppointmentTypeDTO;
+import com.uco.ucopetapi.dto.person.PersonDTO;
+import com.uco.ucopetapi.dto.pets.PetDTO;
+import com.uco.ucopetapi.dto.tutorPet.TutorPetDTO;
+import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.repository.appointment.IAppointmentRepository;
 import com.uco.ucopetapi.service.appointmentType.AppointmentTypeService;
+import com.uco.ucopetapi.service.doctor.DoctorService;
+import com.uco.ucopetapi.service.person.PersonService;
+import com.uco.ucopetapi.service.pet.PetService;
+import com.uco.ucopetapi.service.tutorPet.TutorPetService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
-import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
 import java.util.UUID;
 
 @Service
 public class AppointmentService {
 
-    private static final UUID MOCK_TUTOR_ID = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
-    private static final UUID MOCK_PET_ID = UUID.fromString("550e8400-e29b-41d4-a716-446655440001");
-    private static final UUID MOCK_DOCTOR_ID = UUID.fromString("550e8400-e29b-41d4-a716-446655440002");
-
-    private static final Map<UUID, String> MOCK_TUTORS = Map.of(
-            MOCK_TUTOR_ID, "Simon"
-    );
-    private static final Map<UUID, String> MOCK_PETS = Map.of(
-            MOCK_PET_ID, "Luna"
-    );
-    private static final Map<UUID, UUID> MOCK_PET_TUTORS = Map.of(
-            MOCK_PET_ID, MOCK_TUTOR_ID
-    );
-    private static final Map<UUID, String> MOCK_DOCTORS = Map.of(
-            MOCK_DOCTOR_ID, "Dra. Perez"
+    private static final ZoneId APPLICATION_ZONE_ID = ZoneId.systemDefault();
+    private static final String PENDING_STATUS = "PENDING";
+    private static final String CONFIRMED_STATUS = "CONFIRMED";
+    private static final String CANCELLED_STATUS = "CANCELLED";
+    private static final String COMPLETED_STATUS = "COMPLETED";
+    private static final Set<String> ALLOWED_STATUSES = Set.of(
+            PENDING_STATUS,
+            CONFIRMED_STATUS,
+            CANCELLED_STATUS,
+            COMPLETED_STATUS
     );
 
     private final IAppointmentRepository appointmentRepository;
     private final AppointmentTypeService appointmentTypeService;
+    private final DoctorService doctorService;
+    private final PetService petService;
+    private final PersonService personService;
+    private final TutorPetService tutorPetService;
 
     public AppointmentService(
             IAppointmentRepository appointmentRepository,
-            AppointmentTypeService appointmentTypeService) {
+            AppointmentTypeService appointmentTypeService,
+            DoctorService doctorService,
+            PetService petService,
+            PersonService personService,
+            TutorPetService tutorPetService) {
         this.appointmentRepository = appointmentRepository;
         this.appointmentTypeService = appointmentTypeService;
+        this.doctorService = doctorService;
+        this.petService = petService;
+        this.personService = personService;
+        this.tutorPetService = tutorPetService;
     }
 
     public List<AppointmentDTO> findAll() {
@@ -62,7 +83,7 @@ public class AppointmentService {
     }
 
     public List<AppointmentDTO> findPendingByTutorId(UUID tutorId) {
-        return appointmentRepository.findByTutorIdAndStatus(tutorId, "PENDING").stream()
+        return appointmentRepository.findByTutorIdAndStatus(tutorId, PENDING_STATUS).stream()
                 .map(this::toDTO)
                 .toList();
     }
@@ -70,7 +91,7 @@ public class AppointmentService {
     @Transactional
     public AppointmentDTO create(AppointmentDTO appointmentDTO) {
         AppointmentDomain appointment = toDomain(appointmentDTO);
-        validateRelationships(appointment);
+        validateAppointment(appointment, null);
         appointment.setId(UUID.randomUUID());
         return toDTO(appointmentRepository.save(appointment));
     }
@@ -82,9 +103,24 @@ public class AppointmentService {
         }
 
         AppointmentDomain appointment = toDomain(appointmentDTO);
-        validateRelationships(appointment);
+        validateAppointment(appointment, id);
         appointment.setId(id);
         return Optional.of(toDTO(appointmentRepository.save(appointment)));
+    }
+
+    @Transactional
+    public Optional<AppointmentDTO> updateStatus(UUID id, AppointmentStatusDTO appointmentStatusDTO) {
+        if (appointmentStatusDTO == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Los datos del estado de la cita son obligatorios");
+        }
+
+        return appointmentRepository.findById(id)
+                .map(appointment -> {
+                    updateStatusFields(appointment, appointmentStatusDTO);
+                    validateStatusRules(appointment, id);
+                    return toDTO(appointmentRepository.save(appointment));
+                });
     }
 
     @Transactional
@@ -102,7 +138,9 @@ public class AppointmentService {
             return null;
         }
 
-        return MOCK_DOCTORS.get(doctorId);
+        DoctorDomain doctor = doctorService.findById(doctorId);
+        PersonDTO person = personService.findById(doctor.getIdPerson());
+        return person.firstName() + " " + person.lastName();
     }
 
     private String findPetName(UUID petId) {
@@ -110,7 +148,7 @@ public class AppointmentService {
             return null;
         }
 
-        return MOCK_PETS.get(petId);
+        return petService.getById(petId).getName();
     }
 
     private String findTutorName(UUID tutorId) {
@@ -118,7 +156,9 @@ public class AppointmentService {
             return null;
         }
 
-        return MOCK_TUTORS.get(tutorId);
+        TutorPetDTO tutor = tutorPetService.findById(tutorId);
+        PersonDTO person = personService.findById(tutor.getPerson());
+        return person.firstName() + " " + person.lastName();
     }
 
     private String findAppointmentTypeName(UUID appointmentTypeId) {
@@ -129,6 +169,59 @@ public class AppointmentService {
         return appointmentTypeService.findById(appointmentTypeId)
                 .map(AppointmentTypeDTO::getName)
                 .orElse(null);
+    }
+
+    private void validateAppointment(AppointmentDomain appointment, UUID currentAppointmentId) {
+        validateRequiredSchedule(appointment);
+        validateStatusRules(appointment, currentAppointmentId);
+        validateRelationships(appointment);
+        validateDoctorScheduleAvailability(appointment, currentAppointmentId);
+    }
+
+    private void validateRequiredSchedule(AppointmentDomain appointment) {
+        if (appointment.getAppointmentDate() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La fecha de la cita es obligatoria");
+        }
+        if (appointment.getAppointmentDate().isBefore(LocalDate.now(APPLICATION_ZONE_ID))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La fecha de la cita no puede estar en el pasado");
+        }
+        if (appointment.getAppointmentTime() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La hora de la cita es obligatoria");
+        }
+    }
+
+    private void validateStatusRules(AppointmentDomain appointment, UUID currentAppointmentId) {
+        if (appointment.getStatus() == null || appointment.getStatus().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El estado de la cita es obligatorio");
+        }
+
+        String status = appointment.getStatus().trim().toUpperCase();
+        appointment.setStatus(status);
+        if (!ALLOWED_STATUSES.contains(status)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El estado de la cita solo puede ser PENDING, CONFIRMED, CANCELLED o COMPLETED");
+        }
+
+        if (CANCELLED_STATUS.equals(status) && isBlank(appointment.getCancellationReason())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La justificacion de cancelacion es obligatoria cuando la cita se cancela");
+        }
+
+        if (!CANCELLED_STATUS.equals(status) && !isBlank(appointment.getCancellationReason())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La justificacion de cancelacion solo debe enviarse cuando la cita esta cancelada");
+        }
+
+        if (CANCELLED_STATUS.equals(status)
+                && currentAppointmentId != null
+                && wasCompleted(currentAppointmentId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "No se puede cancelar una cita que ya esta completada");
+        }
     }
 
     private void validateRelationships(AppointmentDomain appointment) {
@@ -143,7 +236,9 @@ public class AppointmentService {
                     "El doctorId es obligatorio para crear una cita");
         }
 
-        if (!MOCK_DOCTORS.containsKey(doctorId)) {
+        try {
+            doctorService.findById(doctorId);
+        } catch (BusinessException | NoSuchElementException _) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "No existe un medico con el id indicado");
         }
@@ -159,16 +254,16 @@ public class AppointmentService {
                     "El petId es obligatorio para crear una cita");
         }
 
-        if (!MOCK_TUTORS.containsKey(tutorId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                    "No existe un tutor con el id indicado");
-        }
-        if (!MOCK_PETS.containsKey(petId)) {
+        TutorPetDTO tutor = tutorPetService.findById(tutorId);
+        PetDTO pet;
+        try {
+            pet = petService.getById(petId);
+        } catch (NoSuchElementException _) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "No existe una mascota con el id indicado");
         }
 
-        if (!tutorId.equals(MOCK_PET_TUTORS.get(petId))) {
+        if (!tutor.getId().equals(pet.getTutorId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "La mascota indicada no pertenece al tutor de la cita");
         }
@@ -183,6 +278,44 @@ public class AppointmentService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "No existe un tipo de cita con el id indicado");
         }
+        if (!appointmentTypeService.isActive(appointmentTypeId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El tipo de cita indicado no esta activo");
+        }
+    }
+
+    private void validateDoctorScheduleAvailability(AppointmentDomain appointment, UUID currentAppointmentId) {
+        boolean scheduleTaken = currentAppointmentId == null
+                ? appointmentRepository.existsByDoctorIdAndAppointmentDateAndAppointmentTime(
+                        appointment.getDoctorId(),
+                        appointment.getAppointmentDate(),
+                        appointment.getAppointmentTime())
+                : appointmentRepository.existsByDoctorIdAndAppointmentDateAndAppointmentTimeAndIdNot(
+                        appointment.getDoctorId(),
+                        appointment.getAppointmentDate(),
+                        appointment.getAppointmentTime(),
+                        currentAppointmentId);
+
+        if (scheduleTaken) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "El medico ya tiene una cita programada para esa fecha y hora");
+        }
+    }
+
+    private boolean wasCompleted(UUID appointmentId) {
+        return appointmentRepository.findById(appointmentId)
+                .map(AppointmentDomain::getStatus)
+                .map(COMPLETED_STATUS::equals)
+                .orElse(false);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private void updateStatusFields(AppointmentDomain appointment, AppointmentStatusDTO appointmentStatusDTO) {
+        appointment.setStatus(appointmentStatusDTO.getStatus());
+        appointment.setCancellationReason(appointmentStatusDTO.getCancellationReason());
     }
 
     private AppointmentDomain toDomain(AppointmentDTO appointmentDTO) {
@@ -202,11 +335,11 @@ public class AppointmentService {
         AppointmentDTO appointmentDTO = new AppointmentDTO();
         appointmentDTO.setId(appointment.getId());
         appointmentDTO.setTutorId(appointment.getTutorId());
-        appointmentDTO.setTutorName(findTutorName(appointment.getTutorId()));
+        appointmentDTO.setTutorName(findRelatedName(() -> findTutorName(appointment.getTutorId())));
         appointmentDTO.setPetId(appointment.getPetId());
-        appointmentDTO.setPetName(findPetName(appointment.getPetId()));
+        appointmentDTO.setPetName(findRelatedName(() -> findPetName(appointment.getPetId())));
         appointmentDTO.setDoctorId(appointment.getDoctorId());
-        appointmentDTO.setDoctorName(findDoctorName(appointment.getDoctorId()));
+        appointmentDTO.setDoctorName(findRelatedName(() -> findDoctorName(appointment.getDoctorId())));
         appointmentDTO.setAppointmentTypeId(appointment.getAppointmentTypeId());
         appointmentDTO.setAppointmentTypeName(findAppointmentTypeName(appointment.getAppointmentTypeId()));
         appointmentDTO.setAppointmentDate(appointment.getAppointmentDate());
@@ -214,5 +347,13 @@ public class AppointmentService {
         appointmentDTO.setStatus(appointment.getStatus());
         appointmentDTO.setCancellationReason(appointment.getCancellationReason());
         return appointmentDTO;
+    }
+
+    private String findRelatedName(Supplier<String> nameSupplier) {
+        try {
+            return nameSupplier.get();
+        } catch (BusinessException | NoSuchElementException | ResponseStatusException _) {
+            return null;
+        }
     }
 }
