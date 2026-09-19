@@ -279,9 +279,17 @@ public class ProcedureService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "La informacion del producto predeterminado es obligatoria");
         }
+        validateProductId(product.getProductId());
         final String productCode = validateProductCode(product.getProductCode());
         validateProductQuantity(product.getQuantity());
         validateProductIsNotDuplicated(productCode, productCodes);
+    }
+
+    private void validateProductId(final UUID productId) {
+        if (productId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El identificador del producto predeterminado es obligatorio");
+        }
     }
 
     private String validateProductCode(final String requestedProductCode) {
