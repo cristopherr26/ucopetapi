@@ -1,7 +1,7 @@
 # Colección de Postman — Person + Login
 
 **Importable directo.** Cubre el CRUD de `Person`, el login, el token, la autorización y los bugs
-ya corregidos, en **94 peticiones**.
+ya corregidos, en **103 peticiones**.
 
 ## Levantarlo
 
@@ -54,6 +54,8 @@ Después: click derecho en la colección → **Run collection**.
     2.8 · Reglas de negocio
     2.9 · CORS
     2.10 · Regresiones
+
+3 · Catalogo por rol        un medico lee productos (200) pero no los crea (403); el ADMIN si (201)
 
 9 · Limpiar                 deja la base como estaba
 ```
