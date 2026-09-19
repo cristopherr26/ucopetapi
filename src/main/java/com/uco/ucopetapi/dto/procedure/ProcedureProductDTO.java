@@ -1,6 +1,10 @@
 package com.uco.ucopetapi.dto.procedure;
 
+import java.util.UUID;
+
 public class ProcedureProductDTO {
+
+    private UUID productId;
 
     private String productCode;
 
@@ -10,8 +14,21 @@ public class ProcedureProductDTO {
     }
 
     public ProcedureProductDTO(final String productCode, final Integer quantity) {
+        this(null, productCode, quantity);
+    }
+
+    public ProcedureProductDTO(final UUID productId, final String productCode, final Integer quantity) {
+        setProductId(productId);
         setProductCode(productCode);
         setQuantity(quantity);
+    }
+
+    public UUID getProductId() {
+        return productId;
+    }
+
+    public void setProductId(final UUID productId) {
+        this.productId = productId;
     }
 
     public String getProductCode() {
