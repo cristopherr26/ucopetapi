@@ -8,6 +8,7 @@ import com.uco.ucopetapi.dto.appointmentType.AppointmentTypeDTO;
 import com.uco.ucopetapi.dto.person.PersonDTO;
 import com.uco.ucopetapi.dto.pet.PetDTO;
 import com.uco.ucopetapi.dto.tutorPet.TutorPetDTO;
+import com.uco.ucopetapi.event.AppointmentCreatedEvent;
 import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.repository.appointment.IAppointmentRepository;
 import com.uco.ucopetapi.service.appointmentType.AppointmentTypeService;
@@ -15,6 +16,7 @@ import com.uco.ucopetapi.service.doctor.DoctorService;
 import com.uco.ucopetapi.service.person.PersonService;
 import com.uco.ucopetapi.service.pet.PetService;
 import com.uco.ucopetapi.service.tutorPet.TutorPetService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,6 +52,7 @@ public class AppointmentService {
     private final PetService petService;
     private final PersonService personService;
     private final TutorPetService tutorPetService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public AppointmentService(
             IAppointmentRepository appointmentRepository,
@@ -57,13 +60,15 @@ public class AppointmentService {
             DoctorService doctorService,
             PetService petService,
             PersonService personService,
-            TutorPetService tutorPetService) {
+            TutorPetService tutorPetService,
+            ApplicationEventPublisher eventPublisher) {
         this.appointmentRepository = appointmentRepository;
         this.appointmentTypeService = appointmentTypeService;
         this.doctorService = doctorService;
         this.petService = petService;
         this.personService = personService;
         this.tutorPetService = tutorPetService;
+        this.eventPublisher = eventPublisher;
     }
 
     public List<AppointmentDTO> findAll() {
@@ -93,7 +98,9 @@ public class AppointmentService {
         AppointmentDomain appointment = toDomain(appointmentDTO);
         validateAppointment(appointment, null);
         appointment.setId(UUID.randomUUID());
-        return toDTO(appointmentRepository.save(appointment));
+        AppointmentDTO dto = toDTO(appointmentRepository.save(appointment));
+        publishAppointmentCreatedEvent(dto);
+        return dto;
     }
 
     @Transactional
@@ -169,6 +176,17 @@ public class AppointmentService {
         return appointmentTypeService.findById(appointmentTypeId)
                 .map(AppointmentTypeDTO::getName)
                 .orElse(null);
+    }
+
+    private void publishAppointmentCreatedEvent(AppointmentDTO appointmentDTO) {
+        UUID tutorPersonId = tutorPetService.findById(appointmentDTO.getTutorId()).getPerson();
+        eventPublisher.publishEvent(new AppointmentCreatedEvent(
+                appointmentDTO.getId(),
+                tutorPersonId,
+                appointmentDTO.getPetName(),
+                appointmentDTO.getAppointmentDate(),
+                appointmentDTO.getAppointmentTime()
+        ));
     }
 
     private void validateAppointment(AppointmentDomain appointment, UUID currentAppointmentId) {
