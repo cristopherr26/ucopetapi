@@ -107,30 +107,30 @@ public class ProviderServiceImpl implements ProviderService {
     }
 
     private ProviderDTO toDto(final ProviderDomain provider) {
-        return new ProviderDTO(
-                provider.getId(),
-                provider.getProviderName(),
-                provider.getRepresentName(),
-                provider.getIdType(),
-                provider.getDocumentNumber(),
-                provider.getMobileNumber(),
-                provider.getAddress(),
-                provider.getEmail(),
-                provider.isActive()
-        );
+        return ProviderDTO.builder()
+                .id(provider.getId())
+                .providerName(provider.getProviderName())
+                .representName(provider.getRepresentName())
+                .idType(provider.getIdType())
+                .documentNumber(provider.getDocumentNumber())
+                .mobileNumber(provider.getMobileNumber())
+                .address(provider.getAddress())
+                .email(provider.getEmail())
+                .isActive(provider.isActive())
+                .build();
     }
 
     private ProviderDomain toEntity(final ProviderDTO request, final UUID id) {
-        return new ProviderDomain(
-                id,
-                request.getProviderName(),
-                request.getRepresentName(),
-                request.getIdType(),
-                request.getDocumentNumber(),
-                request.getMobileNumber(),
-                request.getAddress(),
-                request.getEmail(),
-                request.isActive()
-        );
+        return ProviderDomain.builder()
+                .id(id)
+                .providerName(request.getProviderName())
+                .representName(request.getRepresentName())
+                .idType(request.getIdType())
+                .documentNumber(request.getDocumentNumber())
+                .mobileNumber(request.getMobileNumber())
+                .address(request.getAddress())
+                .email(request.getEmail())
+                .active(request.isActive())
+                .build();
     }
 }
