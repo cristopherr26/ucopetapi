@@ -1,0 +1,27 @@
+meta {
+  name: CONTENT-TYPE · text/plain → 415
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: text
+  auth: none
+}
+
+headers {
+  Content-Type: text/plain
+}
+
+body:text {
+  {"email":"a@b.com","password":"12345678"}
+}
+
+script:post-response {
+  test("415", () => expect(res.getStatus()).to.equal(415));
+}
+
+settings {
+  encodeUrl: true
+}

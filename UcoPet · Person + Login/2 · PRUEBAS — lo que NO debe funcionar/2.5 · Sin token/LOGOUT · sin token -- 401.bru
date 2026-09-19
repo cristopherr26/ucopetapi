@@ -1,0 +1,19 @@
+meta {
+  name: LOGOUT · sin token -> 401
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/persons/logout
+  body: none
+  auth: none
+}
+
+script:post-response {
+  test('401', () => expect(res.getStatus()).to.equal(401));
+}
+
+settings {
+  encodeUrl: true
+}

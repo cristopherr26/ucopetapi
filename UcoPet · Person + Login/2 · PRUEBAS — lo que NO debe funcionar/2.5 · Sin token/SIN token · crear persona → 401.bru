@@ -1,0 +1,35 @@
+meta {
+  name: SIN token · crear persona → 401
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/persons
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "66666",
+    "firstName": "Intruso",
+    "lastName": "Anonimo",
+    "email": "intruso@ucopet.com",
+    "admin": false,
+    "active": true
+  }
+}
+
+script:post-response {
+  test('401', () => expect(res.getStatus()).to.equal(401));
+}
+
+settings {
+  encodeUrl: true
+}

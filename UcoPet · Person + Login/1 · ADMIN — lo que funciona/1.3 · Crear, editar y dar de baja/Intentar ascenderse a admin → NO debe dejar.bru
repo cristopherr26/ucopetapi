@@ -1,0 +1,43 @@
+meta {
+  name: Intentar ascenderse a admin → NO debe dejar
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/persons/{{personId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "{{docNuevo}}",
+    "firstName": "Juliana",
+    "lastName": "Ospina",
+    "email": "{{correoNuevo}}",
+    "address": "Calle 50 # 51-25, Rionegro",
+    "phone": "3009998877",
+    "admin": true,
+    "active": true
+  }
+}
+
+script:post-response {
+  test("200", () => expect(res.getStatus()).to.equal(200));
+  test("mando admin:true y siguio en false", () =>
+      expect(res.getBody().admin).to.be.false);
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Manda admin:true. update() lo ignora a proposito: si dejara, cualquiera que edite su propia ficha se asciende solo.
+}

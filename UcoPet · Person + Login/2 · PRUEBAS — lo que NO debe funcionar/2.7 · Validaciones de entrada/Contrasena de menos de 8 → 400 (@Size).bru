@@ -1,0 +1,31 @@
+meta {
+  name: Contrasena de menos de 8 → 400 (@Size)
+  type: http
+  seq: 13
+}
+
+put {
+  url: {{baseUrl}}/persons/{{personId}}/password
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "password": "corta"
+  }
+}
+
+script:post-response {
+  test("400", () => expect(res.getStatus()).to.equal(400));
+  test("y es por la contrasena, no por una URL rota", () =>
+      expect(res.getBody().path).to.not.include('//'));
+}
+
+settings {
+  encodeUrl: true
+}

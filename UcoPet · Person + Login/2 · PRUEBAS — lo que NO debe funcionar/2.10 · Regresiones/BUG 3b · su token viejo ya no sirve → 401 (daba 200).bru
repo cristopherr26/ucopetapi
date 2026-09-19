@@ -1,0 +1,23 @@
+meta {
+  name: BUG 3b · su token viejo ya no sirve → 401 (daba 200)
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/persons/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tokenDesechable}}
+}
+
+script:post-response {
+  test("401 — la base manda sobre el token", () => expect(res.getStatus()).to.equal(401));
+}
+
+settings {
+  encodeUrl: true
+}

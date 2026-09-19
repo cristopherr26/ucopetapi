@@ -1,0 +1,33 @@
+meta {
+  name: ENUM · lista de tipos, con token de ADMIN → 200
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/persons/document-types
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test("200", () => expect(res.getStatus()).to.equal(200));
+  const b = res.getBody();
+  test("trae los 6 tipos de PERSONA", () => expect(b).to.have.lengthOf(6));
+  test("NIT no esta: es de empresas, no de personas", () =>
+      expect(b.map(t => t.value)).to.not.include('NIT'));
+  test("cada uno con value y label", () => {
+      b.forEach(t => {
+          expect(t).to.have.property('value');
+          expect(t).to.have.property('label');
+          expect(t.label).to.not.be.empty;
+      });
+  });
+  test("el primero es CC", () => expect(b[0].value).to.eql('CC'));
+  test("sirve para llenar un <select> directo", () =>
+      expect(b.map(t => t.value)).to.include.members(['CC','TI','CE','PA']));
+}
+
+settings {
+  encodeUrl: true
+}

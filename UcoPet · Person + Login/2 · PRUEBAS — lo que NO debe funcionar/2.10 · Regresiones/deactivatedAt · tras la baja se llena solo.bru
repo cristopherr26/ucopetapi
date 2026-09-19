@@ -1,0 +1,19 @@
+meta {
+  name: deactivatedAt · tras la baja se llena solo
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/persons/{{anaId}}
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test("204", () => expect(res.getStatus()).to.equal(204));
+}
+
+settings {
+  encodeUrl: true
+}

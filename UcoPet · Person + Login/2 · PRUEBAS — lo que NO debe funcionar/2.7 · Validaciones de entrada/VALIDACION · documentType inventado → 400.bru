@@ -1,0 +1,35 @@
+meta {
+  name: VALIDACION · documentType inventado → 400
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/persons
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "LOQUESEA",
+    "documentNumber": "9913",
+    "firstName": "X",
+    "lastName": "Y",
+    "email": "t1@ucopet.com",
+    "admin": false,
+    "active": true
+  }
+}
+
+script:post-response {
+  test("400", () => expect(res.getStatus()).to.equal(400));
+}
+
+settings {
+  encodeUrl: true
+}

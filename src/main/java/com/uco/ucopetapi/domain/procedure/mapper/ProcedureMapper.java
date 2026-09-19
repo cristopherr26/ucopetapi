@@ -37,7 +37,8 @@ public class ProcedureMapper {
         }
 
         return products.stream()
-                .map(product -> new ProcedureProductDomain(clean(product.getProductCode()), product.getQuantity()))
+                .map(product -> new ProcedureProductDomain(product.getProductId(), clean(product.getProductCode()),
+                        product.getQuantity()))
                 .toList();
     }
 
@@ -47,7 +48,8 @@ public class ProcedureMapper {
         }
 
         return products.stream()
-                .map(product -> new ProcedureProductDTO(product.getProductCode(), product.getQuantity()))
+                .map(product -> new ProcedureProductDTO(product.getProductId(), product.getProductCode(),
+                        product.getQuantity()))
                 .toList();
     }
 

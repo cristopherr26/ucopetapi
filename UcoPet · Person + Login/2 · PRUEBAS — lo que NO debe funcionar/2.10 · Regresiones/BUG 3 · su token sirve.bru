@@ -1,0 +1,23 @@
+meta {
+  name: BUG 3 · su token sirve
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/persons/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tokenDesechable}}
+}
+
+script:post-response {
+  test("200", () => expect(res.getStatus()).to.equal(200));
+}
+
+settings {
+  encodeUrl: true
+}

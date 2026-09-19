@@ -1,0 +1,19 @@
+meta {
+  name: Dar de baja a la persona sin contrasena
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{baseUrl}}/persons/{{sinClaveId}}
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test("204", () => expect(res.getStatus()).to.equal(204));
+}
+
+settings {
+  encodeUrl: true
+}

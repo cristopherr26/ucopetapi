@@ -1,0 +1,25 @@
+meta {
+  name: CORS · origen desconocido → sin permiso
+  type: http
+  seq: 3
+}
+
+options {
+  url: {{baseUrl}}/persons/login
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: http://sitio-malicioso.com
+  Access-Control-Request-Method: POST
+}
+
+script:post-response {
+  test("no autoriza a un origen ajeno", () =>
+      expect(res.getHeader('Access-Control-Allow-Origin')).to.be.null);
+}
+
+settings {
+  encodeUrl: true
+}

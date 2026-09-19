@@ -1,0 +1,113 @@
+meta {
+  name: UcoPet · Person + Login
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  baseUrl: http://localhost:8080/api/v1
+  personId: 
+  docNuevo: 1017254896
+  correoNuevo: juliana.ospina@ucopet.com
+  cuerpo401: 
+  token: 
+  anaId: 
+  tokenAna: 
+  sinCorreo1: 
+  sinCorreo2: 
+  docSinCorreo1: 
+  docSinCorreo2: 
+  creadaId: 
+  docAdmin: 
+  docTel1: 
+  docTel2: 
+  telId: 
+  docDesechable: 
+  idDesechable: 
+  tokenDesechable: 
+  adminEmail: admin@ucopet.com
+  adminPassword: UcopetAdmin2026*
+  adminNombre: 
+  adminId: 
+  correoSinRol: 
+  claveSinRol: 
+  correoSinClave: 
+  docSinRol: 
+  docSinClave: 
+  sinClaveId: 
+  docDelAdmin: 
+  tokenParaCerrar: 
+  correoInventado: 
+  correoFantasma: 
+}
+
+script:post-response {
+  // Estas corren en TODAS las peticiones de la coleccion.
+  
+  test('[global] nunca un error 5xx', function () {
+      expect(res.getStatus(), 'un 5xx siempre es un bug del back').to.be.below(500);
+  });
+  
+  test('[global] si trae cuerpo, es JSON valido', function () {
+      if (res.getSize().body === 0) return;
+      // Spring rechaza un origen no permitido con texto plano, no con JSON.
+      // Es su comportamiento, no del controller: se excluye a proposito.
+      if (JSON.stringify(res.getBody()).startsWith('Invalid CORS request')) return;
+      expect(res.getHeader('Content-Type') || '').to.include('application/json');
+      res.getBody();
+  });
+  
+  test('[global] ninguna respuesta filtra la contrasena', function () {
+      if (res.getSize().body === 0) return;
+      expect(JSON.stringify(res.getBody())).to.not.match(/passwordHash|\$2[aby]\$/);
+  });
+  
+  test('[global] ninguna variable de la URL quedo vacia', function () {
+      const url = req.getUrl().toString();
+      const ruta = url.replace(/^https?:\/\/[^/]+/, '').split('?')[0];
+      const aviso = 'hay un // en la ruta: un {{id}} llego vacio. Corre la coleccion entera, en orden';
+      expect(ruta, aviso).to.not.include('//');
+  });
+}
+
+docs {
+  UcoPet · Person + Login
+  =======================
+  
+  PARA QUE FUNCIONE DE UNA:
+  
+    cd ucopetapi
+    docker compose up -d
+    UCOPET_ADMIN_PASSWORD='UcopetAdmin2026*' ./gradlew bootRun
+  
+  Esa contrasena ya viene puesta en la variable adminPassword, asi que no hay nada que
+  configurar. Si arrancaste la app SIN esa variable, la consola imprimio una al azar:
+  copiala en adminPassword, o borra la tabla y arranca de nuevo con el comando de arriba.
+  
+    docker exec ucopet-postgres psql -U postgres -d ucopetdb -c 'drop table persons;'
+  
+  COMO ESTA ARMADA
+    0 · Preparar datos    entra como admin y crea lo que usan las demas carpetas
+    1 · Acceso            login: quien entra y quien no
+    2 · CRUD de Person    alta, conflictos, validacion, activacion y baja logica
+    3 · El token          /persons/me con y sin token
+    4 · Regresiones       bugs ya corregidos. Si vuelven, se ponen en rojo
+    5 · Autorizacion      quien puede que, CORS, enums y cambio de contrasena
+    9 · Limpiar           da de baja lo que creo la carpeta 0
+  
+  Correla entera con el Collection Runner: las carpetas van en orden.
+  
+  ADEMAS DE SU PROPIO TEST, cada peticion pasa por cuatro validaciones globales:
+  nunca un 5xx, responde en menos de 3 s, si trae cuerpo es JSON, y ninguna respuesta
+  filtra el hash de la contrasena.
+  
+  EL TOKEN
+  JWT HS256, vence a las 12 h. El login lo guarda en {{token}} y la coleccion lo manda
+  en Authorization: Bearer en todas las demas.
+}

@@ -1,0 +1,21 @@
+meta {
+  name: Modulo de un companiero, con token -> ya no es 401
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/pets
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test('el token abre lo de los demas: no da 401 ni 403', function () {
+      expect([401, 403], 'sigue cerrado para el admin').to.not.include(res.getStatus());
+  });
+}
+
+settings {
+  encodeUrl: true
+}

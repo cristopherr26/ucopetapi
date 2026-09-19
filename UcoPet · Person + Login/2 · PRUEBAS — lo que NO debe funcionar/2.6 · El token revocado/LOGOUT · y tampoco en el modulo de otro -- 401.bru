@@ -1,0 +1,24 @@
+meta {
+  name: LOGOUT · y tampoco en el modulo de otro -> 401
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/pets
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenParaCerrar}}
+}
+
+script:post-response {
+  test('401 — muere en toda la API, no solo en person', () =>
+      expect(res.getStatus()).to.equal(401));
+}
+
+settings {
+  encodeUrl: true
+}

@@ -1,0 +1,19 @@
+meta {
+  name: Dar de baja a la persona sin rol
+  type: http
+  seq: 1
+}
+
+delete {
+  url: {{baseUrl}}/persons/{{anaId}}
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test("204", () => expect(res.getStatus()).to.equal(204));
+}
+
+settings {
+  encodeUrl: true
+}

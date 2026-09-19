@@ -1,0 +1,30 @@
+meta {
+  name: CAMBIO PROPIO · sin la contrasena actual → 400
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/persons/me/password
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "newPassword": "claveNueva123",
+    "confirmPassword": "claveNueva123"
+  }
+}
+
+script:post-response {
+  test("400", () => expect(res.getStatus()).to.equal(400));
+}
+
+settings {
+  encodeUrl: true
+}

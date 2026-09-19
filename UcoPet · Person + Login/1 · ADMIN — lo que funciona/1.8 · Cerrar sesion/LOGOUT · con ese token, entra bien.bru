@@ -1,0 +1,23 @@
+meta {
+  name: LOGOUT · con ese token, entra bien
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/persons/me
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenParaCerrar}}
+}
+
+script:post-response {
+  test('200 — el token sirve', () => expect(res.getStatus()).to.equal(200));
+}
+
+settings {
+  encodeUrl: true
+}

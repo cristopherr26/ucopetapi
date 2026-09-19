@@ -1,0 +1,31 @@
+meta {
+  name: LOGOUT · volver a entrar funciona
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{adminEmail}}",
+    "password": "{{adminPassword}}"
+  }
+}
+
+script:post-response {
+  test('200 — cerrar sesion no bloquea la cuenta', () => expect(res.getStatus()).to.equal(200));
+  bru.setVar('token', res.getBody().token);
+}
+
+settings {
+  encodeUrl: true
+}
