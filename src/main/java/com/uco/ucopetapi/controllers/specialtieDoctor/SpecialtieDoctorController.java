@@ -1,10 +1,8 @@
 package com.uco.ucopetapi.controllers.specialtieDoctor;
 
-import com.uco.ucopetapi.domain.doctor.DoctorDomain;
-import com.uco.ucopetapi.domain.specialtieDoctor.SpecialtieDoctorDomain;
+import com.uco.ucopetapi.domain.specialtieDoctor.mapper.SpecialtieDoctorMapper;
 import com.uco.ucopetapi.dto.specialtieDoctor.SpecialtieDoctorDTO;
 import com.uco.ucopetapi.exception.BusinessException;
-import com.uco.ucopetapi.service.doctor.DoctorService;
 import com.uco.ucopetapi.service.specialtieDoctor.SpecialtieDoctorService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,36 +19,25 @@ public class SpecialtieDoctorController {
     private static final String MESSAGE_KEY = "message";
 
     private final SpecialtieDoctorService specialtieDoctorService;
-    private final DoctorService doctorService;
+    private final SpecialtieDoctorMapper specialtieDoctorMapper;
 
-    public SpecialtieDoctorController(SpecialtieDoctorService specialtieDoctorService, DoctorService doctorService) {
+    public SpecialtieDoctorController(SpecialtieDoctorService specialtieDoctorService,
+                                      SpecialtieDoctorMapper specialtieDoctorMapper) {
         this.specialtieDoctorService = specialtieDoctorService;
-        this.doctorService = doctorService;
-    }
-
-    private SpecialtieDoctorDTO toDTO(SpecialtieDoctorDomain specialtieDoctor) {
-        UUID doctorId = specialtieDoctor.getDoctor() != null ? specialtieDoctor.getDoctor().getId() : null;
-        return new SpecialtieDoctorDTO(specialtieDoctor.getId(), doctorId, specialtieDoctor.getIdSpecialtie());
-    }
-
-    // Solo busca el doctor si viene idDoctor en el body; si no viene, se deja
-    // null y es validateFields(...) el que lanza el BusinessException (400),
-    // en vez de que doctorService.findById(null) tire un error sin controlar.
-    private SpecialtieDoctorDomain toDomain(SpecialtieDoctorDTO dto) {
-        DoctorDomain doctor = dto.getDoctor() != null ? doctorService.findById(dto.getDoctor()) : null;
-        return new SpecialtieDoctorDomain(dto.getId(), doctor, dto.getSpecialtie());
+        this.specialtieDoctorMapper = specialtieDoctorMapper;
     }
 
     @GetMapping
     public ResponseEntity<List<SpecialtieDoctorDTO>> findAllSpecialtieDoctor() {
-        List<SpecialtieDoctorDTO> specialtieDoctor = specialtieDoctorService.findAll().stream().map(this::toDTO).toList();
+        List<SpecialtieDoctorDTO> specialtieDoctor = specialtieDoctorService.findAll()
+                .stream().map(specialtieDoctorMapper::toDTO).toList();
         return ResponseEntity.ok(specialtieDoctor);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Object> findById(@PathVariable UUID id) {
         try {
-            return ResponseEntity.ok(toDTO(specialtieDoctorService.findById(id)));
+            return ResponseEntity.ok(specialtieDoctorMapper.toDTO(specialtieDoctorService.findById(id)));
         } catch (BusinessException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(MESSAGE_KEY, e.getMessage()));
         }
@@ -61,15 +48,15 @@ public class SpecialtieDoctorController {
             @RequestParam(required = false) UUID idDoctor,
             @RequestParam(required = false) UUID idSpecialtie) {
         List<SpecialtieDoctorDTO> specialtieDoctor = specialtieDoctorService.findByFilter(idDoctor, idSpecialtie)
-                .stream().map(this::toDTO).toList();
+                .stream().map(specialtieDoctorMapper::toDTO).toList();
         return ResponseEntity.ok(specialtieDoctor);
     }
 
     @PostMapping
     public ResponseEntity<Object> createNewSpecialtieDoctor(@RequestBody SpecialtieDoctorDTO specialtieDoctor) {
         try {
-            SpecialtieDoctorDomain created = specialtieDoctorService.createNewSpecialtieDoctor(toDomain(specialtieDoctor));
-            return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(created));
+            var created = specialtieDoctorService.createNewSpecialtieDoctor(specialtieDoctorMapper.toDomain(specialtieDoctor));
+            return ResponseEntity.status(HttpStatus.CREATED).body(specialtieDoctorMapper.toDTO(created));
         } catch (BusinessException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(MESSAGE_KEY, e.getMessage()));
         }
@@ -80,15 +67,15 @@ public class SpecialtieDoctorController {
             @RequestParam(required = true) UUID id,
             @RequestBody SpecialtieDoctorDTO specialtieDoctor) {
         try {
-            SpecialtieDoctorDomain updated = specialtieDoctorService.updateSpecialtieDoctor(id, toDomain(specialtieDoctor));
-            return ResponseEntity.ok(toDTO(updated));
+            var updated = specialtieDoctorService.updateSpecialtieDoctor(id, specialtieDoctorMapper.toDomain(specialtieDoctor));
+            return ResponseEntity.ok(specialtieDoctorMapper.toDTO(updated));
         } catch (BusinessException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(MESSAGE_KEY, e.getMessage()));
         }
     }
 
-    @PutMapping("/deactivate")
-    public ResponseEntity<Object> deactivateSpecialtieDoctor(@RequestParam(required = true) UUID id) {
+    @PatchMapping("/{id}/deactivate")
+    public ResponseEntity<Object> deactivateSpecialtieDoctor(@PathVariable UUID id) {
         try {
             specialtieDoctorService.deactivateSpecialtieDoctor(id);
             return ResponseEntity.noContent().build();
