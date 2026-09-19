@@ -1,6 +1,8 @@
 package com.uco.ucopetapi.service.transfer.exception;
 
-public class InvalidTransferRequestException extends RuntimeException {
+import com.uco.ucopetapi.exception.BusinessException;
+
+public class InvalidTransferRequestException extends BusinessException {
     public InvalidTransferRequestException(String message) {
         super(message);
     }
