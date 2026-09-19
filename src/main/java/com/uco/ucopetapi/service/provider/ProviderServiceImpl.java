@@ -13,6 +13,8 @@ import java.util.UUID;
 @Service
 public class ProviderServiceImpl implements ProviderService {
 
+    private static final String PROVIDER_NOT_FOUND_MSG = "Proveedor no encontrado: ";
+
     private final ProviderJPARepository providerJPARepository;
 
     public ProviderServiceImpl(ProviderJPARepository providerJPARepository) {
@@ -32,7 +34,7 @@ public class ProviderServiceImpl implements ProviderService {
     public ProviderDTO findById(UUID id) {
         return providerJPARepository.findById(id)
                 .map(this::toDto)
-                .orElseThrow(() -> new NoSuchElementException("Proveedor no encontrado: " + id));
+                .orElseThrow(() -> new NoSuchElementException(PROVIDER_NOT_FOUND_MSG + id));
     }
 
     @Override
@@ -52,7 +54,7 @@ public class ProviderServiceImpl implements ProviderService {
     public UUID findByProviderName(final String providerName) {
         return providerJPARepository.findByProviderName(providerName)
                 .map(ProviderDomain::getId)
-                .orElseThrow(() -> new NoSuchElementException("Proveedor no encontrado: " + providerName));
+                .orElseThrow(() -> new NoSuchElementException(PROVIDER_NOT_FOUND_MSG + providerName));
     }
 
     @Override
@@ -67,7 +69,7 @@ public class ProviderServiceImpl implements ProviderService {
     @Transactional
     public ProviderDTO update(UUID id, ProviderDTO request) {
         ProviderDomain provider = providerJPARepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Proveedor no encontrado: " + id));
+                .orElseThrow(() -> new NoSuchElementException(PROVIDER_NOT_FOUND_MSG + id));
 
         if (request.getProviderName() != null) {
             provider.setProviderName(request.getProviderName());
@@ -99,7 +101,7 @@ public class ProviderServiceImpl implements ProviderService {
     @Transactional
     public ProviderDTO deactivate(UUID id) {
         ProviderDomain provider = providerJPARepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Proveedor no encontrado: " + id));
+                .orElseThrow(() -> new NoSuchElementException(PROVIDER_NOT_FOUND_MSG + id));
         provider.setActive(false);
         return toDto(providerJPARepository.save(provider));
     }

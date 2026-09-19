@@ -1,0 +1,24 @@
+meta {
+  name: GET /persons/me con token → 200
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/persons/me
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test("200", () => expect(res.getStatus()).to.equal(200));
+  const b = res.getBody();
+  test("devuelve a quien pidio el token, no a otro", () =>
+      expect(b.id).to.eql(bru.getVar('adminId')));
+  test("mismos campos que los demas caminos", () =>
+      expect(Object.keys(b).sort()).to.eql(['id','documentType','documentNumber','firstName','lastName','email','address','phone','admin','active','deactivatedAt'].sort()));
+}
+
+settings {
+  encodeUrl: true
+}

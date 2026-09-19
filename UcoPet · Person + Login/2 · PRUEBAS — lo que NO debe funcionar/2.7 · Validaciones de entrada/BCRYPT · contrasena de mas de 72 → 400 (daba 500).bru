@@ -1,0 +1,30 @@
+meta {
+  name: BCRYPT · contrasena de mas de 72 → 400 (daba 500)
+  type: http
+  seq: 9
+}
+
+put {
+  url: {{baseUrl}}/persons/{{anaId}}/password
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "password": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}
+
+script:post-response {
+  test("400 y no 500 — BCrypt no acepta mas de 72 bytes", () =>
+      expect(res.getStatus()).to.equal(400));
+}
+
+settings {
+  encodeUrl: true
+}

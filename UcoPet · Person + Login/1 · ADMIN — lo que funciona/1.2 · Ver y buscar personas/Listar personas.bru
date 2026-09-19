@@ -1,0 +1,28 @@
+meta {
+  name: Listar personas
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/persons
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test("200", () => expect(res.getStatus()).to.equal(200));
+  const b = res.getBody();
+  test("devuelve una lista", () => expect(b).to.be.an('array'));
+  test("cada persona trae los 11 campos, ni uno mas", () => {
+      if (b.length === 0) return;
+      expect(Object.keys(b[0]).sort()).to.eql(['id','documentType','documentNumber','firstName','lastName','email','address','phone','admin','active','deactivatedAt'].sort());
+  });
+  test("ninguna trae la contrasena", () =>
+      expect(JSON.stringify(b)).to.not.include('password'));
+  bru.setVar('docDelAdmin', (b.find(x => x.email === bru.getVar('adminEmail')) || {}).documentNumber);
+}
+
+settings {
+  encodeUrl: true
+}

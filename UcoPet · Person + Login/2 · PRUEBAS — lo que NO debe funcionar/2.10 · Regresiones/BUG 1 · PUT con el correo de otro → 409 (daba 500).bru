@@ -1,0 +1,37 @@
+meta {
+  name: BUG 1 · PUT con el correo de otro → 409 (daba 500)
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/persons/{{anaId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "{{docSinRol}}",
+    "firstName": "Sin",
+    "lastName": "Rol",
+    "email": "{{adminEmail}}",
+    "address": "Calle 50 # 51-25, Rionegro",
+    "phone": "3000000000",
+    "admin": false,
+    "active": true
+  }
+}
+
+script:post-response {
+  test("409, no 500", () => expect(res.getStatus()).to.equal(409));
+}
+
+settings {
+  encodeUrl: true
+}

@@ -1,0 +1,39 @@
+meta {
+  name: Crear con correo repetido → 409
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/persons
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "99999999",
+    "firstName": "Otra",
+    "lastName": "Persona",
+    "email": "{{correoNuevo}}",
+    "address": "Calle 50 # 51-25, Rionegro",
+    "phone": "3001112233",
+    "admin": false,
+    "active": true
+  }
+}
+
+script:post-response {
+  test("409", () => expect(res.getStatus()).to.equal(409));
+  test("el error dice donde esta el problema", () =>
+      expect(res.getBody().path).to.include('/persons'));
+}
+
+settings {
+  encodeUrl: true
+}

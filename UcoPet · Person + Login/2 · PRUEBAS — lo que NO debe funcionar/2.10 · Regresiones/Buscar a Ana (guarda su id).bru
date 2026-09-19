@@ -1,0 +1,26 @@
+meta {
+  name: Buscar a Ana (guarda su id)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/persons?email={{correoSinRol}}
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const n = Date.now().toString().slice(-7);
+  bru.setVar('docSinCorreo1', '81' + n);
+  bru.setVar('docSinCorreo2', '82' + n);
+}
+
+script:post-response {
+  test("200", () => expect(res.getStatus()).to.equal(200));
+  bru.setVar("anaId", res.getBody().id);
+}
+
+settings {
+  encodeUrl: true
+}
