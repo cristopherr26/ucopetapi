@@ -5,7 +5,6 @@ import com.uco.ucopetapi.domain.healthPlanCoverage.HealthPlanCoverageDomain;
 import com.uco.ucopetapi.dto.healthPlanCoverage.HealthPlanCoverageDTO;
 import com.uco.ucopetapi.repository.healthPlan.IHealthPlanRepository;
 import com.uco.ucopetapi.repository.healthPlanCoverage.IHealthPlanCoverageRepository;
-import com.uco.ucopetapi.dto.product.ServiceDTO;
 import com.uco.ucopetapi.exception.healthPlan.CoverageLimitExceededException;
 import com.uco.ucopetapi.exception.healthPlan.CoverageNotFoundException;
 import com.uco.ucopetapi.exception.healthPlan.DuplicateCoverageException;
@@ -20,7 +19,6 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -72,7 +70,6 @@ public class HealthPlanCoverageService {
 
         validatePercentage(dto.getCoveragePercentage());
         validateService(dto.getServiceId());
-        validateCoverageLimit(healthPlanId);
 
         boolean duplicated =
                 coverageRepository
@@ -85,6 +82,7 @@ public class HealthPlanCoverageService {
             throw new DuplicateCoverageException();
         }
 
+        validateCoverageLimit(healthPlanId);
         HealthPlanCoverageDomain healthPlanCoverage =
                 new HealthPlanCoverageDomain();
 
@@ -203,16 +201,36 @@ public class HealthPlanCoverageService {
 
     private void validateService(UUID serviceId) {
 
-        ServiceDTO[] services = fetchActiveServices();
-
-        boolean validService = Arrays.stream(services)
-                .anyMatch(service ->
-                        service.getId().equals(serviceId) &&
-                                Boolean.TRUE.equals(service.getActive())
-                );
-
-        if (!validService) {
+        if (serviceId == null) {
             throw new ServiceNotFoundException();
+        }
+
+        try {
+
+            Boolean active = restClient
+                    .get()
+                    .uri(
+                            "/api/v1/services/{id}/active",
+                            serviceId
+                    )
+                    .header(
+                            HttpHeaders.AUTHORIZATION,
+                            currentAuthorizationHeader()
+                    )
+                    .retrieve()
+                    .body(Boolean.class);
+
+            if (!Boolean.TRUE.equals(active)) {
+                throw new ServiceNotFoundException();
+            }
+
+        } catch (RestClientException ex) {
+
+            throw new ServiceServiceException(
+                    "Could not validate service: " +
+                            "the services service is unavailable",
+                    ex
+            );
         }
     }
 
@@ -222,32 +240,33 @@ public class HealthPlanCoverageService {
                 .findByHealthPlanIdAndDeletedFalse(healthPlanId)
                 .size();
 
-        long availableservices = fetchActiveServices().length;
+        long activeServices = getActiveServicesCount();
 
-        if (currentCoverages >= availableservices) {
+        if (currentCoverages >= activeServices) {
             throw new CoverageLimitExceededException();
         }
     }
 
-    private ServiceDTO[] fetchActiveServices() {
-
+    private long getActiveServicesCount(){
         try {
-            ServiceDTO[] services = restClient
-                    .get()
-                    .uri("/api/v1/services")
-                    .header(HttpHeaders.AUTHORIZATION, currentAuthorizationHeader())
-                    .retrieve()
-                    .body(ServiceDTO[].class);
 
-            return services == null
-                    ? new ServiceDTO[0]
-                    : Arrays.stream(services)
-                    .filter(service -> Boolean.TRUE.equals(service.getActive()))
-                    .toArray(ServiceDTO[]::new);
+            Long count = restClient
+                    .get()
+                    .uri("/api/v1/services/count-active")
+                    .header(
+                            HttpHeaders.AUTHORIZATION,
+                            currentAuthorizationHeader()
+                    )
+                    .retrieve()
+                    .body(Long.class);
+
+            return count == null ? 0L : count;
 
         } catch (RestClientException ex) {
+
             throw new ServiceServiceException(
-                    "Could not validate service: the services service is unavailable",
+                    "Could not obtain active services count: " +
+                            "the services service is unavailable",
                     ex
             );
         }

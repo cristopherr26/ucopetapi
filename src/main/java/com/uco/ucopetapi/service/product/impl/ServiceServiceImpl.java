@@ -249,6 +249,23 @@ public class ServiceServiceImpl implements ServiceService {
                 .orElseThrow(() -> new NoSuchElementException("Servicio no encontrado: " + id));
     }
 
+
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isActive(UUID id) {
+        ServiceDomain service = findServiceOrThrow(id);
+
+        return Boolean.TRUE.equals(service.getActive());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countActiveServices() {
+        return serviceRepository.countActiveServices();
+    }
+
     private ServiceDTO toDto(ServiceDomain service) {
         List<AssociatedSupplierDTO> providers = serviceProviderRepository.findByService_Id(service.getId()).stream()
                 .map(sp -> new AssociatedSupplierDTO(sp.getProvider().getId(), sp.getReferencePrice()))
