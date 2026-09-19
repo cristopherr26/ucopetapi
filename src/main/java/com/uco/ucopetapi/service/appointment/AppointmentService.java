@@ -6,7 +6,7 @@ import com.uco.ucopetapi.dto.appointment.AppointmentDTO;
 import com.uco.ucopetapi.dto.appointment.AppointmentStatusDTO;
 import com.uco.ucopetapi.dto.appointmentType.AppointmentTypeDTO;
 import com.uco.ucopetapi.dto.person.PersonDTO;
-import com.uco.ucopetapi.dto.pets.PetDTO;
+import com.uco.ucopetapi.dto.pet.PetDTO;
 import com.uco.ucopetapi.dto.tutorPet.TutorPetDTO;
 import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.repository.appointment.IAppointmentRepository;
