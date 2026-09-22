@@ -1,15 +1,10 @@
 package com.uco.ucopetapi.service.purchases;
 
-import com.uco.ucopetapi.domain.product.enums.TaxCategory;
-import com.uco.ucopetapi.domain.purchases.ItemType;
 import com.uco.ucopetapi.domain.purchases.Purchase;
 import com.uco.ucopetapi.domain.purchases.PurchaseItem;
 import com.uco.ucopetapi.domain.purchases.PurchaseStatus;
-import com.uco.ucopetapi.dto.headquarter.HeadquarterDTO;
+import com.uco.ucopetapi.domain.purchases.TaxCategory;
 import com.uco.ucopetapi.dto.person.PersonDTO;
-import com.uco.ucopetapi.dto.product.ProductDTO;
-import com.uco.ucopetapi.dto.product.ServiceDTO;
-import com.uco.ucopetapi.dto.provider.ProviderDTO;
 import com.uco.ucopetapi.dto.purchases.LinkExpenseRequestDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseIdResponseDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseItemRequestDTO;
@@ -19,20 +14,10 @@ import com.uco.ucopetapi.dto.purchases.PurchaseResponseDTO.Item;
 import com.uco.ucopetapi.dto.purchases.PurchaseResponseDTO.RelatedEntityDTO;
 import com.uco.ucopetapi.repository.purchases.PurchaseItemRepository;
 import com.uco.ucopetapi.repository.purchases.PurchaseRepository;
-import com.uco.ucopetapi.service.headquarter.HeadquarterService;
 import com.uco.ucopetapi.service.person.PersonService;
-import com.uco.ucopetapi.service.product.ProductService;
-import com.uco.ucopetapi.service.product.ServiceService;
-import com.uco.ucopetapi.service.provider.ProviderService;
 import com.uco.ucopetapi.service.purchases.exception.DuplicatePurchaseNumberException;
-import com.uco.ucopetapi.service.purchases.exception.HeadquarterInactiveException;
-import com.uco.ucopetapi.service.purchases.exception.ProductInactiveException;
-import com.uco.ucopetapi.service.purchases.exception.ProductNotFoundException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseNotFoundException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseNumberNotFoundException;
-import com.uco.ucopetapi.service.purchases.exception.ServiceItemNotFoundException;
-import com.uco.ucopetapi.service.purchases.exception.ServiceItemNotPurchasableException;
-import com.uco.ucopetapi.service.purchases.exception.SupplierNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -42,8 +27,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @Service
@@ -51,26 +36,14 @@ public class PurchaseServiceImpl implements PurchaseService {
 
     private final PurchaseRepository purchaseRepository;
     private final PurchaseItemRepository purchaseItemRepository;
-    private final ProviderService providerService;
-    private final HeadquarterService headquarterService;
     private final PersonService personService;
-    private final ProductService productService;
-    private final ServiceService serviceService;
 
     public PurchaseServiceImpl(PurchaseRepository purchaseRepository,
                                 PurchaseItemRepository purchaseItemRepository,
-                                ProviderService providerService,
-                                HeadquarterService headquarterService,
-                                PersonService personService,
-                                ProductService productService,
-                                ServiceService serviceService) {
+                                PersonService personService) {
         this.purchaseRepository = purchaseRepository;
         this.purchaseItemRepository = purchaseItemRepository;
-        this.providerService = providerService;
-        this.headquarterService = headquarterService;
         this.personService = personService;
-        this.productService = productService;
-        this.serviceService = serviceService;
     }
 
     @Override
@@ -79,20 +52,10 @@ public class PurchaseServiceImpl implements PurchaseService {
             throw new DuplicatePurchaseNumberException(request.purchaseNumber());
         }
 
-        resolveSupplier(request.supplierId());
-        HeadquarterDTO headquarter = findHeadquarterOrThrow(request.headquarterId());
-        if (!Boolean.TRUE.equals(headquarter.getIsActive())) {
-            throw new HeadquarterInactiveException(headquarter.getName());
-        }
-
         BigDecimal totalTaxes = BigDecimal.ZERO;
         for (PurchaseItemRequestDTO itemRequest : request.items()) {
-            TaxCategory taxCategory = switch (itemRequest.itemType()) {
-                case PRODUCT -> validateProduct(itemRequest.productId(), request.headquarterId()).getTaxCategory();
-                case SERVICE -> validateServiceItem(itemRequest.productId()).getTaxCategory();
-            };
             BigDecimal itemSubtotal = itemRequest.unitPrice().multiply(BigDecimal.valueOf(itemRequest.quantity()));
-            BigDecimal itemTax = itemSubtotal.multiply(taxRateFor(taxCategory))
+            BigDecimal itemTax = itemSubtotal.multiply(taxRateFor(itemRequest.taxCategory()))
                     .setScale(2, RoundingMode.HALF_UP);
             totalTaxes = totalTaxes.add(itemTax);
         }
@@ -124,9 +87,9 @@ public class PurchaseServiceImpl implements PurchaseService {
 
     @Override
     public List<Item> getPurchaseItems(UUID id) {
-        Purchase purchase = findPurchaseOrThrow(id);
+        findPurchaseOrThrow(id);
         return purchaseItemRepository.findByPurchaseId(id).stream()
-                .map(item -> toItemDTO(item, purchase.getHeadquarterId()))
+                .map(this::toItemDTO)
                 .toList();
     }
 
@@ -134,7 +97,7 @@ public class PurchaseServiceImpl implements PurchaseService {
     public PurchaseResponseDTO receivePurchase(UUID id) {
         Purchase purchase = findPurchaseOrThrow(id);
         purchase.setStatus(PurchaseStatus.RECEIVED);
-        purchase.setUpdatedAt(LocalDateTime.now());
+        purchase.setUpdatedAt(LocalDateTime.now(ZoneId.of("America/Bogota")));
         purchase.setUpdatedByPersonId(currentPersonId());
         Purchase saved = purchaseRepository.save(purchase);
         return toResponseDTO(saved);
@@ -144,7 +107,7 @@ public class PurchaseServiceImpl implements PurchaseService {
     public PurchaseResponseDTO cancelPurchase(UUID id) {
         Purchase purchase = findPurchaseOrThrow(id);
         purchase.setStatus(PurchaseStatus.CANCELLED);
-        purchase.setUpdatedAt(LocalDateTime.now());
+        purchase.setUpdatedAt(LocalDateTime.now(ZoneId.of("America/Bogota")));
         purchase.setUpdatedByPersonId(currentPersonId());
         Purchase saved = purchaseRepository.save(purchase);
         return toResponseDTO(saved);
@@ -155,7 +118,7 @@ public class PurchaseServiceImpl implements PurchaseService {
         Purchase purchase = findPurchaseOrThrow(id);
         purchase.setExpenseId(request.expenseId());
         purchase.setStatus(PurchaseStatus.LINKED);
-        purchase.setUpdatedAt(LocalDateTime.now());
+        purchase.setUpdatedAt(LocalDateTime.now(ZoneId.of("America/Bogota")));
         purchase.setUpdatedByPersonId(currentPersonId());
         Purchase saved = purchaseRepository.save(purchase);
         return toResponseDTO(saved);
@@ -173,81 +136,12 @@ public class PurchaseServiceImpl implements PurchaseService {
                 .orElseThrow(() -> new PurchaseNotFoundException(id));
     }
 
-    private HeadquarterDTO findHeadquarterOrThrow(UUID headquarterId) {
-        return headquarterService.findById(headquarterId);
-    }
-
-    private ProductDTO validateProduct(UUID productId, UUID headquarterId) {
-        ProductDTO product;
-        try {
-            product = productService.getById(productId, headquarterId);
-        } catch (NoSuchElementException e) {
-            throw new ProductNotFoundException(productId);
-        }
-        if (!Boolean.TRUE.equals(product.getActive())) {
-            throw new ProductInactiveException(product.getName());
-        }
-        return product;
-    }
-
-    private ServiceDTO validateServiceItem(UUID id) {
-        ServiceDTO service;
-        try {
-            service = serviceService.getById(id);
-        } catch (NoSuchElementException e) {
-            throw new ServiceItemNotFoundException(id);
-        }
-        if (!Boolean.TRUE.equals(service.getActive()) || !Boolean.TRUE.equals(service.getPurchasable())) {
-            throw new ServiceItemNotPurchasableException(service.getName());
-        }
-        return service;
-    }
-
     private BigDecimal taxRateFor(TaxCategory category) {
         return switch (category) {
             case STANDARD -> new BigDecimal("0.19");
             case REDUCED -> new BigDecimal("0.05");
             case EXEMPT -> BigDecimal.ZERO;
         };
-    }
-
-    private RelatedEntityDTO resolveSupplier(UUID supplierId) {
-        try {
-            ProviderDTO provider = providerService.findById(supplierId);
-            return new RelatedEntityDTO(supplierId, provider.getProviderName());
-        } catch (NoSuchElementException e) {
-            throw new SupplierNotFoundException(supplierId);
-        }
-    }
-
-    private RelatedEntityDTO resolveHeadquarter(UUID headquarterId) {
-        HeadquarterDTO headquarter = findHeadquarterOrThrow(headquarterId);
-        return new RelatedEntityDTO(headquarterId, headquarter.getName());
-    }
-
-    private RelatedEntityDTO resolveCatalogItem(UUID id, ItemType itemType, UUID headquarterId) {
-        return switch (itemType) {
-            case PRODUCT -> resolveProduct(id, headquarterId);
-            case SERVICE -> resolveServiceItem(id);
-        };
-    }
-
-    private RelatedEntityDTO resolveProduct(UUID productId, UUID headquarterId) {
-        try {
-            ProductDTO product = productService.getById(productId, headquarterId);
-            return new RelatedEntityDTO(productId, product.getName());
-        } catch (NoSuchElementException e) {
-            return new RelatedEntityDTO(productId, null);
-        }
-    }
-
-    private RelatedEntityDTO resolveServiceItem(UUID serviceId) {
-        try {
-            ServiceDTO service = serviceService.getById(serviceId);
-            return new RelatedEntityDTO(serviceId, service.getName());
-        } catch (NoSuchElementException e) {
-            return new RelatedEntityDTO(serviceId, null);
-        }
     }
 
     private RelatedEntityDTO resolvePerson(UUID personId) {
@@ -279,10 +173,10 @@ public class PurchaseServiceImpl implements PurchaseService {
                 .purchaseNumber(request.purchaseNumber())
                 .headquarterId(request.headquarterId())
                 .hasDiscount(request.hasDiscount() == null ? false : request.hasDiscount())
-                .purchaseDate(LocalDateTime.now())
+                .purchaseDate(LocalDateTime.now(ZoneId.of("America/Bogota")))
                 .status(PurchaseStatus.PENDING)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now(ZoneId.of("America/Bogota")))
+                .updatedAt(LocalDateTime.now(ZoneId.of("America/Bogota")))
                 .createdByPersonId(currentPersonId)
                 .updatedByPersonId(currentPersonId)
                 .subtotal(subtotal)
@@ -299,6 +193,7 @@ public class PurchaseServiceImpl implements PurchaseService {
         item.setQuantity(request.quantity());
         item.setUnitPrice(request.unitPrice());
         item.setSubtotal(request.unitPrice().multiply(BigDecimal.valueOf(request.quantity())));
+        item.setTaxCategory(request.taxCategory());
         return item;
     }
 
@@ -306,13 +201,13 @@ public class PurchaseServiceImpl implements PurchaseService {
         List<Item> items = purchase.getItems() == null
                 ? List.of()
                 : purchase.getItems().stream()
-                        .map(item -> toItemDTO(item, purchase.getHeadquarterId()))
+                        .map(this::toItemDTO)
                         .toList();
 
         return new PurchaseResponseDTO(
                 purchase.getId(),
                 purchase.getPurchaseNumber(),
-                resolveSupplier(purchase.getSupplierId()),
+                new RelatedEntityDTO(purchase.getSupplierId(), null),
                 items,
                 purchase.getPurchaseDate(),
                 purchase.getSubtotal(),
@@ -320,7 +215,7 @@ public class PurchaseServiceImpl implements PurchaseService {
                 purchase.getTotal(),
                 purchase.getStatus(),
                 purchase.getExpenseId(),
-                resolveHeadquarter(purchase.getHeadquarterId()),
+                new RelatedEntityDTO(purchase.getHeadquarterId(), null),
                 purchase.isHasDiscount(),
                 purchase.getCreatedAt(),
                 purchase.getUpdatedAt(),
@@ -329,9 +224,9 @@ public class PurchaseServiceImpl implements PurchaseService {
         );
     }
 
-    private Item toItemDTO(PurchaseItem item, UUID headquarterId) {
+    private Item toItemDTO(PurchaseItem item) {
         return new Item(
-                resolveCatalogItem(item.getProductId(), item.getItemType(), headquarterId),
+                new RelatedEntityDTO(item.getProductId(), null),
                 item.getItemType(),
                 item.getQuantity(),
                 item.getUnitPrice(),
