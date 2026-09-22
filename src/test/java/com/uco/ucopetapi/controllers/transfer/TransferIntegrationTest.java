@@ -21,8 +21,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
 import com.uco.ucopetapi.domain.person.PersonDomain;
+import com.uco.ucopetapi.domain.product.enums.ProductCategory;
+import com.uco.ucopetapi.domain.product.enums.TaxCategory;
+import com.uco.ucopetapi.dto.product.ProductDTO;
 import com.uco.ucopetapi.repository.headquarter.HeadquarterRepository;
 import com.uco.ucopetapi.repository.person.PersonRepository;
+import com.uco.ucopetapi.service.product.ProductService;
+import com.uco.ucopetapi.service.product.StockService;
 
 /**
  * Pruebas de integracion end-to-end del modulo Transfers: levantan la aplicacion
@@ -52,6 +57,12 @@ class TransferIntegrationTest {
     @Autowired
     private HeadquarterRepository headquarterRepository;
 
+    @Autowired
+    private ProductService productService;
+
+    @Autowired
+    private StockService stockService;
+
     private final HttpClient http = HttpClient.newHttpClient();
 
     private String claveAdminOriginal;
@@ -60,6 +71,7 @@ class TransferIntegrationTest {
     private UUID sedeOrigenId;
     private UUID sedeDestinoId;
     private UUID sedeInactivaId;
+    private UUID productoId;
 
     @BeforeAll
     void prepararDatos() throws Exception {
@@ -82,6 +94,26 @@ class TransferIntegrationTest {
                 new HeadquarterDomain(null, "Sede Integracion Destino", "Cra 2 Test", true)).getId();
         sedeInactivaId = headquarterRepository.save(
                 new HeadquarterDomain(null, "Sede Integracion Inactiva", "Cra 3 Test", false)).getId();
+
+        ProductDTO producto = productService.create(
+                new ProductDTO(
+                        null,
+                        "Producto Integracion Transfer",
+                        "Producto para pruebas de transferencias",
+                        null,
+                        50000,
+                        TaxCategory.STANDARD,
+                        true,
+                        true,
+                        ProductCategory.GENERAL,
+                        null,
+                        null
+                )
+        );
+
+        productoId = producto.getId();
+
+        stockService.adjustStock(productoId, sedeOrigenId, 100);
     }
 
     @AfterAll
@@ -118,7 +150,8 @@ class TransferIntegrationTest {
         @Test
         @DisplayName("crea un traslado y queda en estado PENDING")
         void creaTraslado() throws Exception {
-            HttpResponse<String> resp = transfers("POST", "", trasladoJson(sedeOrigenId, sedeDestinoId, 10), tokenAdmin);
+            HttpResponse<String> resp = transfers("POST", "",
+                    trasladoJson(sedeOrigenId, sedeDestinoId, 10), tokenAdmin);
 
             assertThat(resp.statusCode()).isEqualTo(201);
             assertThat(resp.body()).contains("\"status\":\"PENDING\"");
@@ -128,7 +161,8 @@ class TransferIntegrationTest {
         @Test
         @DisplayName("no puede crear un traslado con la misma sede de origen y destino")
         void noPermiteOrigenIgualADestino() throws Exception {
-            HttpResponse<String> resp = transfers("POST", "", trasladoJson(sedeOrigenId, sedeOrigenId, 10), tokenAdmin);
+            HttpResponse<String> resp = transfers("POST", "",
+                    trasladoJson(sedeOrigenId, sedeOrigenId, 10), tokenAdmin);
 
             assertThat(resp.statusCode()).isEqualTo(400);
         }
@@ -136,7 +170,8 @@ class TransferIntegrationTest {
         @Test
         @DisplayName("no puede crear un traslado hacia una sede inactiva")
         void noPermiteSedeInactiva() throws Exception {
-            HttpResponse<String> resp = transfers("POST", "", trasladoJson(sedeOrigenId, sedeInactivaId, 10), tokenAdmin);
+            HttpResponse<String> resp = transfers("POST", "",
+                    trasladoJson(sedeOrigenId, sedeInactivaId, 10), tokenAdmin);
 
             assertThat(resp.statusCode()).isEqualTo(400);
         }
@@ -144,7 +179,8 @@ class TransferIntegrationTest {
         @Test
         @DisplayName("puede consultar por id el traslado que creo")
         void consultaPorId() throws Exception {
-            String id = idDe(transfers("POST", "", trasladoJson(sedeOrigenId, sedeDestinoId, 5), tokenAdmin));
+            String id = idDe(transfers("POST", "",
+                    trasladoJson(sedeOrigenId, sedeDestinoId, 5), tokenAdmin));
 
             assertThat(transfers("GET", "/" + id, null, tokenAdmin).statusCode()).isEqualTo(200);
         }
@@ -152,19 +188,25 @@ class TransferIntegrationTest {
         @Test
         @DisplayName("cancela un traslado pendiente y queda en CANCELLED")
         void cancelaTraslado() throws Exception {
-            String id = idDe(transfers("POST", "", trasladoJson(sedeOrigenId, sedeDestinoId, 5), tokenAdmin));
+            String id = idDe(transfers("POST", "",
+                    trasladoJson(sedeOrigenId, sedeDestinoId, 5), tokenAdmin));
 
             assertThat(transfers("PATCH", "/" + id + "/cancel", null, tokenAdmin).statusCode()).isEqualTo(204);
-            assertThat(transfers("GET", "/" + id, null, tokenAdmin).body()).contains("\"status\":\"CANCELLED\"");
+            assertThat(transfers("GET", "/" + id, null, tokenAdmin).body())
+                    .contains("\"status\":\"CANCELLED\"");
         }
 
         @Test
         @DisplayName("no puede editar un traslado que ya no esta pendiente")
         void noEditaSiNoEstaPendiente() throws Exception {
-            String id = idDe(transfers("POST", "", trasladoJson(sedeOrigenId, sedeDestinoId, 5), tokenAdmin));
-            transfers("PATCH", "/" + id + "/status", "{\"status\":\"IN_PROGRESS\"}", tokenAdmin);
+            String id = idDe(transfers("POST", "",
+                    trasladoJson(sedeOrigenId, sedeDestinoId, 5), tokenAdmin));
 
-            HttpResponse<String> resp = transfers("PUT", "/" + id, trasladoJson(sedeOrigenId, sedeDestinoId, 20), tokenAdmin);
+            transfers("PATCH", "/" + id + "/status",
+                    "{\"status\":\"IN_PROGRESS\"}", tokenAdmin);
+
+            HttpResponse<String> resp = transfers("PUT", "/" + id,
+                    trasladoJson(sedeOrigenId, sedeDestinoId, 20), tokenAdmin);
 
             assertThat(resp.statusCode()).isEqualTo(409);
         }
@@ -172,9 +214,11 @@ class TransferIntegrationTest {
         @Test
         @DisplayName("no puede saltar de PENDING a COMPLETED directamente")
         void noSaltaEstados() throws Exception {
-            String id = idDe(transfers("POST", "", trasladoJson(sedeOrigenId, sedeDestinoId, 5), tokenAdmin));
+            String id = idDe(transfers("POST", "",
+                    trasladoJson(sedeOrigenId, sedeDestinoId, 5), tokenAdmin));
 
-            HttpResponse<String> resp = transfers("PATCH", "/" + id + "/status", "{\"status\":\"COMPLETED\"}", tokenAdmin);
+            HttpResponse<String> resp = transfers("PATCH", "/" + id + "/status",
+                    "{\"status\":\"COMPLETED\"}", tokenAdmin);
 
             assertThat(resp.statusCode()).isEqualTo(409);
         }
@@ -182,7 +226,8 @@ class TransferIntegrationTest {
         @Test
         @DisplayName("filtra la lista de traslados por estado")
         void filtraPorEstado() throws Exception {
-            transfers("POST", "", trasladoJson(sedeOrigenId, sedeDestinoId, 5), tokenAdmin);
+            transfers("POST", "",
+                    trasladoJson(sedeOrigenId, sedeDestinoId, 5), tokenAdmin);
 
             HttpResponse<String> resp = transfers("GET", "?status=PENDING", null, tokenAdmin);
 
@@ -218,6 +263,7 @@ class TransferIntegrationTest {
         if (token != null) {
             peticion.header("Authorization", "Bearer " + token);
         }
+
         return http.send(peticion.build(), HttpResponse.BodyHandlers.ofString());
     }
 
@@ -225,10 +271,10 @@ class TransferIntegrationTest {
         return campo(respuestaCreacion.body(), "id");
     }
 
-    private static String trasladoJson(UUID origen, UUID destino, int cantidad) {
+    private String trasladoJson(UUID origen, UUID destino, int cantidad) {
         return """
                 {"originHeadquarterId":"%s","destinationHeadquarterId":"%s","productId":"%s","quantity":%d,"observations":"Prueba de integracion"}
-                """.formatted(origen, destino, UUID.randomUUID(), cantidad);
+                """.formatted(origen, destino, productoId, cantidad);
     }
 
     private static String campo(String json, String nombre) {
