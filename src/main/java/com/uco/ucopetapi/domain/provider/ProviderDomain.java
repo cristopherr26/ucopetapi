@@ -1,9 +1,7 @@
 package com.uco.ucopetapi.domain.provider;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.uco.ucopetapi.dto.person.DocumentType;
+import jakarta.persistence.*;
 
 import java.util.UUID;
 
@@ -21,8 +19,9 @@ public class ProviderDomain {
     @Column(nullable = false)
     private String representName;
 
-    @Column(nullable = false)
-    private UUID idType;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "id_type", nullable = false)
+    private DocumentType idType;
 
     @Column(nullable = false)
     private String documentNumber;
@@ -75,11 +74,11 @@ public class ProviderDomain {
         this.representName = representName;
     }
 
-    public UUID getIdType() {
+    public DocumentType getIdType() {
         return idType;
     }
 
-    public void setIdType(final UUID idType) {
+    public void setIdType(final DocumentType idType) {
         this.idType = idType;
     }
 
@@ -127,7 +126,7 @@ public class ProviderDomain {
         private UUID id;
         private String providerName;
         private String representName;
-        private UUID idType;
+        private DocumentType idType;
         private String documentNumber;
         private String mobileNumber;
         private String address;
@@ -152,7 +151,7 @@ public class ProviderDomain {
             return this;
         }
 
-        public Builder idType(UUID idType) {
+        public Builder idType(DocumentType idType) {
             this.idType = idType;
             return this;
         }
