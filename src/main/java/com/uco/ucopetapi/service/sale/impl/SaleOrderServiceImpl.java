@@ -13,9 +13,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class SaleOrderServiceImpl implements SaleOrderService {
@@ -41,7 +41,7 @@ public class SaleOrderServiceImpl implements SaleOrderService {
                 newId,
                 saleOrderDTO.getHeadquarterId(),
                 newOrderNumber,
-                LocalDateTime.now(),
+                LocalDateTime.now(ZoneId.of("America/Bogota")),
                 saleOrderDTO.getClientID(),
                 saleOrderDTO.getPetId(),
                 saleOrderDTO.getHealthPlanId(),
@@ -114,14 +114,14 @@ public class SaleOrderServiceImpl implements SaleOrderService {
 
         return saleOrderRepository.findByFilter(filter, dateFrom, dateTo).stream()
                 .map(SaleOrderDomain::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public List<SaleOrderDTO> findAll() {
         return saleOrderRepository.findAll().stream()
                 .map(SaleOrderDomain::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private SaleOrderDomain findExistingOrThrow(UUID id) {

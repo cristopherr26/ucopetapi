@@ -31,8 +31,6 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-import java.util.stream.Collectors;
-
 
 @Service
 public class ItemSaleServiceImpl implements ItemSaleService {
@@ -132,7 +130,7 @@ public class ItemSaleServiceImpl implements ItemSaleService {
         findOrderOrThrow(saleOrderId);
         return itemSaleRepository.findBySaleOrderId(saleOrderId).stream()
                 .map(ItemSaleDomain::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private SaleOrderDomain findOrderOrThrow(UUID saleOrderId) {
