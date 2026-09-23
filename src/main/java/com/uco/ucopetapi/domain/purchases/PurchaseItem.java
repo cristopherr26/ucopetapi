@@ -42,11 +42,15 @@ public class PurchaseItem {
     @Column(nullable = false)
     private BigDecimal subtotal;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TaxCategory taxCategory;
+
     public PurchaseItem() {
     }
 
     public PurchaseItem(UUID id, Purchase purchase, UUID productId, ItemType itemType, Integer quantity,
-                         BigDecimal unitPrice, BigDecimal subtotal) {
+                         BigDecimal unitPrice, BigDecimal subtotal, TaxCategory taxCategory) {
         this.id = id;
         this.purchase = purchase;
         this.productId = productId;
@@ -54,6 +58,7 @@ public class PurchaseItem {
         this.quantity = quantity;
         this.unitPrice = unitPrice;
         this.subtotal = subtotal;
+        this.taxCategory = taxCategory;
     }
 
     public UUID getId() {
@@ -110,5 +115,13 @@ public class PurchaseItem {
 
     public void setSubtotal(BigDecimal subtotal) {
         this.subtotal = subtotal;
+    }
+
+    public TaxCategory getTaxCategory() {
+        return taxCategory;
+    }
+
+    public void setTaxCategory(TaxCategory taxCategory) {
+        this.taxCategory = taxCategory;
     }
 }
