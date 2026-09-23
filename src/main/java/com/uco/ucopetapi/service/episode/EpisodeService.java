@@ -2,6 +2,7 @@ package com.uco.ucopetapi.service.episode;
 
 import com.uco.ucopetapi.dto.episode.EpisodeDto;
 import com.uco.ucopetapi.dto.episode.EpisodeStatus;
+import com.uco.ucopetapi.dto.episode.DischargeType;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,4 +18,6 @@ public interface EpisodeService {
     EpisodeDto create(EpisodeDto request);
 
     EpisodeDto update(UUID id, EpisodeDto request);
+
+    EpisodeDto discharge(UUID episodeId, DischargeType dischargeType, String dischargeNotes);
 }

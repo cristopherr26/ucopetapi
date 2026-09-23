@@ -4,17 +4,21 @@ package com.uco.ucopetapi.service.episode;
 import com.uco.ucopetapi.domain.episode.EpisodeDomain;
 import com.uco.ucopetapi.dto.episode.EpisodeDto;
 import com.uco.ucopetapi.dto.episode.EpisodeStatus;
+import com.uco.ucopetapi.dto.episode.DischargeType;
 import com.uco.ucopetapi.repository.episode.EpisodeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @Service
 public class EpisodeServiceImpl implements EpisodeService {
+
+    private static final ZoneId ZONE_ID = ZoneId.of("America/Bogota");
 
     private final EpisodeRepository episodeRepository;
 
@@ -71,6 +75,7 @@ public class EpisodeServiceImpl implements EpisodeService {
     @Transactional
     public EpisodeDto create(final EpisodeDto request) {
         EpisodeDomain episode = toEntity(request, request.getId() != null ? request.getId() : UUID.randomUUID());
+        episode.validate();
         return toDto(episodeRepository.save(episode));
     }
 
@@ -105,6 +110,18 @@ public class EpisodeServiceImpl implements EpisodeService {
             episode.setDischargeNotes(request.getDischargeNotes());
         }
 
+        episode.validate();
+        return toDto(episodeRepository.save(episode));
+    }
+
+    @Override
+    @Transactional
+    public EpisodeDto discharge(final UUID episodeId, final DischargeType dischargeType,
+                                final String dischargeNotes) {
+        EpisodeDomain episode = episodeRepository.findById(episodeId)
+                .orElseThrow(() -> new NoSuchElementException("Episodio no encontrado: " + episodeId));
+        episode.discharge(dischargeType, dischargeNotes, LocalDateTime.now(ZONE_ID));
+        episode.validate();
         return toDto(episodeRepository.save(episode));
     }
 
