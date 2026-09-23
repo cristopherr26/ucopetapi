@@ -56,6 +56,7 @@ public class PetDomain {
 
 
     public PetDomain() {
+        // // Constructor vacío necesario para crear el objeto.
     }
 
 

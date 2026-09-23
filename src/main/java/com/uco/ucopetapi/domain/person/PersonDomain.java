@@ -19,10 +19,10 @@ import jakarta.persistence.UniqueConstraint;
 
 @Entity
 @Table(name = "persons",
-       uniqueConstraints = {
-           @UniqueConstraint(name = "uk_persons_document",
-                             columnNames = {"document_type", "document_number"}),
-           @UniqueConstraint(name = "uk_persons_email", columnNames = "email")})
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_persons_document",
+                        columnNames = {"document_type", "document_number"}),
+                @UniqueConstraint(name = "uk_persons_email", columnNames = "email")})
 public class PersonDomain {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

@@ -1,0 +1,33 @@
+meta {
+  name: Login · Ana con clave mala → el MISMO 401
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{correoSinRol}}",
+    "password": "estaEstaMal"
+  }
+}
+
+script:post-response {
+  test("401", () => expect(res.getStatus()).to.equal(401));
+  test("indistinguible del caso sin rol: no delata que la cuenta existe", () =>
+      expect(JSON.stringify(res.getBody()).replace(/"timestamp":"[^"]*",?/, ''))
+        .to.eql(bru.getVar('cuerpoSinRol')));
+}
+
+settings {
+  encodeUrl: true
+}

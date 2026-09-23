@@ -1,0 +1,36 @@
+meta {
+  name: Login · correo inexistente → 401
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{correoFantasma}}",
+    "password": "loQueSea"
+  }
+}
+
+script:pre-request {
+  const n = Date.now().toString().slice(-9);
+  bru.setVar('correoFantasma', 'no.existe.' + n + '@ucopet.com');
+}
+
+script:post-response {
+  test('401', () => expect(res.getStatus()).to.equal(401));
+  bru.setVar('cuerpo401', JSON.stringify(res.getBody().status));
+}
+
+settings {
+  encodeUrl: true
+}

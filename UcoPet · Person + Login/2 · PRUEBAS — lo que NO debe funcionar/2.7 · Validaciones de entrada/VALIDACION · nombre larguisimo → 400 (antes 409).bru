@@ -1,0 +1,35 @@
+meta {
+  name: VALIDACION · nombre larguisimo → 400 (antes 409)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/persons
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "9911",
+    "firstName": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "lastName": "Y",
+    "email": "t3@ucopet.com",
+    "admin": false,
+    "active": true
+  }
+}
+
+script:post-response {
+  test("400", () => expect(res.getStatus()).to.equal(400));
+}
+
+settings {
+  encodeUrl: true
+}

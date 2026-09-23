@@ -1,0 +1,30 @@
+meta {
+  name: SIN token · login → 200 (lo unico publico)
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{adminEmail}}",
+    "password": "{{adminPassword}}"
+  }
+}
+
+script:post-response {
+  test("200", () => expect(res.getStatus()).to.equal(200));
+}
+
+settings {
+  encodeUrl: true
+}

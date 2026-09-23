@@ -1,0 +1,25 @@
+meta {
+  name: deactivatedAt · comprobar que tiene fecha
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/persons/{{anaId}}
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  const b = res.getBody();
+  test("active quedo en false", () => expect(b.active).to.be.false);
+  test("deactivatedAt se lleno solo", () => expect(b.deactivatedAt).to.not.be.null);
+  test("y es una fecha de hoy", () => {
+      const cuando = new Date(b.deactivatedAt);
+      expect(Math.abs(Date.now() - cuando.getTime())).to.be.below(5 * 60 * 1000);
+  });
+}
+
+settings {
+  encodeUrl: true
+}

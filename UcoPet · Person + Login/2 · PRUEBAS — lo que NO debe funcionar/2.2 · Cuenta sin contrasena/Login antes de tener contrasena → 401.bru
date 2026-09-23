@@ -1,0 +1,30 @@
+meta {
+  name: Login antes de tener contrasena → 401
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{correoNuevo}}",
+    "password": "todaviaNoTengo1"
+  }
+}
+
+script:post-response {
+  test("401", () => expect(res.getStatus()).to.equal(401));
+}
+
+settings {
+  encodeUrl: true
+}

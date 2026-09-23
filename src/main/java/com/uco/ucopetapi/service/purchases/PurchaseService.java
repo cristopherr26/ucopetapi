@@ -2,6 +2,7 @@ package com.uco.ucopetapi.service.purchases;
 
 import com.uco.ucopetapi.domain.purchases.PurchaseStatus;
 import com.uco.ucopetapi.dto.purchases.LinkExpenseRequestDTO;
+import com.uco.ucopetapi.dto.purchases.PurchaseIdResponseDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseRequestDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseResponseDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseResponseDTO.Item;
@@ -26,4 +27,6 @@ public interface PurchaseService {
     PurchaseResponseDTO cancelPurchase(UUID id);
 
     PurchaseResponseDTO linkExpense(UUID id, LinkExpenseRequestDTO request);
+
+    PurchaseIdResponseDTO findIdByPurchaseNumber(String purchaseNumber);
 }

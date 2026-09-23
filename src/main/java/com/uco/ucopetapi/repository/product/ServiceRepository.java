@@ -37,4 +37,11 @@ public interface ServiceRepository extends JpaRepository<ServiceDomain, UUID> {
     boolean existsByNameIgnoreCase(String name);
 
     boolean existsByNameIgnoreCaseAndIdNot(String name, UUID id);
+
+    @Query("""
+        SELECT COUNT(s)
+        FROM ServiceDomain s
+        WHERE s.active = true
+        """)
+    long countActiveServices();
 }

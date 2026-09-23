@@ -1,0 +1,37 @@
+meta {
+  name: Reactivar a Ana (dejar todo como estaba)
+  type: http
+  seq: 9
+}
+
+put {
+  url: {{baseUrl}}/persons/{{anaId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "{{docSinRol}}",
+    "firstName": "Sin",
+    "lastName": "Rol",
+    "email": "{{correoSinRol}}",
+    "address": "Calle 1 # 2-3, Rionegro",
+    "phone": "3000000000",
+    "admin": false,
+    "active": true
+  }
+}
+
+script:post-response {
+  test("200", () => expect(res.getStatus()).to.equal(200));
+}
+
+settings {
+  encodeUrl: true
+}

@@ -1,0 +1,19 @@
+meta {
+  name: BUG 3 · lo dan de baja
+  type: http
+  seq: 14
+}
+
+delete {
+  url: {{baseUrl}}/persons/{{idDesechable}}
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test("204", () => expect(res.getStatus()).to.equal(204));
+}
+
+settings {
+  encodeUrl: true
+}

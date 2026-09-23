@@ -1,13 +1,17 @@
 package com.uco.ucopetapi.controllers.appointment;
 
 import com.uco.ucopetapi.dto.appointment.AppointmentDTO;
+import com.uco.ucopetapi.dto.appointment.AppointmentStatusDTO;
 import com.uco.ucopetapi.dto.appointmentType.AppointmentTypeDTO;
+import com.uco.ucopetapi.dto.appointmentType.AppointmentTypeStatusDTO;
 import com.uco.ucopetapi.service.appointment.AppointmentService;
 import com.uco.ucopetapi.service.appointmentType.AppointmentTypeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -66,6 +70,15 @@ public class AppointmentController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<AppointmentDTO> updateStatus(
+            @PathVariable UUID id,
+            @RequestBody AppointmentStatusDTO appointmentStatusDTO) {
+        return appointmentService.updateStatus(id, appointmentStatusDTO)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @DeleteMapping({"", "/", "/appointment"})
     public ResponseEntity<Void> delete(@RequestParam(required = true) UUID id) {
         return appointmentService.delete(id)
@@ -100,6 +113,15 @@ public class AppointmentController {
             @RequestParam(required = true) UUID id,
             @RequestBody AppointmentTypeDTO appointmentTypeDTO) {
         return appointmentTypeService.update(id, appointmentTypeDTO)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/appointment-type/{id}/status")
+    public ResponseEntity<AppointmentTypeDTO> updateAppointmentTypeStatus(
+            @PathVariable UUID id,
+            @RequestBody AppointmentTypeStatusDTO appointmentTypeStatusDTO) {
+        return appointmentTypeService.updateStatus(id, appointmentTypeStatusDTO)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

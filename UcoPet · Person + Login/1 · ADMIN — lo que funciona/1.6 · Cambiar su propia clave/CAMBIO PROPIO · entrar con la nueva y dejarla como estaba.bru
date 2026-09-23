@@ -1,0 +1,31 @@
+meta {
+  name: CAMBIO PROPIO · entrar con la nueva y dejarla como estaba
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{adminEmail}}",
+    "password": "claveNueva123"
+  }
+}
+
+script:post-response {
+  test("200", () => expect(res.getStatus()).to.equal(200));
+  bru.setVar("token", res.getBody().token);
+}
+
+settings {
+  encodeUrl: true
+}
