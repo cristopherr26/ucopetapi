@@ -12,12 +12,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @Service
 public class ReceiptService {
+
+    private static final ZoneId ZONE = ZoneId.of("America/Bogota");
 
     private final ReceiptRepository receiptRepository;
     private final PayMethodRepository payMethodRepository;
@@ -54,6 +56,17 @@ public class ReceiptService {
         }
         return receipts.stream().map(this::toResponse).toList();
     }
+    
+    @Transactional(readOnly = true)
+    public BigDecimal dailyTotal(final LocalDateTime startDate, final LocalDateTime endDate) {
+        if (startDate == null || endDate == null) {
+            throw new ReceiptValidationException("Las fechas de inicio y fin son obligatorias");
+        }
+        if (startDate.isAfter(endDate)) {
+            throw new ReceiptValidationException("La fecha de inicio no puede ser posterior a la fecha de fin");
+        }
+        return receiptRepository.sumAmountByStateAndDateBetween(ReceiptStatus.ACTIVE, startDate, endDate);
+    }
 
     @Transactional
     public ReceiptResponseDTO create(final ReceiptRequestDTO request) {
@@ -64,20 +77,20 @@ public class ReceiptService {
         }
 
         final PayMethodDomain payMethod = resolvePayMethod(request.payMethodId());
-        final LocalDateTime date = request.date() != null ? request.date() : LocalDateTime.now();
+        final LocalDateTime date = request.date() != null ? request.date() : LocalDateTime.now(ZONE);
         validateDateNotInFuture(date);
 
-        final ReceiptDomain receipt = new ReceiptDomain(
-                UUID.randomUUID(),
-                nextReceiptNumber(),
-                request.tutorId(),
-                request.petId(),
-                request.concept(),
-                request.amount(),
-                payMethod,
-                date,
-                ReceiptStatus.ACTIVE
-        );
+        final ReceiptDomain receipt = ReceiptDomain.builder()
+                .id(UUID.randomUUID())
+                .receiptNumber(nextReceiptNumber())
+                .tutorId(request.tutorId())
+                .petId(request.petId())
+                .concept(request.concept())
+                .amount(request.amount())
+                .payMethod(payMethod)
+                .date(date)
+                .state(ReceiptStatus.ACTIVE)
+                .build();
 
         return toResponse(receiptRepository.save(receipt));
     }
@@ -135,7 +148,7 @@ public class ReceiptService {
 
     private ReceiptDomain getOrThrow(final UUID id) {
         return receiptRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Recibo no encontrado: " + id));
+                .orElseThrow(() -> new ReceiptNotFoundException(id));
     }
 
     private PayMethodDomain resolvePayMethod(final UUID payMethodId) {
@@ -156,7 +169,7 @@ public class ReceiptService {
     }
 
     private void validateDateNotInFuture(final LocalDateTime date) {
-        if (date.isAfter(LocalDateTime.now())) {
+        if (date.isAfter(LocalDateTime.now(ZONE))) {
             throw new ReceiptValidationException("La fecha del recibo no puede ser futura");
         }
     }
