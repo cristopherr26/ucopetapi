@@ -50,5 +50,4 @@ public class ProviderController {
 
         return ResponseEntity.ok(providerService.findByProviderName(providerName));
     }
-
 }
