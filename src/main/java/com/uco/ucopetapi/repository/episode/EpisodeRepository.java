@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.Optional;
+import java.util.Collection;
 
 public interface EpisodeRepository extends JpaRepository<EpisodeDomain, UUID> {
 
@@ -15,4 +17,7 @@ public interface EpisodeRepository extends JpaRepository<EpisodeDomain, UUID> {
     List<EpisodeDomain> findByEpisodeStatus(EpisodeStatus episodeStatus);
 
     List<EpisodeDomain> findByDescriptionContainingIgnoreCase(String description);
+
+    Optional<EpisodeDomain> findFirstByPetAndEpisodeStatusInOrderByStartDateDesc(
+            UUID pet, Collection<EpisodeStatus> statuses);
 }
