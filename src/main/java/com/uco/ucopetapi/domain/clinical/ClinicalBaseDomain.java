@@ -6,14 +6,8 @@ import com.uco.ucopetapi.exception.clinical.ClinicalException;
 
 import java.util.Collection;
 
-/**
- * Clase base de los Domain del módulo clínico.
- * Regla del curso: las validaciones viven en el Domain; cada Domain la extiende
- * e implementa validate() con sus reglas.
- */
 public abstract class ClinicalBaseDomain {
 
-    /** Valida los datos propios de la entidad. Lanza ClinicalException (400) si algo no cumple. */
     public abstract void validate();
 
     protected static void requireNotNull(final Object value, final String message) {

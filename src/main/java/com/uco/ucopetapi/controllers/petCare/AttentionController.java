@@ -17,7 +17,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/petcares")
-@PreAuthorize("hasRole('DOCTOR')")
+@PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
 public class AttentionController {
 
     private final AppointmentAttentionOrchestrator orchestrator;
