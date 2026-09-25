@@ -56,7 +56,7 @@ public class ReceiptService {
         }
         return receipts.stream().map(this::toResponse).toList();
     }
-    
+
     @Transactional(readOnly = true)
     public BigDecimal dailyTotal(final LocalDateTime startDate, final LocalDateTime endDate) {
         if (startDate == null || endDate == null) {
@@ -81,7 +81,6 @@ public class ReceiptService {
         validateDateNotInFuture(date);
 
         final ReceiptDomain receipt = ReceiptDomain.builder()
-                .id(UUID.randomUUID())
                 .receiptNumber(nextReceiptNumber())
                 .tutorId(request.tutorId())
                 .petId(request.petId())
