@@ -1,169 +1,141 @@
 package com.uco.ucopetapi.dto.invoice;
 
-import java.time.LocalDate;
+import com.uco.ucopetapi.crosscutting.helpers.DateTimeHelper;
+import com.uco.ucopetapi.crosscutting.helpers.IntHelper;
+import com.uco.ucopetapi.crosscutting.helpers.ObjectHelper;
+import com.uco.ucopetapi.crosscutting.helpers.TextHelper;
+import com.uco.ucopetapi.crosscutting.helpers.UUIDHelper;
+import com.uco.ucopetapi.domain.invoice.InvoiceDomain;
+import com.uco.ucopetapi.dto.invoice.enums.InvoiceState;
+
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
-public class InvoiceDTO {
-
+public final class InvoiceDTO {
     private UUID id;
+    private UUID saleOrderId;
     private String invoiceNumber;
-    private InvoiceType type;
     private UUID headquarterId;
-    private UUID tutorId;
+    private UUID clientID;
     private UUID petId;
-    private UUID providerId;
     private LocalDateTime issueDate;
-    private LocalDate dueDate;
-    private Double totalAmount;
-    private Double paidAmount;
-    private Double balance;
-    private InvoiceStatus status;
+    private Integer total;
+    private Integer paidAmount;
+    private Integer balance;
     private String observations;
-    private List<InvoiceItemDTO> items;
+    private InvoiceState state;
+    private static InvoiceDTO DEFAULT = new InvoiceDTO();
+
+    public static InvoiceDTO getDefaultObject() {
+        return DEFAULT;
+    }
 
     public InvoiceDTO() {
+        this.id = UUIDHelper.getUUIDHelper().getDefault();
+        this.saleOrderId = UUIDHelper.getUUIDHelper().getDefault();
+        this.invoiceNumber = TextHelper.getDefault();
+        this.headquarterId = UUIDHelper.getUUIDHelper().getDefault();
+        this.clientID = UUIDHelper.getUUIDHelper().getDefault();
+        this.petId = UUIDHelper.getUUIDHelper().getDefault();
+        this.issueDate = DateTimeHelper.getDefault();
+        this.total = IntHelper.getDefault();
+        this.paidAmount = IntHelper.getDefault();
+        this.balance = IntHelper.getDefault();
+        this.observations = TextHelper.getDefault();
+        this.state = InvoiceState.SIN_ESTADO;
     }
 
-    public InvoiceDTO(UUID id, String invoiceNumber, InvoiceType type, UUID headquarterId, UUID tutorId,
-                      UUID petId, UUID providerId, LocalDateTime issueDate, LocalDate dueDate,
-                      Double totalAmount, Double paidAmount, Double balance, InvoiceStatus status,
-                      String observations, List<InvoiceItemDTO> items) {
-        this.id = id;
-        this.invoiceNumber = invoiceNumber;
-        this.type = type;
-        this.headquarterId = headquarterId;
-        this.tutorId = tutorId;
-        this.petId = petId;
-        this.providerId = providerId;
-        this.issueDate = issueDate;
-        this.dueDate = dueDate;
-        this.totalAmount = totalAmount;
-        this.paidAmount = paidAmount;
-        this.balance = balance;
-        this.status = status;
-        this.observations = observations;
-        this.items = items;
+    public InvoiceDTO(UUID id) {
+        this();
+        this.id = UUIDHelper.getUUIDHelper().getDefault(id);
     }
 
-    public UUID getId() {
-        return id;
+    public InvoiceDTO(UUID id, UUID saleOrderId, String invoiceNumber, UUID headquarterId, UUID clientID,
+                       UUID petId, LocalDateTime issueDate, Integer total, Integer paidAmount, Integer balance,
+                       String observations, InvoiceState state) {
+        this.id = UUIDHelper.getUUIDHelper().getDefault(id);
+        setSaleOrderId(saleOrderId);
+        setInvoiceNumber(invoiceNumber);
+        setHeadquarterId(headquarterId);
+        setClientID(clientID);
+        setPetId(petId);
+        setIssueDate(issueDate);
+        setTotal(total);
+        setPaidAmount(paidAmount);
+        setBalance(balance);
+        setObservations(observations);
+        setState(state);
     }
+
+    public UUID getId() { return id; }
+    public UUID getSaleOrderId() { return saleOrderId; }
+    public String getInvoiceNumber() { return invoiceNumber; }
+    public UUID getHeadquarterId() { return headquarterId; }
+    public UUID getClientID() { return clientID; }
+    public UUID getPetId() { return petId; }
+    public LocalDateTime getIssueDate() { return issueDate; }
+    public Integer getTotal() { return total; }
+    public Integer getPaidAmount() { return paidAmount; }
+    public Integer getBalance() { return balance; }
+    public String getObservations() { return observations; }
+    public InvoiceState getState() { return state; }
 
     public void setId(UUID id) {
-        this.id = id;
+        this.id = UUIDHelper.getUUIDHelper().getDefault(id);
     }
-
-    public String getInvoiceNumber() {
-        return invoiceNumber;
+    public void setSaleOrderId(UUID saleOrderId) {
+        this.saleOrderId = UUIDHelper.getUUIDHelper().getDefault(saleOrderId);
     }
-
     public void setInvoiceNumber(String invoiceNumber) {
-        this.invoiceNumber = invoiceNumber;
+        this.invoiceNumber = TextHelper.getDefault(invoiceNumber);
     }
-
-    public InvoiceType getType() {
-        return type;
-    }
-
-    public void setType(InvoiceType type) {
-        this.type = type;
-    }
-
-    public UUID getHeadquarterId() {
-        return headquarterId;
-    }
-
     public void setHeadquarterId(UUID headquarterId) {
-        this.headquarterId = headquarterId;
+        this.headquarterId = UUIDHelper.getUUIDHelper().getDefault(headquarterId);
     }
-
-    public UUID getTutorId() {
-        return tutorId;
+    public void setClientID(UUID clientID) {
+        this.clientID = UUIDHelper.getUUIDHelper().getDefault(clientID);
     }
-
-    public void setTutorId(UUID tutorId) {
-        this.tutorId = tutorId;
-    }
-
-    public UUID getPetId() {
-        return petId;
-    }
-
     public void setPetId(UUID petId) {
-        this.petId = petId;
+        this.petId = UUIDHelper.getUUIDHelper().getDefault(petId);
     }
-
-    public UUID getProviderId() {
-        return providerId;
-    }
-
-    public void setProviderId(UUID providerId) {
-        this.providerId = providerId;
-    }
-
-    public LocalDateTime getIssueDate() {
-        return issueDate;
-    }
-
     public void setIssueDate(LocalDateTime issueDate) {
-        this.issueDate = issueDate;
+        this.issueDate = DateTimeHelper.getDefault(issueDate);
     }
-
-    public LocalDate getDueDate() {
-        return dueDate;
+    public void setTotal(Integer total) {
+        this.total = IntHelper.getDefault(total);
     }
-
-    public void setDueDate(LocalDate dueDate) {
-        this.dueDate = dueDate;
+    public void setPaidAmount(Integer paidAmount) {
+        this.paidAmount = IntHelper.getDefault(paidAmount);
     }
-
-    public Double getTotalAmount() {
-        return totalAmount;
+    public void setBalance(Integer balance) {
+        this.balance = IntHelper.getDefault(balance);
     }
-
-    public void setTotalAmount(Double totalAmount) {
-        this.totalAmount = totalAmount;
-    }
-
-    public Double getPaidAmount() {
-        return paidAmount;
-    }
-
-    public void setPaidAmount(Double paidAmount) {
-        this.paidAmount = paidAmount;
-    }
-
-    public Double getBalance() {
-        return balance;
-    }
-
-    public void setBalance(Double balance) {
-        this.balance = balance;
-    }
-
-    public InvoiceStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(InvoiceStatus status) {
-        this.status = status;
-    }
-
-    public String getObservations() {
-        return observations;
-    }
-
     public void setObservations(String observations) {
-        this.observations = observations;
+        this.observations = TextHelper.getDefault(observations);
+    }
+    public void setState(InvoiceState state) {
+        this.state = ObjectHelper.getDefault(state, InvoiceState.SIN_ESTADO);
     }
 
-    public List<InvoiceItemDTO> getItems() {
-        return items;
-    }
+    public InvoiceDomain toDomain() {
+        if (this.state == InvoiceState.SIN_ESTADO) {
+            throw new IllegalStateException(
+                    "No se puede persistir una Invoice sin un estado de negocio definido.");
+        }
 
-    public void setItems(List<InvoiceItemDTO> items) {
-        this.items = items;
+        return new InvoiceDomain(
+                this.id,
+                this.saleOrderId,
+                this.invoiceNumber,
+                this.headquarterId,
+                this.clientID,
+                this.petId,
+                this.issueDate,
+                this.total,
+                this.paidAmount,
+                this.balance,
+                this.observations,
+                this.state
+        );
     }
 }
