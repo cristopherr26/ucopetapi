@@ -1,6 +1,7 @@
 package com.uco.ucopetapi.dto.purchases;
 
 import com.uco.ucopetapi.domain.purchases.ItemType;
+import com.uco.ucopetapi.domain.purchases.TaxCategory;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
@@ -19,6 +20,9 @@ public record PurchaseItemRequestDTO(
 
         @NotNull(message = "El precio unitario es obligatorio")
         @Positive(message = "El precio unitario debe ser mayor a 0")
-        BigDecimal unitPrice
+        BigDecimal unitPrice,
+
+        @NotNull(message = "La categoría fiscal es obligatoria")
+        TaxCategory taxCategory
 ) {
 }

@@ -1,0 +1,29 @@
+meta {
+  name: BUG 3 · ponerle contrasena
+  type: http
+  seq: 11
+}
+
+put {
+  url: {{baseUrl}}/persons/{{idDesechable}}/password
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "password": "claveDesechable"
+  }
+}
+
+script:post-response {
+  test("204", () => expect(res.getStatus()).to.equal(204));
+}
+
+settings {
+  encodeUrl: true
+}

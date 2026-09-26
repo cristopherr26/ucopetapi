@@ -1,0 +1,33 @@
+meta {
+  name: ENUMERACION · el 6 da 423, igual que una cuenta real
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{correoInventado}}",
+    "password": "loQueSea"
+  }
+}
+
+script:post-response {
+  test('423 — el bloqueo NO delata que correos existen', () =>
+      expect(res.getStatus()).to.equal(423));
+  test('y no dice el correo en el mensaje', () =>
+      expect(JSON.stringify(res.getBody())).to.not.include(bru.getVar('correoInventado')));
+}
+
+settings {
+  encodeUrl: true
+}

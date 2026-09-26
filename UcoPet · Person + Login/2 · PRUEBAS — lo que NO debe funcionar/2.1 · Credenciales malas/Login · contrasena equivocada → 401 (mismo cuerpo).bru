@@ -1,0 +1,37 @@
+meta {
+  name: Login · contrasena equivocada → 401 (mismo cuerpo)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{correoSinRol}}",
+    "password": "claveEquivocada99"
+  }
+}
+
+script:post-response {
+  test("401", () => expect(res.getStatus()).to.equal(401));
+  test("no delata que el correo si existe", () =>
+      expect(JSON.stringify(res.getBody().status))
+        .to.eql(bru.getVar("cuerpo401")));
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  A-SEG-06: tiene que ser INDISTINGUIBLE del correo que no existe. Si se diferenciaran, cualquiera averigua quien tiene cuenta probando correos.
+}

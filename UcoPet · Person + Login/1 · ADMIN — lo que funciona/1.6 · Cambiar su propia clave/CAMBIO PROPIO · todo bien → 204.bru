@@ -1,0 +1,31 @@
+meta {
+  name: CAMBIO PROPIO · todo bien → 204
+  type: http
+  seq: 1
+}
+
+put {
+  url: {{baseUrl}}/persons/me/password
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "currentPassword": "{{adminPassword}}",
+    "newPassword": "claveNueva123",
+    "confirmPassword": "claveNueva123"
+  }
+}
+
+script:post-response {
+  test("204", () => expect(res.getStatus()).to.equal(204));
+}
+
+settings {
+  encodeUrl: true
+}

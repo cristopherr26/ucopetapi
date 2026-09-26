@@ -1,0 +1,30 @@
+meta {
+  name: ENUMERACION · 3 de 5
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{correoInventado}}",
+    "password": "loQueSea"
+  }
+}
+
+script:post-response {
+  test('401', () => expect(res.getStatus()).to.equal(401));
+}
+
+settings {
+  encodeUrl: true
+}

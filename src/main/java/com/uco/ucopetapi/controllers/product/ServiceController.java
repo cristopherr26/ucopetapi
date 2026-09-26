@@ -45,6 +45,22 @@ public class ServiceController {
         return active == null ? Boolean.TRUE : active;
     }
 
+    @GetMapping("/count-active")
+    public ResponseEntity<Long> countActiveServices() {
+        return ResponseEntity.ok(
+                serviceService.countActiveServices()
+        );
+    }
+
+    @GetMapping("/{id}/active")
+    public ResponseEntity<Boolean> isActive(
+            @PathVariable UUID id) {
+
+        return ResponseEntity.ok(
+                serviceService.isActive(id)
+        );
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ServiceDTO> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(serviceService.getById(id));

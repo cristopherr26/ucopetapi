@@ -1,0 +1,29 @@
+meta {
+  name: Buscar por documento
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/persons?documentType=CC&documentNumber={{docDelAdmin}}
+  body: none
+  auth: inherit
+}
+
+params:query {
+  documentType: CC
+  documentNumber: {{docDelAdmin}}
+}
+
+script:post-response {
+  test("200", () => expect(res.getStatus()).to.equal(200));
+  const b = res.getBody();
+  test("es el administrador", () => expect(b.email).to.eql(bru.getVar('adminEmail')));
+  test("y es admin", () => expect(b.admin).to.be.true);
+  test("mismos campos que en el listado", () =>
+      expect(Object.keys(b).sort()).to.eql(['id','documentType','documentNumber','firstName','lastName','email','address','phone','admin','active','deactivatedAt'].sort()));
+}
+
+settings {
+  encodeUrl: true
+}

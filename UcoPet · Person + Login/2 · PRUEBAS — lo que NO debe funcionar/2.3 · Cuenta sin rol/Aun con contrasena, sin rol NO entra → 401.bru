@@ -1,0 +1,32 @@
+meta {
+  name: Aun con contrasena, sin rol NO entra → 401
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{correoNuevo}}",
+    "password": "claveNuevaDePrueba"
+  }
+}
+
+script:post-response {
+  test("401 — tiene contrasena pero ningun rol", () => expect(res.getStatus()).to.equal(401));
+  test("no devuelve token", () =>
+      expect(JSON.stringify(res.getBody())).to.not.include('"token"'));
+}
+
+settings {
+  encodeUrl: true
+}

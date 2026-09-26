@@ -4,6 +4,8 @@ import com.uco.ucopetapi.domain.order.OrderDomain;
 import com.uco.ucopetapi.domain.order.OrderState;
 import com.uco.ucopetapi.domain.procedure.ProcedureDomain;
 import com.uco.ucopetapi.dto.pet.PetDTO;
+import com.uco.ucopetapi.dto.tutorPet.TutorPetDTO;
+import com.uco.ucopetapi.event.OrderStatusEvent;
 import com.uco.ucopetapi.repository.order.IOrderRepository;
 import com.uco.ucopetapi.service.order.exception.InvalidOrderRequestException;
 import com.uco.ucopetapi.service.order.exception.InvalidOrderStateException;
@@ -13,7 +15,9 @@ import com.uco.ucopetapi.service.procedure.ProcedureService;
 import com.uco.ucopetapi.service.tutorPet.TutorPetService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -27,16 +31,18 @@ public class OrderService implements IOrderService {
     private final PetService petService;
     private final ProcedureService procedureService;
     private final TutorPetService tutorPetService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @PersistenceContext
     private EntityManager entityManager;
 
     public OrderService(IOrderRepository orderRepository, PetService petService,
-                        ProcedureService procedureService, TutorPetService tutorPetService) {
+                        ProcedureService procedureService, TutorPetService tutorPetService, ApplicationEventPublisher eventPublisher) {
         this.orderRepository = orderRepository;
         this.petService = petService;
         this.procedureService = procedureService;
         this.tutorPetService = tutorPetService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -50,6 +56,7 @@ public class OrderService implements IOrderService {
                 .orElseThrow(() -> new OrderNotFoundException("No existe una orden con id " + id));
     }
 
+    @Transactional
     @Override
     public OrderDomain save(OrderDomain order) {
         validateRequiredFieldsForCreation(order);
@@ -58,13 +65,14 @@ public class OrderService implements IOrderService {
 
         procedureService.findById(order.getProcedureId());
         PetDTO pet = petService.getById(order.getPetId());
-        tutorPetService.findById(pet.getTutorId());
+        TutorPetDTO tutorPet = tutorPetService.findById(pet.getTutorId());
 
-        order.setTutorId(pet.getTutorId());
+        order.setTutorId(tutorPet.getPerson());
 
         return orderRepository.save(order);
     }
 
+    @Transactional
     @Override
     public OrderDomain changeProcedure(UUID id, UUID newProcedureId) {
         if (newProcedureId == null) {
@@ -92,9 +100,16 @@ public class OrderService implements IOrderService {
         order.setIsAuthorized(isApproved);
         order.setState(isApproved ? OrderState.AUTHORIZED : OrderState.DENIED);
 
-        return orderRepository.save(order);
+        OrderDomain orderSaved = orderRepository.save(order);
+        eventPublisher.publishEvent(new OrderStatusEvent(
+                order.getId(),
+                order.getTutorId(),
+                order.getIsAuthorized()
+        ));
+        return orderSaved;
     }
 
+    @Transactional
     @Override
     public void delete(UUID id) {
         OrderDomain order = findById(id);

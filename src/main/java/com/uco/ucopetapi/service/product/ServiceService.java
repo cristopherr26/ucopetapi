@@ -211,6 +211,16 @@ public class ServiceService {
             serviceHeadquarterRepository.save(new ServiceHeadquarterDomain(UUID.randomUUID(), service, headquarter));
         }
     }
+    @Transactional(readOnly = true)
+    public boolean isActive(UUID id) {
+        return Boolean.TRUE.equals(findServiceOrThrow(id).getActive());
+    }
+
+    @Transactional(readOnly = true)
+    public long countActiveServices() {
+        return serviceRepository.countActiveServices();
+    }
+
     private ServiceDomain findServiceOrThrow(UUID id) {
         return serviceRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Servicio no encontrado: " + id));
