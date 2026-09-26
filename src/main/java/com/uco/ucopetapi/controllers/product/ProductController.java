@@ -2,12 +2,19 @@ package com.uco.ucopetapi.controllers.product;
 
 import com.uco.ucopetapi.domain.product.enums.ProductCategory;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
+import com.uco.ucopetapi.dto.product.CatalogValidationGroups.IOnCreate;
+import com.uco.ucopetapi.dto.product.CatalogValidationGroups.IOnUpdate;
 import com.uco.ucopetapi.dto.product.ProductDTO;
 import com.uco.ucopetapi.service.product.ProductService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
 
+
+import jakarta.validation.groups.Default;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,7 +36,12 @@ public class ProductController {
             @RequestParam(required = false) TaxCategory taxCategory,
             @RequestParam(required = false) UUID headquarterId
     ) {
-        return ResponseEntity.ok(productService.list(category, active, sellable, taxCategory, headquarterId));
+        return ResponseEntity.ok(productService.list(category, onlyActiveByDefault(active), sellable,
+                taxCategory, headquarterId));
+    }
+
+    private static Boolean onlyActiveByDefault(Boolean active) {
+        return active == null ? Boolean.TRUE : active;
     }
 
     @GetMapping("/{id}")
@@ -41,12 +53,19 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<ProductDTO> create(@RequestBody ProductDTO request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(productService.create(request));
+    public ResponseEntity<ProductDTO> create(
+            @Validated({IOnCreate.class, Default.class}) @RequestBody ProductDTO request) {
+        ProductDTO created = productService.create(request);
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(created.getId())
+                .toUri();
+        return ResponseEntity.created(location).body(created);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProductDTO> update(@PathVariable UUID id, @RequestBody ProductDTO request) {
+    public ResponseEntity<ProductDTO> update(@PathVariable UUID id,
+            @Validated({IOnUpdate.class, Default.class}) @RequestBody ProductDTO request) {
         return ResponseEntity.ok(productService.update(id, request));
     }
 

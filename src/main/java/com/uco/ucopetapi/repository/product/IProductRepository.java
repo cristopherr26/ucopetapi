@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface ProductRepository extends JpaRepository<ProductDomain, UUID> {
+public interface IProductRepository extends JpaRepository<ProductDomain, UUID> {
 
     @Query("""
     SELECT p FROM ProductDomain p

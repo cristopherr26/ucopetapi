@@ -2,12 +2,19 @@ package com.uco.ucopetapi.controllers.product;
 
 import com.uco.ucopetapi.domain.product.enums.ServiceCategory;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
+import com.uco.ucopetapi.dto.product.CatalogValidationGroups.IOnCreate;
+import com.uco.ucopetapi.dto.product.CatalogValidationGroups.IOnUpdate;
 import com.uco.ucopetapi.dto.product.ServiceDTO;
 import com.uco.ucopetapi.service.product.ServiceService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
 
+
+import jakarta.validation.groups.Default;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,7 +37,12 @@ public class ServiceController {
             @RequestParam(required = false) TaxCategory taxCategory,
             @RequestParam(required = false) UUID headquarterId
     ) {
-        return ResponseEntity.ok(serviceService.list(category, active, purchasable, sellable, taxCategory, headquarterId));
+        return ResponseEntity.ok(serviceService.list(category, onlyActiveByDefault(active), purchasable,
+                sellable, taxCategory, headquarterId));
+    }
+
+    private static Boolean onlyActiveByDefault(Boolean active) {
+        return active == null ? Boolean.TRUE : active;
     }
 
     @GetMapping("/{id}")
@@ -39,12 +51,19 @@ public class ServiceController {
     }
 
     @PostMapping
-    public ResponseEntity<ServiceDTO> create(@RequestBody ServiceDTO request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(serviceService.create(request));
+    public ResponseEntity<ServiceDTO> create(
+            @Validated({IOnCreate.class, Default.class}) @RequestBody ServiceDTO request) {
+        ServiceDTO created = serviceService.create(request);
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(created.getId())
+                .toUri();
+        return ResponseEntity.created(location).body(created);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ServiceDTO> update(@PathVariable UUID id, @RequestBody ServiceDTO request) {
+    public ResponseEntity<ServiceDTO> update(@PathVariable UUID id,
+            @Validated({IOnUpdate.class, Default.class}) @RequestBody ServiceDTO request) {
         return ResponseEntity.ok(serviceService.update(id, request));
     }
 

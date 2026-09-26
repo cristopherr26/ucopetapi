@@ -11,9 +11,11 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface ServiceProviderRepository extends JpaRepository<ServiceProviderDomain, UUID> {
+public interface IServiceProviderRepository extends JpaRepository<ServiceProviderDomain, UUID> {
 
     List<ServiceProviderDomain> findByService_Id(UUID serviceId);
+
+    List<ServiceProviderDomain> findByService_IdIn(List<UUID> serviceIds);
 
     List<ServiceProviderDomain> findByProvider_Id(UUID providerId);
 

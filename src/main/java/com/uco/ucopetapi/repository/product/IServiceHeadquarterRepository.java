@@ -11,9 +11,11 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface ServiceHeadquarterRepository extends JpaRepository<ServiceHeadquarterDomain, UUID> {
+public interface IServiceHeadquarterRepository extends JpaRepository<ServiceHeadquarterDomain, UUID> {
 
     List<ServiceHeadquarterDomain> findByService_Id(UUID serviceId);
+
+    List<ServiceHeadquarterDomain> findByService_IdIn(List<UUID> serviceIds);
 
     @Modifying
     @Query("DELETE FROM ServiceHeadquarterDomain sh WHERE sh.service.id = :serviceId")

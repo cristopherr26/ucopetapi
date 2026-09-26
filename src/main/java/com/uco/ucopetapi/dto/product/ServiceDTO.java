@@ -6,19 +6,38 @@ import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 import java.util.List;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
+
 public class ServiceDTO {
 
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private final UUID id;
+    @NotBlank(groups = CatalogValidationGroups.IOnCreate.class, message = "El nombre del servicio es obligatorio")
+    @Pattern(groups = CatalogValidationGroups.IOnUpdate.class, regexp = "^(?!\\s*$).+", message = "El nombre no puede quedar vacío")
+    @Size(max = 100, message = "El nombre no puede superar los 100 caracteres")
     private String name;
+    @Size(max = 255, message = "La descripción no puede superar los 255 caracteres")
     private String description;
     private String imageUrl;
     private Integer price;
+    @NotNull(groups = CatalogValidationGroups.IOnCreate.class, message = "La categoría de IVA es obligatoria")
     private TaxCategory taxCategory;
+    @NotNull(groups = CatalogValidationGroups.IOnCreate.class, message = "Debes indicar si el servicio se vende al público")
     private Boolean sellable;
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Boolean active;
+    @NotNull(groups = CatalogValidationGroups.IOnCreate.class, message = "La categoría del servicio es obligatoria")
     private ServiceCategory category;
+    @NotNull(groups = CatalogValidationGroups.IOnCreate.class, message = "Debes indicar si el servicio es comprable a un proveedor externo")
     private Boolean purchasable;
-    private List<AssociatedSupplierDTO> providers;
+    private List<@Valid AssociatedSupplierDTO> providers;
     private List<UUID> headquarterIds;
 
     public ServiceDTO(final UUID id, final String name, final String description, final String imageUrl,

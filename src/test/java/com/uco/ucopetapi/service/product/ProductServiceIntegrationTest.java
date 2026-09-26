@@ -1,4 +1,3 @@
-// src/test/java/com/uco/ucopetapi/service/product/ProductServiceIntegrationTest.java
 package com.uco.ucopetapi.service.product;
 
 import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;

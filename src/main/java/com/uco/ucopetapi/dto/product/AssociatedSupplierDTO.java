@@ -2,9 +2,14 @@ package com.uco.ucopetapi.dto.product;
 
 import java.util.UUID;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+
 public class AssociatedSupplierDTO {
 
+    @NotNull(message = "Cada proveedor asociado necesita un providerId")
     private UUID providerId;
+    @PositiveOrZero(message = "El precio de referencia no puede ser negativo")
     private Integer referencePrice;
 
     public AssociatedSupplierDTO(final UUID providerId, final Integer referencePrice) {
