@@ -51,7 +51,8 @@ public class SpaceController {
         List<SpaceDTO> dtos = domains.stream()
                 .map(d -> new SpaceDTO(d.getId(), d.getCode(), d.getType(), d.getDescription(), d.getActive()))
                 .toList();
-
+//Por qué: .toList() devuelve una lista inmutable más segura
+//para una respuesta de API que nadie debería poder modificar después) y es menos verboso.
         return ResponseEntity.ok(dtos);
     }
 
