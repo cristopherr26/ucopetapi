@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @RestController
@@ -34,6 +33,22 @@ public class ServiceController {
         return ResponseEntity.ok(serviceService.list(category, active, purchasable, sellable, taxCategory, headquarterId));
     }
 
+    @GetMapping("/count-active")
+    public ResponseEntity<Long> countActiveServices() {
+        return ResponseEntity.ok(
+                serviceService.countActiveServices()
+        );
+    }
+
+    @GetMapping("/{id}/active")
+    public ResponseEntity<Boolean> isActive(
+            @PathVariable UUID id) {
+
+        return ResponseEntity.ok(
+                serviceService.isActive(id)
+        );
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ServiceDTO> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(serviceService.getById(id));
@@ -55,13 +70,5 @@ public class ServiceController {
         return ResponseEntity.noContent().build();
     }
 
-    @ExceptionHandler(NoSuchElementException.class)
-    public ResponseEntity<String> handleNotFound(NoSuchElementException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
-    }
 
-    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
-    public ResponseEntity<String> handleInvalidData(RuntimeException ex) {
-        return ResponseEntity.badRequest().body(ex.getMessage());
-    }
 }

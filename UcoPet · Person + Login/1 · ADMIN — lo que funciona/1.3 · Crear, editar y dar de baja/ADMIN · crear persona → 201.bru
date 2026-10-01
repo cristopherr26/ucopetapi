@@ -1,0 +1,41 @@
+meta {
+  name: ADMIN · crear persona → 201
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/persons
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "{{docAdmin}}",
+    "firstName": "Creada",
+    "lastName": "Por Admin",
+    "email": "admin.creo+{{docAdmin}}@ucopet.com",
+    "admin": false,
+    "active": true
+  }
+}
+
+script:pre-request {
+  const n = Date.now().toString().slice(-7);
+  bru.setVar('docAdmin', '96' + n);
+}
+
+script:post-response {
+  bru.setVar("creadaId", res.getBody().id);
+  test("201", () => expect(res.getStatus()).to.equal(201));
+}
+
+settings {
+  encodeUrl: true
+}

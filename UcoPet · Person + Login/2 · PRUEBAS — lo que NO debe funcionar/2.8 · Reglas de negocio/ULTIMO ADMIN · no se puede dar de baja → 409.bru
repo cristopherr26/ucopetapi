@@ -1,0 +1,20 @@
+meta {
+  name: ULTIMO ADMIN · no se puede dar de baja → 409
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{baseUrl}}/persons/{{adminId}}
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test("409 — dejaria la clinica sin administracion", () =>
+      expect(res.getStatus()).to.equal(409));
+}
+
+settings {
+  encodeUrl: true
+}

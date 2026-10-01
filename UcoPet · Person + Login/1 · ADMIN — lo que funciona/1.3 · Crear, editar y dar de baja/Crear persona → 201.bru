@@ -1,0 +1,63 @@
+meta {
+  name: Crear persona → 201
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/persons
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "{{docNuevo}}",
+    "firstName": "Juliana",
+    "lastName": "Ospina",
+    "email": "{{correoNuevo}}",
+    "address": "Calle 50 # 51-25, Rionegro",
+    "phone": "3009998877",
+    "admin": false,
+    "active": true
+  }
+}
+
+script:pre-request {
+  // Sufijo nuevo en cada corrida: si no, el correo queda ocupado por la
+  // persona de la corrida anterior (la baja es LOGICA, la fila no se va)
+  // y el alta respondería 409 a partir del segundo intento.
+  const n = Date.now().toString().slice(-8);
+  bru.setVar('docNuevo', n);
+  bru.setVar('correoNuevo', `juliana.ospina+${n}@ucopet.com`);
+}
+
+script:post-response {
+  test("201", () => expect(res.getStatus()).to.equal(201));
+  const b = res.getBody();
+  bru.setVar("personId", b.id);
+  
+  test("el servidor asigno un UUID", () =>
+      expect(b.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/));
+  test("nace activa", () => expect(b.active).to.be.true);
+  test("nace sin ser admin", () => expect(b.admin).to.be.false);
+  test("nace sin fecha de baja", () => expect(b.deactivatedAt).to.be.null);
+  test("guardo lo que se mando", () => {
+      const env = JSON.parse(req.getBody().raw);
+      expect(b.firstName).to.eql(env.firstName);
+      expect(b.email).to.eql(env.email);
+  });
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  El id lo asigna el servidor. Nace SIN contrasena: la pone despues, al activar.
+}

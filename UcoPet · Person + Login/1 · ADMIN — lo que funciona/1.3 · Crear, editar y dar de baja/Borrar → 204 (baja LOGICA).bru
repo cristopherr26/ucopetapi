@@ -1,0 +1,23 @@
+meta {
+  name: Borrar → 204 (baja LOGICA)
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{baseUrl}}/persons/{{personId}}
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test("204", () => expect(res.getStatus()).to.equal(204));
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  No borra la fila: la deja con active=false, porque la historia clinica le sigue apuntando.
+}

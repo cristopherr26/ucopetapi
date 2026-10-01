@@ -13,6 +13,8 @@ import java.util.UUID;
 @Service
 public class ProviderServiceImpl implements ProviderService {
 
+    private static final String PROVIDER_NOT_FOUND_MSG = "Proveedor no encontrado: ";
+
     private final ProviderJPARepository providerJPARepository;
 
     public ProviderServiceImpl(ProviderJPARepository providerJPARepository) {
@@ -32,25 +34,27 @@ public class ProviderServiceImpl implements ProviderService {
     public ProviderDTO findById(UUID id) {
         return providerJPARepository.findById(id)
                 .map(this::toDto)
-                .orElseThrow(() -> new NoSuchElementException("Proveedor no encontrado: " + id));
+                .orElseThrow(() -> new NoSuchElementException(PROVIDER_NOT_FOUND_MSG + id));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProviderDTO> findByFilter(final UUID idType, final Boolean isActive) {
-        List<ProviderDomain> providers;
-        if (idType != null && isActive != null) {
-            providers = providerJPARepository.findByIdTypeAndActive(idType, isActive);
-        } else if (idType != null) {
-            providers = providerJPARepository.findByIdType(idType);
-        } else if (isActive != null) {
-            providers = providerJPARepository.findByActive(isActive);
-        } else {
-            providers = providerJPARepository.findAll();
-        }
+    public List<ProviderDTO> findByFilter(final String providerName) {
+        List<ProviderDomain> providers = (providerName != null && !providerName.isBlank())
+                ? providerJPARepository.findByProviderNameContainingIgnoreCase(providerName)
+                : providerJPARepository.findAll();
+
         return providers.stream()
                 .map(this::toDto)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UUID findByProviderName(final String providerName) {
+        return providerJPARepository.findByProviderName(providerName)
+                .map(ProviderDomain::getId)
+                .orElseThrow(() -> new NoSuchElementException(PROVIDER_NOT_FOUND_MSG + providerName));
     }
 
     @Override
@@ -65,7 +69,7 @@ public class ProviderServiceImpl implements ProviderService {
     @Transactional
     public ProviderDTO update(UUID id, ProviderDTO request) {
         ProviderDomain provider = providerJPARepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Proveedor no encontrado: " + id));
+                .orElseThrow(() -> new NoSuchElementException(PROVIDER_NOT_FOUND_MSG + id));
 
         if (request.getProviderName() != null) {
             provider.setProviderName(request.getProviderName());
@@ -97,36 +101,36 @@ public class ProviderServiceImpl implements ProviderService {
     @Transactional
     public ProviderDTO deactivate(UUID id) {
         ProviderDomain provider = providerJPARepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Proveedor no encontrado: " + id));
+                .orElseThrow(() -> new NoSuchElementException(PROVIDER_NOT_FOUND_MSG + id));
         provider.setActive(false);
         return toDto(providerJPARepository.save(provider));
     }
 
     private ProviderDTO toDto(final ProviderDomain provider) {
-        return new ProviderDTO(
-                provider.getId(),
-                provider.getProviderName(),
-                provider.getRepresentName(),
-                provider.getIdType(),
-                provider.getDocumentNumber(),
-                provider.getMobileNumber(),
-                provider.getAddress(),
-                provider.getEmail(),
-                provider.isActive()
-        );
+        return ProviderDTO.builder()
+                .id(provider.getId())
+                .providerName(provider.getProviderName())
+                .representName(provider.getRepresentName())
+                .idType(provider.getIdType())
+                .documentNumber(provider.getDocumentNumber())
+                .mobileNumber(provider.getMobileNumber())
+                .address(provider.getAddress())
+                .email(provider.getEmail())
+                .isActive(provider.isActive())
+                .build();
     }
 
     private ProviderDomain toEntity(final ProviderDTO request, final UUID id) {
-        return new ProviderDomain(
-                id,
-                request.getProviderName(),
-                request.getRepresentName(),
-                request.getIdType(),
-                request.getDocumentNumber(),
-                request.getMobileNumber(),
-                request.getAddress(),
-                request.getEmail(),
-                request.isActive()
-        );
+        return ProviderDomain.builder()
+                .id(id)
+                .providerName(request.getProviderName())
+                .representName(request.getRepresentName())
+                .idType(request.getIdType())
+                .documentNumber(request.getDocumentNumber())
+                .mobileNumber(request.getMobileNumber())
+                .address(request.getAddress())
+                .email(request.getEmail())
+                .active(request.isActive())
+                .build();
     }
 }

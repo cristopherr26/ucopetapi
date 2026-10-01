@@ -1,0 +1,56 @@
+meta {
+  name: Entrar como administrador
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{adminEmail}}",
+    "password": "{{adminPassword}}"
+  }
+}
+
+script:pre-request {
+  const n = Date.now().toString().slice(-7);
+  bru.setVar('correoSinRol',   'sin.rol.'   + n + '@ucopet.com');
+  bru.setVar('correoSinClave', 'sin.clave.' + n + '@ucopet.com');
+  bru.setVar('docSinRol',   '71' + n);
+  bru.setVar('docSinClave', '72' + n);
+  bru.setVar('claveSinRol', 'claveSinRolDePrueba');
+}
+
+script:post-response {
+  test("200 — si falla, revisa adminPassword", () => expect(res.getStatus()).to.equal(200));
+  const b = res.getBody();
+  bru.setVar("token", b.token);
+  bru.setVar("adminId", b.personId);
+  bru.setVar("adminNombre", b.fullName);
+  
+  test("la respuesta trae token, personId, fullName y roles", () =>
+      expect(Object.keys(b).sort()).to.eql(['fullName','personId','roles','token']));
+  test("es ADMIN", () => expect(b.roles).to.include("ADMIN"));
+  test("el token es un JWT de 3 partes", () =>
+      expect(b.token.split('.')).to.have.lengthOf(3));
+  
+  const carga = JSON.parse(atob(b.token.split('.')[1]));
+  test("el sub del token es el personId", () => expect(carga.sub).to.eql(b.personId));
+  test("el token vence en unas 12 h", () => {
+      const horas = (carga.exp - carga.iat) / 3600;
+      expect(horas).to.be.closeTo(12, 0.1);
+  });
+}
+
+settings {
+  encodeUrl: true
+}

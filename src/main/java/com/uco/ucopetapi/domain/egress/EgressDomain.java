@@ -19,10 +19,10 @@ public class EgressDomain {
     @Column(name = "provider", nullable = false)
     private UUID provider;
 
-    @Column(name = "payMethod", nullable = false)
+    @Column(name = "pay_method", nullable = false)
     private UUID payMethod;
 
-    @Column(name = "purchaseOrder", nullable = false)
+    @Column(name = "purchase_order", nullable = false)
     private UUID purchaseOrder;
 
     @Column(name = "concept", nullable = false)

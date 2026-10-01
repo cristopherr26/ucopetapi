@@ -1,0 +1,23 @@
+meta {
+  name: LOGOUT · cerrar sesion -> 204
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/persons/logout
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenParaCerrar}}
+}
+
+script:post-response {
+  test('204', () => expect(res.getStatus()).to.equal(204));
+}
+
+settings {
+  encodeUrl: true
+}

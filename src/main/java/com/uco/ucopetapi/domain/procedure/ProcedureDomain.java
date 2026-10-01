@@ -33,6 +33,9 @@ public class ProcedureDomain {
     @Column(name = "duration_minutes", nullable = false)
     private Integer durationMinutes;
 
+    @Column(name = "space_id")
+    private UUID spaceId;
+
     @ElementCollection(fetch = FetchType.EAGER)
     private List<ProcedureProductDomain> defaultProducts = new ArrayList<>();
 
@@ -44,13 +47,14 @@ public class ProcedureDomain {
     }
 
     public ProcedureDomain(final String code, final String type, final String description,
-                           final Integer durationMinutes,
+                           final Integer durationMinutes, final UUID spaceId,
                            final List<ProcedureProductDomain> defaultProducts,
                            final boolean active) {
         this.code = code;
         this.type = type;
         this.description = description;
         this.durationMinutes = durationMinutes;
+        this.spaceId = spaceId;
         setDefaultProducts(defaultProducts);
         this.active = active;
     }
@@ -64,6 +68,8 @@ public class ProcedureDomain {
     public void setDescription(final String description) { this.description = description; }
     public Integer getDurationMinutes() { return durationMinutes; }
     public void setDurationMinutes(final Integer durationMinutes) { this.durationMinutes = durationMinutes; }
+    public UUID getSpaceId() { return spaceId; }
+    public void setSpaceId(final UUID spaceId) { this.spaceId = spaceId; }
     public List<ProcedureProductDomain> getDefaultProducts() { return new ArrayList<>(defaultProducts); }
     public void setDefaultProducts(final List<ProcedureProductDomain> defaultProducts) {
         this.defaultProducts = defaultProducts == null ? new ArrayList<>() : new ArrayList<>(defaultProducts);

@@ -19,4 +19,8 @@ public interface ServiceService {
     ServiceDTO update(UUID id, ServiceDTO request);
 
     void deactivate(UUID id);
+
+    boolean isActive(UUID id);
+
+    long countActiveServices();
 }

@@ -1,0 +1,32 @@
+meta {
+  name: CAMBIO PROPIO · con la actual equivocada → 401
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/persons/me/password
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "currentPassword": "noEsLaMia",
+    "newPassword": "claveNueva123",
+    "confirmPassword": "claveNueva123"
+  }
+}
+
+script:post-response {
+  test("401 — un token robado no alcanza para cambiarla", () =>
+      expect(res.getStatus()).to.equal(401));
+}
+
+settings {
+  encodeUrl: true
+}

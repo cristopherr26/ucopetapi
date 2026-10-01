@@ -1,0 +1,36 @@
+meta {
+  name: Crear una persona SIN ROL
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/persons
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "{{docSinRol}}",
+    "firstName": "Sin",
+    "lastName": "Rol",
+    "email": "{{correoSinRol}}",
+    "admin": false,
+    "active": true
+  }
+}
+
+script:post-response {
+  test("201", () => expect(res.getStatus()).to.equal(201));
+  bru.setVar("anaId", res.getBody().id);
+}
+
+settings {
+  encodeUrl: true
+}

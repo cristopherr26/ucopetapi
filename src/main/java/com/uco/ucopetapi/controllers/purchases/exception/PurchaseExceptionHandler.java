@@ -1,15 +1,8 @@
 package com.uco.ucopetapi.controllers.purchases.exception;
 
 import com.uco.ucopetapi.service.purchases.exception.DuplicatePurchaseNumberException;
-import com.uco.ucopetapi.service.purchases.exception.HeadquarterInactiveException;
-import com.uco.ucopetapi.service.purchases.exception.HeadquarterNotFoundException;
-import com.uco.ucopetapi.service.purchases.exception.ProductInactiveException;
-import com.uco.ucopetapi.service.purchases.exception.ProductNotFoundException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseNotFoundException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseNumberNotFoundException;
-import com.uco.ucopetapi.service.purchases.exception.ServiceItemNotFoundException;
-import com.uco.ucopetapi.service.purchases.exception.ServiceItemNotPurchasableException;
-import com.uco.ucopetapi.service.purchases.exception.SupplierNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -41,43 +34,8 @@ public class PurchaseExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    @ExceptionHandler(SupplierNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleSupplierNotFound(SupplierNotFoundException ex) {
-        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
-    }
-
-    @ExceptionHandler(HeadquarterNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleHeadquarterNotFound(HeadquarterNotFoundException ex) {
-        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
-    }
-
-    @ExceptionHandler(HeadquarterInactiveException.class)
-    public ResponseEntity<Map<String, Object>> handleHeadquarterInactive(HeadquarterInactiveException ex) {
-        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
-    }
-
-    @ExceptionHandler(ProductNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleProductNotFound(ProductNotFoundException ex) {
-        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
-    }
-
-    @ExceptionHandler(ProductInactiveException.class)
-    public ResponseEntity<Map<String, Object>> handleProductInactive(ProductInactiveException ex) {
-        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
-    }
-
     @ExceptionHandler(DuplicatePurchaseNumberException.class)
     public ResponseEntity<Map<String, Object>> handleDuplicatePurchaseNumber(DuplicatePurchaseNumberException ex) {
-        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
-    }
-
-    @ExceptionHandler(ServiceItemNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleServiceItemNotFound(ServiceItemNotFoundException ex) {
-        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
-    }
-
-    @ExceptionHandler(ServiceItemNotPurchasableException.class)
-    public ResponseEntity<Map<String, Object>> handleServiceItemNotPurchasable(ServiceItemNotPurchasableException ex) {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
     }
 

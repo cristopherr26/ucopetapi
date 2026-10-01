@@ -11,29 +11,25 @@ import java.util.UUID;
 public class PetCareDto {
     private UUID id;
     private UUID episodeId;
-    private UUID procedureId;
-    private UUID productId;
     private UUID doctorId;
+    private UUID appointmentId;
     private LocalDateTime attentionDate;
     private String description;
-    private PetCareStatus petCateStatus;
+    private PetCareStatus petCareStatus;
     private List<VitalSignsDTO> vitalSigns = new ArrayList<>();
 
     public PetCareDto() {
     }
 
-    public PetCareDto (final UUID id, final UUID episodeId, final UUID procedureId,
-                       final UUID productId, final UUID doctorId, final LocalDateTime attentionDate,
-                       final String description, final PetCareStatus petCateStatus, final List<VitalSignsDTO> vitalSigns){
+    public PetCareDto (final UUID id, final UUID episodeId, final UUID doctorId, final LocalDateTime attentionDate,
+                       final String description, final PetCareStatus petCareStatus, final List<VitalSignsDTO> vitalSigns){
 
         this.id = id;
         this.episodeId = episodeId;
-        this.procedureId = procedureId;
-        this.productId = productId;
         this.doctorId = doctorId;
         this.attentionDate = attentionDate;
         this.description = description;
-        this.petCateStatus = petCateStatus;
+        this.petCareStatus = petCareStatus;
         this.vitalSigns = vitalSigns != null ? vitalSigns : new ArrayList<>();
     }
 
@@ -43,14 +39,6 @@ public class PetCareDto {
 
     public UUID getEpisodeId() {
         return episodeId;
-    }
-
-    public UUID getProcedureId() {
-        return procedureId;
-    }
-
-    public UUID getProductId() {
-        return productId;
     }
 
     public UUID getDoctorId() {
@@ -66,7 +54,7 @@ public class PetCareDto {
     }
 
     public PetCareStatus getPetCareStatus() {
-        return petCateStatus;
+        return petCareStatus;
     }
 
     public List<VitalSignsDTO>  getVitalSigns() {
@@ -85,8 +73,8 @@ public class PetCareDto {
         this.description = description;
     }
 
-    public void setPetCateStatus(PetCareStatus petCateStatus) {
-        this.petCateStatus = petCateStatus;
+    public void setPetCareStatus(PetCareStatus petCareStatus) {
+        this.petCareStatus = petCareStatus;
     }
 
     public void setVitalSigns(List<VitalSignsDTO> vitalSigns) {
@@ -97,15 +85,15 @@ public class PetCareDto {
         this.episodeId = episodeId;
     }
 
-    public void setProcedureId(UUID procedureId) {
-        this.procedureId = procedureId;
-    }
-
-    public void setProductId(UUID productId) {
-        this.productId = productId;
-    }
-
     public void setDoctorId(UUID doctorId) {
         this.doctorId = doctorId;
+    }
+
+    public UUID getAppointmentId() {
+        return appointmentId;
+    }
+
+    public void setAppointmentId(UUID appointmentId) {
+        this.appointmentId = appointmentId;
     }
 }

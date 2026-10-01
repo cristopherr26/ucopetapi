@@ -6,6 +6,7 @@ import com.uco.ucopetapi.dto.petCare.PetCareDto;
 import com.uco.ucopetapi.dto.petCare.PetCareStatus;
 import com.uco.ucopetapi.dto.vitalSigns.VitalSignsDTO;
 import com.uco.ucopetapi.repository.petCare.PetCareRepository;
+import com.uco.ucopetapi.service.attention.CurrentDoctorProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,9 +19,12 @@ import java.util.UUID;
 public class PetCareServiceImpl implements PetCareService {
 
     private final PetCareRepository petCareRepository;
+    private final CurrentDoctorProvider currentDoctorProvider;
 
-    public PetCareServiceImpl(final PetCareRepository petCareRepository) {
+    public PetCareServiceImpl(final PetCareRepository petCareRepository,
+                              final CurrentDoctorProvider currentDoctorProvider) {
         this.petCareRepository = petCareRepository;
+        this.currentDoctorProvider = currentDoctorProvider;
     }
 
     @Override
@@ -72,9 +76,11 @@ public class PetCareServiceImpl implements PetCareService {
     @Override
     @Transactional
     public PetCareDto create(final PetCareDto request) {
+        request.setDoctorId(currentDoctorProvider.get().getDoctorId());
         UUID id = request.getId() != null ? request.getId() : UUID.randomUUID();
         PetCareDomain petCare = toEntity(request, id);
         applyVitalSigns(petCare, request.getVitalSigns());
+        petCare.validate();
         return toDto(petCareRepository.save(petCare));
     }
 
@@ -86,12 +92,6 @@ public class PetCareServiceImpl implements PetCareService {
 
         if (request.getEpisodeId() != null) {
             petCare.setEpisodeId(request.getEpisodeId());
-        }
-        if (request.getProcedureId() != null) {
-            petCare.setProcedureId(request.getProcedureId());
-        }
-        if (request.getProductId() != null) {
-            petCare.setProductId(request.getProductId());
         }
         if (request.getDoctorId() != null) {
             petCare.setDoctorId(request.getDoctorId());
@@ -109,6 +109,17 @@ public class PetCareServiceImpl implements PetCareService {
             applyVitalSigns(petCare, request.getVitalSigns());
         }
 
+        petCare.validate();
+        return toDto(petCareRepository.save(petCare));
+    }
+
+    @Override
+    @Transactional
+    public PetCareDto complete(final UUID petCareId, final UUID requestingDoctorId, final String summary) {
+        PetCareDomain petCare = petCareRepository.findById(petCareId)
+                .orElseThrow(() -> new NoSuchElementException("Atención veterinaria no encontrada: " + petCareId));
+        petCare.complete(requestingDoctorId, summary);
+        petCare.validate();
         return toDto(petCareRepository.save(petCare));
     }
 
@@ -119,30 +130,30 @@ public class PetCareServiceImpl implements PetCareService {
                 .map(this::toVitalSignsDto)
                 .toList();
 
-        return new PetCareDto(
+        PetCareDto dto = new PetCareDto(
                 petCare.getId(),
                 petCare.getEpisodeId(),
-                petCare.getProcedureId(),
-                petCare.getProductId(),
                 petCare.getDoctorId(),
                 petCare.getAttentionDate(),
                 petCare.getDescription(),
                 petCare.getPetCareStatus(),
                 vitalSigns
         );
+        dto.setAppointmentId(petCare.getAppointmentId());
+        return dto;
     }
 
     private PetCareDomain toEntity(final PetCareDto request, final UUID id) {
-        return new PetCareDomain(
+        PetCareDomain petCare = new PetCareDomain(
                 id,
                 request.getEpisodeId(),
-                request.getProcedureId(),
-                request.getProductId(),
                 request.getDoctorId(),
                 request.getAttentionDate() != null ? request.getAttentionDate() : LocalDateTime.now(),
                 request.getDescription() != null ? request.getDescription() : "Atención sin descripción",
                 request.getPetCareStatus() != null ? request.getPetCareStatus() : PetCareStatus.REGISTERED
         );
+        petCare.setAppointmentId(request.getAppointmentId());
+        return petCare;
     }
 
     private VitalSignsDTO toVitalSignsDto(final VitalSignsDomain vitalSigns) {

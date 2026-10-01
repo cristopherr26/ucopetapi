@@ -3,11 +3,14 @@ package com.uco.ucopetapi.service.person;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,6 +26,7 @@ import com.uco.ucopetapi.dto.person.LoginResponseDTO;
 import com.uco.ucopetapi.dto.person.PersonDTO;
 import com.uco.ucopetapi.dto.person.Role;
 import com.uco.ucopetapi.dto.person.SetPasswordRequestDTO;
+import com.uco.ucopetapi.event.LoginSuccededEvent;
 import com.uco.ucopetapi.repository.doctor.IDoctorRepository;
 import com.uco.ucopetapi.repository.person.PersonRepository;
 import com.uco.ucopetapi.security.UnknownEmailAttempts;
@@ -41,17 +45,19 @@ public class PersonService {
     private final JwtService jwtService;
     private final UnknownEmailAttempts unknownEmailAttempts;
     private final IDoctorRepository doctorRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public PersonService(PersonRepository personRepository,
                              PasswordEncoder passwordEncoder,
                              JwtService jwtService,
                              UnknownEmailAttempts unknownEmailAttempts,
-                          IDoctorRepository doctorRepository) {
+                          IDoctorRepository doctorRepository, ApplicationEventPublisher eventPublisher) {
         this.personRepository = personRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.unknownEmailAttempts = unknownEmailAttempts;
         this.doctorRepository = doctorRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -190,9 +196,17 @@ public class PersonService {
         }
 
         String fullName = person.getFirstName() + " " + person.getLastName();
-        return new LoginResponseDTO(
+
+        LoginResponseDTO dto =  new LoginResponseDTO(
                 jwtService.generate(person.getId(), fullName, roles, person.getTokenVersion()),
                 person.getId(), fullName, roles);
+
+        eventPublisher.publishEvent(new LoginSuccededEvent(
+                UUID.randomUUID(),
+                person.getId(),
+                ZonedDateTime.now(ZoneId.of("America/Bogota"))
+        ));
+        return dto;
     }
 
     private void copyData(PersonDTO desde, PersonDomain hacia) {

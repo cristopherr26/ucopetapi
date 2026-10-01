@@ -1,0 +1,33 @@
+meta {
+  name: BUG 3 · que entre y guarde su token
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "desechable+{{docDesechable}}@ucopet.com",
+    "password": "claveDesechable"
+  }
+}
+
+script:post-response {
+  test("200", () => expect(res.getStatus()).to.equal(200));
+  test("es admin, por eso recibe token", () =>
+      expect(res.getBody().roles).to.include("ADMIN"));
+  bru.setVar("tokenDesechable", res.getBody().token);
+}
+
+settings {
+  encodeUrl: true
+}

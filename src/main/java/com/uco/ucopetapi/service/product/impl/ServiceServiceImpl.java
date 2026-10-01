@@ -9,17 +9,17 @@ import com.uco.ucopetapi.repository.product.ServiceHeadquarterRepository;
 import com.uco.ucopetapi.repository.product.ServiceProviderRepository;
 import com.uco.ucopetapi.repository.product.ServiceRepository;
 import com.uco.ucopetapi.repository.provider.ProviderJPARepository;
+import com.uco.ucopetapi.service.product.CatalogValidationUtils;
 import com.uco.ucopetapi.service.product.ServiceService;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.uco.ucopetapi.domain.product.enums.ServiceCategory;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -77,7 +77,11 @@ public class ServiceServiceImpl implements ServiceService {
                 request.getCategory(),
                 request.getPurchasable()
         );
-        service = serviceRepository.save(service);
+        try {
+            service = serviceRepository.save(service);
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalArgumentException("Ya existe un servicio con este nombre");
+        }
         saveProviderAssociations(service, request.getProviders());
         saveHeadquarterAssociations(service, request.getHeadquarterIds());
         return toDto(service);
@@ -87,11 +91,26 @@ public class ServiceServiceImpl implements ServiceService {
     @Transactional
     public ServiceDTO update(UUID id, ServiceDTO request) {
         validateForUpdate(request);
-        ServiceDomain service = findServiceOrThrow(id);
         if (request.getName() != null && serviceRepository.existsByNameIgnoreCaseAndIdNot(request.getName(), id)) {
             throw new IllegalArgumentException("Ya existe un servicio con este nombre");
         }
+        ServiceDomain service = findServiceOrThrow(id);
 
+        applyUpdatableFields(service, request);
+        applyPriceConsistency(service);
+        try {
+            service = serviceRepository.save(service);
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalArgumentException("Ya existe un producto con este nombre");
+        }
+
+        applyProviderChanges(service, request.getProviders());
+        applyHeadquarterChanges(service, request.getHeadquarterIds());
+
+        return toDto(service);
+    }
+
+    private void applyUpdatableFields(ServiceDomain service, ServiceDTO request) {
         if (request.getName() != null) {
             service.setName(request.getName());
         }
@@ -119,6 +138,9 @@ public class ServiceServiceImpl implements ServiceService {
         if (request.getImageUrl() != null) {
             service.setImageUrl(request.getImageUrl());
         }
+    }
+
+    private void applyPriceConsistency(ServiceDomain service) {
         if (Boolean.TRUE.equals(service.getSellable())) {
             if (service.getPrice() == null || service.getPrice() <= 0) {
                 throw new IllegalArgumentException("Un servicio vendible necesita un precio mayor a cero");
@@ -126,23 +148,25 @@ public class ServiceServiceImpl implements ServiceService {
         } else {
             service.setPrice(null);
         }
-        service = serviceRepository.save(service);
+    }
 
+    private void applyProviderChanges(ServiceDomain service, List<AssociatedSupplierDTO> providers) {
         if (Boolean.FALSE.equals(service.getPurchasable())) {
-            if (request.getProviders() != null && !request.getProviders().isEmpty()) {
+            if (providers != null && !providers.isEmpty()) {
                 throw new IllegalArgumentException("Un servicio no comprable (purchasable = false) no puede tener proveedores asociados");
             }
             serviceProviderRepository.deleteByService_Id(service.getId());
-        } else if (request.getProviders() != null) {
+        } else if (providers != null) {
             serviceProviderRepository.deleteByService_Id(service.getId());
-            saveProviderAssociations(service, request.getProviders());
+            saveProviderAssociations(service, providers);
         }
-        if (request.getHeadquarterIds() != null) {
-            serviceHeadquarterRepository.deleteByService_Id(service.getId());
-            saveHeadquarterAssociations(service, request.getHeadquarterIds());
-        }
+    }
 
-        return toDto(service);
+    private void applyHeadquarterChanges(ServiceDomain service, List<UUID> headquarterIds) {
+        if (headquarterIds != null) {
+            serviceHeadquarterRepository.deleteByService_Id(service.getId());
+            saveHeadquarterAssociations(service, headquarterIds);
+        }
     }
 
     @Override
@@ -202,31 +226,8 @@ public class ServiceServiceImpl implements ServiceService {
         if (request.getDescription() != null && request.getDescription().length() > 255) {
             throw new IllegalArgumentException("La descripción no puede superar los 255 caracteres");
         }
-        if (request.getProviders() != null) {
-            Set<UUID> vistos = new HashSet<>();
-            for (AssociatedSupplierDTO supplier : request.getProviders()) {
-                if (supplier.getProviderId() == null) {
-                    throw new IllegalArgumentException("Cada proveedor asociado necesita un providerId");
-                }
-                if (!vistos.add(supplier.getProviderId())) {
-                    throw new IllegalArgumentException("No puedes asociar el mismo proveedor más de una vez en la misma petición");
-                }
-                if (supplier.getReferencePrice() != null && supplier.getReferencePrice() < 0) {
-                    throw new IllegalArgumentException("El precio de referencia no puede ser negativo");
-                }
-            }
-        }
-        if (request.getHeadquarterIds() != null) {
-            Set<UUID> vistasSedes = new HashSet<>();
-            for (UUID hqId : request.getHeadquarterIds()) {
-                if (hqId == null) {
-                    throw new IllegalArgumentException("La lista de sedes no puede contener valores nulos");
-                }
-                if (!vistasSedes.add(hqId)) {
-                    throw new IllegalArgumentException("No puedes repetir la misma sede más de una vez");
-                }
-            }
-        }
+        CatalogValidationUtils.validateProviders(request.getProviders());
+        CatalogValidationUtils.validateNoDuplicateHeadquarters(request.getHeadquarterIds());
     }
 
     private void saveProviderAssociations(ServiceDomain service, List<AssociatedSupplierDTO> providers) {
@@ -255,6 +256,20 @@ public class ServiceServiceImpl implements ServiceService {
     private ServiceDomain findServiceOrThrow(UUID id) {
         return serviceRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Servicio no encontrado: " + id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isActive(UUID id) {
+        ServiceDomain service = findServiceOrThrow(id);
+
+        return Boolean.TRUE.equals(service.getActive());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countActiveServices() {
+        return serviceRepository.countActiveServices();
     }
 
     private ServiceDTO toDto(ServiceDomain service) {

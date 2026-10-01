@@ -1,0 +1,36 @@
+meta {
+  name: Crear una persona SIN CONTRASENA
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/persons
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "{{docSinClave}}",
+    "firstName": "Sin",
+    "lastName": "Clave",
+    "email": "{{correoSinClave}}",
+    "admin": false,
+    "active": true
+  }
+}
+
+script:post-response {
+  test("201 — nace sin contrasena, no puede entrar", () => expect(res.getStatus()).to.equal(201));
+  bru.setVar("sinClaveId", res.getBody().id);
+}
+
+settings {
+  encodeUrl: true
+}

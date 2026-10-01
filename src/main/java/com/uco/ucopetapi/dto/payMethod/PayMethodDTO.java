@@ -17,7 +17,7 @@ public class PayMethodDTO {
         return id;
     }
 
-    private void setId(UUID id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
@@ -25,7 +25,7 @@ public class PayMethodDTO {
         return name;
     }
 
-    private void setName(String name) {
+    public void setName(String name) {
         this.name = name;
     }
 }

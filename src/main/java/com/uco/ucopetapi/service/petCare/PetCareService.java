@@ -19,4 +19,6 @@ public interface PetCareService {
 
     PetCareDto update(UUID id, PetCareDto request);
 
+    PetCareDto complete(UUID petCareId, UUID requestingDoctorId, String summary);
+
 }

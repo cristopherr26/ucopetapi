@@ -3,7 +3,7 @@ package com.uco.ucopetapi.service.pet;
 import com.uco.ucopetapi.domain.pet.PetDomain;
 import com.uco.ucopetapi.dto.pet.PetDTO;
 import com.uco.ucopetapi.exception.BusinessException;
-import com.uco.ucopetapi.repository.healthplan.IHealthPlanRepository;
+import com.uco.ucopetapi.repository.healthPlan.IHealthPlanRepository;
 import com.uco.ucopetapi.repository.headquarter.HeadquarterRepository;
 import com.uco.ucopetapi.repository.pet.IPetRepository;
 import com.uco.ucopetapi.repository.tutorPet.ITutorPetRepository;

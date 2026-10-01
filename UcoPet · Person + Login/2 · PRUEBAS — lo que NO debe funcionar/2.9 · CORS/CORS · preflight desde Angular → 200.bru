@@ -1,0 +1,27 @@
+meta {
+  name: CORS · preflight desde Angular → 200
+  type: http
+  seq: 1
+}
+
+options {
+  url: {{baseUrl}}/persons/login
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: http://localhost:4200
+  Access-Control-Request-Method: POST
+  Access-Control-Request-Headers: content-type
+}
+
+script:post-response {
+  test("200", () => expect(res.getStatus()).to.equal(200));
+  test("autoriza al origen de Angular", () =>
+      expect(res.getHeader('Access-Control-Allow-Origin')).to.eql('http://localhost:4200'));
+}
+
+settings {
+  encodeUrl: true
+}

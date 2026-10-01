@@ -3,6 +3,7 @@ package com.uco.ucopetapi.service.transfer;
 import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
 import com.uco.ucopetapi.domain.person.PersonDomain;
 import com.uco.ucopetapi.domain.transfer.TransferDomain;
+import com.uco.ucopetapi.dto.product.StockDTO;
 import com.uco.ucopetapi.dto.transfers.TransferRequestDTO;
 import com.uco.ucopetapi.dto.transfers.TransferResponseDTO;
 import com.uco.ucopetapi.dto.transfers.TransferResponseDTO.RelatedEntityDTO;
@@ -10,32 +11,34 @@ import com.uco.ucopetapi.dto.transfers.TransferStatus;
 import com.uco.ucopetapi.repository.headquarter.HeadquarterRepository;
 import com.uco.ucopetapi.repository.person.PersonRepository;
 import com.uco.ucopetapi.repository.transfer.ITransferRepository;
+import com.uco.ucopetapi.service.product.StockService;
 import com.uco.ucopetapi.service.transfer.exception.InvalidTransferRequestException;
 import com.uco.ucopetapi.service.transfer.exception.InvalidTransferStateException;
 import com.uco.ucopetapi.service.transfer.exception.TransferNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
-/**
- * TODO integracion pendiente: cuando el modulo de Product exponga un metodo para
- * consultar stock disponible por sede, agregar la validacion en validateStock().
- */
 @Service
 public class TransferService {
 
     private final ITransferRepository transferRepository;
     private final HeadquarterRepository headquarterRepository;
     private final PersonRepository personRepository;
+    private final StockService stockService;
 
     public TransferService(ITransferRepository transferRepository,
                            HeadquarterRepository headquarterRepository,
-                           PersonRepository personRepository) {
+                           PersonRepository personRepository,
+                           StockService stockService) {
         this.transferRepository = transferRepository;
         this.headquarterRepository = headquarterRepository;
         this.personRepository = personRepository;
+        this.stockService = stockService;
     }
 
     public TransferResponseDTO createTransfer(TransferRequestDTO request, UUID performedBy) {
@@ -53,7 +56,7 @@ public class TransferService {
         transfer.setStatus(TransferStatus.PENDING);
         transfer.setObservations(request.observations());
         transfer.setCreatedBy(creator);
-        transfer.setCreatedAt(LocalDateTime.now());
+        transfer.setCreatedAt(LocalDateTime.now(ZoneId.systemDefault()));
 
         return toResponseDTO(transferRepository.save(transfer));
     }
@@ -88,7 +91,7 @@ public class TransferService {
 
         transfer.setStatus(newStatus);
         transfer.setUpdatedBy(getExistingPerson(performedBy));
-        transfer.setUpdatedAt(LocalDateTime.now());
+        transfer.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
 
         return toResponseDTO(transferRepository.save(transfer));
     }
@@ -99,7 +102,7 @@ public class TransferService {
 
         transfer.setStatus(TransferStatus.CANCELLED);
         transfer.setUpdatedBy(getExistingPerson(performedBy));
-        transfer.setUpdatedAt(LocalDateTime.now());
+        transfer.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
 
         transferRepository.save(transfer);
     }
@@ -161,11 +164,20 @@ public class TransferService {
         }
     }
 
-    /**
-     * TODO: conectar con el metodo de stock que va a exponer el modulo de Product.
-     */
     private void validateStock(UUID productId, UUID originHeadquarterId, Integer quantity) {
-        // Placeholder intencional.
+        StockDTO stock;
+        try {
+            stock = stockService.findByProductAndHeadquarter(productId, originHeadquarterId);
+        } catch (NoSuchElementException ex) {
+            throw new InvalidTransferRequestException(ex.getMessage());
+        }
+
+        int available = stock.getQuantity() == null ? 0 : stock.getQuantity();
+        if (available < quantity) {
+            throw new InvalidTransferRequestException(
+                    "No hay suficiente stock del producto en la sede de origen. Disponible: "
+                            + available + ", solicitado: " + quantity);
+        }
     }
 
     private TransferResponseDTO toResponseDTO(TransferDomain transfer) {

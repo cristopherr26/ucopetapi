@@ -1,0 +1,32 @@
+meta {
+  name: Login · Ana: contrasena correcta pero SIN rol → 401
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{correoSinRol}}",
+    "password": "{{claveSinRol}}"
+  }
+}
+
+script:post-response {
+  test("401 — sin rol no hay token", () => expect(res.getStatus()).to.equal(401));
+  test("no devuelve token", () => expect(JSON.stringify(res.getBody())).to.not.include('"token"'));
+  bru.setVar("cuerpoSinRol", JSON.stringify(res.getBody()).replace(/"timestamp":"[^"]*",?/, ''));
+}
+
+settings {
+  encodeUrl: true
+}

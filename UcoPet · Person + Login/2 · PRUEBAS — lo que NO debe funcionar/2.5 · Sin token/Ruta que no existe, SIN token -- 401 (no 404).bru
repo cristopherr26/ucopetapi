@@ -1,0 +1,20 @@
+meta {
+  name: Ruta que no existe, SIN token -> 401 (no 404)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/no-existe-nada
+  body: none
+  auth: none
+}
+
+script:post-response {
+  test('401 — el default es authenticated: ni la ruta se filtra', () =>
+      expect(res.getStatus()).to.equal(401));
+}
+
+settings {
+  encodeUrl: true
+}

@@ -1,0 +1,19 @@
+meta {
+  name: VALIDACION · limpiar la de arriba
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/persons/{{telId}}
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test("204", () => expect(res.getStatus()).to.equal(204));
+}
+
+settings {
+  encodeUrl: true
+}

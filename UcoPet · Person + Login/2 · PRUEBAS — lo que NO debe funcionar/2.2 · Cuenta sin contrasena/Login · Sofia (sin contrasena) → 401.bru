@@ -1,0 +1,38 @@
+meta {
+  name: Login · Sofia (sin contrasena) → 401
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{correoSinClave}}",
+    "password": "loQueSea123"
+  }
+}
+
+script:post-response {
+  test('401 — nacida sin contrasena, no puede entrar', () =>
+      expect(res.getStatus()).to.equal(401));
+  test('y da el MISMO 401 que un correo inexistente', () =>
+      expect(JSON.stringify(res.getBody().status))
+          .to.eql(bru.getVar('cuerpo401')));
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Existe como persona pero tiene password_hash nulo: 'sin acceso al portal' de la pantalla 13 del mockup.
+}

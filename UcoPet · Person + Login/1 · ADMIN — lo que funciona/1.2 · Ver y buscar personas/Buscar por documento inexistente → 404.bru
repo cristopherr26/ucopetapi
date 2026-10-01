@@ -1,0 +1,24 @@
+meta {
+  name: Buscar por documento inexistente → 404
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/persons?documentType=CC&documentNumber=00000000
+  body: none
+  auth: inherit
+}
+
+params:query {
+  documentType: CC
+  documentNumber: 00000000
+}
+
+script:post-response {
+  test("404", () => expect(res.getStatus()).to.equal(404));
+}
+
+settings {
+  encodeUrl: true
+}

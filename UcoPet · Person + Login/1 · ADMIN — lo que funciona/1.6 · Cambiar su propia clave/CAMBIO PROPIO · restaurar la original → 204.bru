@@ -1,0 +1,31 @@
+meta {
+  name: CAMBIO PROPIO · restaurar la original → 204
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/persons/me/password
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "currentPassword": "claveNueva123",
+    "newPassword": "{{adminPassword}}",
+    "confirmPassword": "{{adminPassword}}"
+  }
+}
+
+script:post-response {
+  test("204 — la coleccion queda como estaba", () => expect(res.getStatus()).to.equal(204));
+}
+
+settings {
+  encodeUrl: true
+}

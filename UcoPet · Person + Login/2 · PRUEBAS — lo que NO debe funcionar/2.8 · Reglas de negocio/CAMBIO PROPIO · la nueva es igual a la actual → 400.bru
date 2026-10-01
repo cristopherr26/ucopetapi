@@ -1,0 +1,31 @@
+meta {
+  name: CAMBIO PROPIO · la nueva es igual a la actual → 400
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/persons/me/password
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "currentPassword": "{{adminPassword}}",
+    "newPassword": "{{adminPassword}}",
+    "confirmPassword": "{{adminPassword}}"
+  }
+}
+
+script:post-response {
+  test("400", () => expect(res.getStatus()).to.equal(400));
+}
+
+settings {
+  encodeUrl: true
+}

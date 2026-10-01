@@ -1,0 +1,30 @@
+meta {
+  name: SIN token · cambiar la contrasena del administrador → 401
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/persons/{{adminId}}/password
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "password": "meRobeLaCuenta1"
+  }
+}
+
+script:post-response {
+  test("401 — antes daba 204 y te robabas la cuenta", () =>
+      expect(res.getStatus()).to.equal(401));
+}
+
+settings {
+  encodeUrl: true
+}

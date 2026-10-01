@@ -1,0 +1,51 @@
+meta {
+  name: Login · Carlos (ADMIN) → 200
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{adminEmail}}",
+    "password": "{{adminPassword}}"
+  }
+}
+
+script:post-response {
+  test("200", () => expect(res.getStatus()).to.equal(200));
+  const b = res.getBody();
+  test("trae ADMIN", () => expect(b.roles).to.include("ADMIN"));
+  test("trae personId y fullName", () => {
+      expect(b.personId).to.be.a("string");
+      expect(b.fullName).to.eql("{{adminNombre}}");
+  });
+  
+  // Guarda el token para todas las demas peticiones de la coleccion.
+  bru.setVar('token', res.getBody().token);
+  
+  test('el token es un JWT de 3 partes', () =>
+      expect(res.getBody().token.split('.')).to.have.lengthOf(3));
+  
+  const payload = JSON.parse(atob(res.getBody().token.split('.')[1]));
+  test('el sub es el personId', () =>
+      expect(payload.sub).to.eql(res.getBody().personId));
+  test('trae exp', () => expect(payload.exp).to.be.a('number'));
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  El unico con is_admin=true. Es el unico login que devuelve un rol.
+}

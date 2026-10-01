@@ -1,0 +1,31 @@
+meta {
+  name: CAMBIO PROPIO · la confirmacion no coincide → 400
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/persons/me/password
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "currentPassword": "{{adminPassword}}",
+    "newPassword": "claveNueva123",
+    "confirmPassword": "otraCosa999"
+  }
+}
+
+script:post-response {
+  test("400", () => expect(res.getStatus()).to.equal(400));
+}
+
+settings {
+  encodeUrl: true
+}

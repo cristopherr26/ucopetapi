@@ -1,0 +1,35 @@
+meta {
+  name: ENUMERACION · 1 de 5 con un correo que NO existe
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{correoInventado}}",
+    "password": "loQueSea"
+  }
+}
+
+script:pre-request {
+  const n = Date.now().toString().slice(-9);
+  bru.setVar('correoInventado', 'no.existe.' + n + '@ucopet.com');
+}
+
+script:post-response {
+  test('401', () => expect(res.getStatus()).to.equal(401));
+}
+
+settings {
+  encodeUrl: true
+}

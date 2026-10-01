@@ -1,0 +1,35 @@
+meta {
+  name: ENUM · tipo de documento inventado → 400
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/persons
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "INVENTADO",
+    "documentNumber": "11223344",
+    "firstName": "X",
+    "lastName": "Y",
+    "email": "e1@ucopet.com",
+    "admin": false,
+    "active": true
+  }
+}
+
+script:post-response {
+  test("400 — lo rechaza Jackson, sin @Pattern", () => expect(res.getStatus()).to.equal(400));
+}
+
+settings {
+  encodeUrl: true
+}

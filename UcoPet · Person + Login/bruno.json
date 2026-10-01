@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "UcoPet · Person Naty",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

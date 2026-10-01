@@ -1,0 +1,37 @@
+meta {
+  name: VALIDACION · telefono con formato → 201
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/persons
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "{{docTel2}}",
+    "firstName": "Prueba",
+    "lastName": "Validacion",
+    "email": "tel2+{{docTel2}}@ucopet.com",
+    "phone": "+57 301 5557788",
+    "admin": false,
+    "active": true
+  }
+}
+
+script:post-response {
+  test("201", () => expect(res.getStatus()).to.equal(201));
+  bru.setVar("telId", res.getBody().id);
+}
+
+settings {
+  encodeUrl: true
+}

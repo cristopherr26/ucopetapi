@@ -1,6 +1,8 @@
 package com.uco.ucopetapi.domain.petCare;
 
 import com.uco.ucopetapi.domain.vitalSigns.VitalSignsDomain;
+import com.uco.ucopetapi.crosscutting.helpers.TextHelper;
+import com.uco.ucopetapi.domain.clinical.ClinicalBaseDomain;
 import com.uco.ucopetapi.dto.petCare.PetCareStatus;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -19,7 +21,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "pet_cares")
-public class PetCareDomain {
+public class PetCareDomain extends ClinicalBaseDomain {
 
     @Id
     @Column(nullable = false, updatable = false)
@@ -28,19 +30,16 @@ public class PetCareDomain {
     @Column(name = "episode_id", nullable = false)
     private UUID episodeId;
 
-    @Column(name = "procedure_id")
-    private UUID procedureId;
-
-    @Column(name = "product_id")
-    private UUID productId;
-
     @Column(name = "doctor_id")
     private UUID doctorId;
+
+    @Column(name = "appointment_id", unique = true)
+    private UUID appointmentId;
 
     @Column(name = "attention_date", nullable = false)
     private LocalDateTime attentionDate;
 
-    @Column(name = "description")
+    @Column(name = "description", length = 1000)
     private String description;
 
     @Enumerated(EnumType.STRING)
@@ -53,13 +52,10 @@ public class PetCareDomain {
     public PetCareDomain() {
     }
 
-    public PetCareDomain(final UUID id, final UUID episodeId, final UUID procedureId, final UUID productId,
-                         final UUID doctorId, final LocalDateTime attentionDate, final String description,
+    public PetCareDomain(final UUID id, final UUID episodeId,final UUID doctorId, final LocalDateTime attentionDate, final String description,
                          final PetCareStatus petCareStatus) {
         this.id = id;
         this.episodeId = episodeId;
-        this.procedureId = procedureId;
-        this.productId = productId;
         this.doctorId = doctorId;
         this.attentionDate = attentionDate;
         this.description = description;
@@ -100,28 +96,20 @@ public class PetCareDomain {
         this.episodeId = episodeId;
     }
 
-    public UUID getProcedureId() {
-        return procedureId;
-    }
-
-    public void setProcedureId(UUID procedureId) {
-        this.procedureId = procedureId;
-    }
-
-    public UUID getProductId() {
-        return productId;
-    }
-
-    public void setProductId(UUID productId) {
-        this.productId = productId;
-    }
-
     public UUID getDoctorId() {
         return doctorId;
     }
 
     public void setDoctorId(UUID doctorId) {
         this.doctorId = doctorId;
+    }
+
+    public UUID getAppointmentId() {
+        return appointmentId;
+    }
+
+    public void setAppointmentId(UUID appointmentId) {
+        this.appointmentId = appointmentId;
     }
 
     public LocalDateTime getAttentionDate() {
@@ -154,5 +142,39 @@ public class PetCareDomain {
 
     public void setVitalSigns(List<VitalSignsDomain> vitalSigns) {
         this.vitalSigns = vitalSigns;
+    }
+
+
+    @Override
+    public void validate() {
+        requireNotNull(episodeId, "El episodio de la atención es obligatorio");
+        requireNotNull(attentionDate, "La fecha de la atención es obligatoria");
+        requireMaxLength(description, 1000, "La descripción de la atención no puede superar 1000 caracteres");
+        if (vitalSigns != null) {
+            for (VitalSignsDomain vitalSign : vitalSigns) {
+                vitalSign.validate();
+            }
+        }
+    }
+
+    public boolean isOpen() {
+        return petCareStatus == PetCareStatus.REGISTERED || petCareStatus == PetCareStatus.IN_PROGRESS;
+    }
+
+    public void ensureOpen() {
+        requireState(isOpen(), "Solo se puede operar sobre una atención registrada o en curso");
+    }
+
+    public void complete(final UUID requestingDoctorId, final String summary) {
+        ensureOpen();
+        requireAuthor(doctorId != null && doctorId.equals(requestingDoctorId),
+                "Solo el veterinario que inició la atención puede cerrarla");
+        this.petCareStatus = PetCareStatus.COMPLETED;
+        if (!TextHelper.getDefaultWithTrim(summary).isEmpty()) {
+            String summaryLine = "Resumen: " + summary.trim();
+            this.description = TextHelper.getDefaultWithTrim(description).isEmpty()
+                    ? summaryLine
+                    : description + " " + summaryLine;
+        }
     }
 }

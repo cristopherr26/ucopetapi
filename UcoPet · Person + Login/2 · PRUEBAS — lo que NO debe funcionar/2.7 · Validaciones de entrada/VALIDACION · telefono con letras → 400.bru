@@ -1,0 +1,42 @@
+meta {
+  name: VALIDACION · telefono con letras → 400
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/persons
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "{{docTel1}}",
+    "firstName": "Prueba",
+    "lastName": "Validacion",
+    "email": "tel1+{{docTel1}}@ucopet.com",
+    "phone": "aaaaaa",
+    "admin": false,
+    "active": true
+  }
+}
+
+script:pre-request {
+  const n = Date.now().toString().slice(-7);
+  bru.setVar('docTel1', '61' + n);
+  bru.setVar('docTel2', '62' + n);
+}
+
+script:post-response {
+  test("400", () => expect(res.getStatus()).to.equal(400));
+}
+
+settings {
+  encodeUrl: true
+}

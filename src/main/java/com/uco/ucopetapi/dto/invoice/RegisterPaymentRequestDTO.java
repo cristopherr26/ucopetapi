@@ -1,21 +1,22 @@
 package com.uco.ucopetapi.dto.invoice;
 
-public class RegisterPaymentRequestDTO {
+import com.uco.ucopetapi.crosscutting.helpers.IntHelper;
 
-    private Double amount;
+public final class RegisterPaymentRequestDTO {
+
+    private Integer amount;
 
     public RegisterPaymentRequestDTO() {
+        this.amount = IntHelper.getDefault();
     }
 
-    public RegisterPaymentRequestDTO(Double amount) {
-        this.amount = amount;
+    public RegisterPaymentRequestDTO(Integer amount) {
+        setAmount(amount);
     }
 
-    public Double getAmount() {
-        return amount;
-    }
+    public Integer getAmount() { return amount; }
 
-    public void setAmount(Double amount) {
-        this.amount = amount;
+    public void setAmount(Integer amount) {
+        this.amount = IntHelper.getDefault(amount);
     }
 }

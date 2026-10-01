@@ -41,30 +41,34 @@ public class StockServiceImpl implements StockService {
         if (!productRepository.existsById(productId)) {
             throw new NoSuchElementException("Producto no encontrado: " + productId);
         }
-        HeadquarterDomain headquarter = headquarterRepository.findById(headquarterId)
-                .orElseThrow(() -> new NoSuchElementException("Sede no encontrada: " + headquarterId));
-
-        StockDomain stock = stockRepository.findByProduct_IdAndHeadquarter_Id(productId, headquarterId)
-                .orElse(null);
-
-        if (stock != null) {
-            int newQuantity = stock.getQuantity() + quantity;
-            if (newQuantity < 0) {
-                throw new IllegalStateException(
-                        "La operación dejaría el stock en negativo (actual: " + stock.getQuantity() + ", ajuste: " + quantity + ")");
-            }
-            stock.setQuantity(newQuantity);
-        } else {
-            if (quantity < 0) {
-                throw new IllegalStateException(
-                        "No existe stock de este producto en esta sede; no se puede restar de una cantidad que no existe");
-            }
-            ProductDomain product = entityManager.getReference(ProductDomain.class, productId);
-            stock = new StockDomain(UUID.randomUUID(), product, headquarter, quantity);
+        if (!headquarterRepository.existsById(headquarterId)) {
+            throw new NoSuchElementException("Sede no encontrada: " + headquarterId);
         }
 
-        stock = stockRepository.save(stock);
+        int updatedRows = stockRepository.applyAdjustment(productId, headquarterId, quantity);
+
+        if (updatedRows == 0) {
+            handleZeroRowsUpdated(productId, headquarterId, quantity);
+        }
+
+        StockDomain stock = stockRepository.findByProduct_IdAndHeadquarter_Id(productId, headquarterId)
+                .orElseThrow(() -> new NoSuchElementException("Stock no encontrado tras el ajuste"));
         return toDto(stock);
+    }
+
+    private void handleZeroRowsUpdated(UUID productId, UUID headquarterId, Integer quantity) {
+        boolean existingRow = stockRepository.findByProduct_IdAndHeadquarter_Id(productId, headquarterId).isPresent();
+        if (existingRow) {
+            throw new IllegalStateException("La operación dejaría el stock en negativo");
+        }
+        if (quantity < 0) {
+            throw new IllegalStateException(
+                    "No existe stock de este producto en esta sede; no se puede restar de una cantidad que no existe");
+        }
+        HeadquarterDomain headquarter = headquarterRepository.findById(headquarterId)
+                .orElseThrow(() -> new NoSuchElementException("Sede no encontrada: " + headquarterId));
+        ProductDomain product = entityManager.getReference(ProductDomain.class, productId);
+        stockRepository.save(new StockDomain(UUID.randomUUID(), product, headquarter, quantity));
     }
 
     @Override

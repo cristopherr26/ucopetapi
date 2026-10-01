@@ -1,0 +1,20 @@
+meta {
+  name: Modulo de un companiero, SIN token -> 401
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/pets
+  body: none
+  auth: none
+}
+
+script:post-response {
+  test('401 — desde el 2026-09-07 ya no hay nada abierto', () =>
+      expect(res.getStatus()).to.equal(401));
+}
+
+settings {
+  encodeUrl: true
+}
