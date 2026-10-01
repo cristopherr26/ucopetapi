@@ -3,10 +3,7 @@ package com.uco.ucopetapi.service.pet;
 import com.uco.ucopetapi.domain.pet.PetDomain;
 import com.uco.ucopetapi.dto.pet.PetDTO;
 import com.uco.ucopetapi.exception.BusinessException;
-import com.uco.ucopetapi.repository.healthPlan.IHealthPlanRepository;
-import com.uco.ucopetapi.repository.headquarter.HeadquarterRepository;
 import com.uco.ucopetapi.repository.pet.IPetRepository;
-import com.uco.ucopetapi.repository.tutorPet.ITutorPetRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,9 +17,6 @@ import java.util.UUID;
 public class PetService {
 
     private final IPetRepository iPetRepository;
-    private final ITutorPetRepository iTutorPetRepository;
-    private final HeadquarterRepository headquarterRepository;
-    private final IHealthPlanRepository iHealthPlanRepository;
     private final PetMapper petMapper;
 
     private static final String TEXT_REGEX = "\\S+";
@@ -43,15 +37,8 @@ public class PetService {
 
     private static final ZoneId ZONE_ID = ZoneId.of("America/Bogota");
 
-    public PetService(IPetRepository iPetRepository,
-                      ITutorPetRepository iTutorPetRepository,
-                      HeadquarterRepository headquarterRepository,
-                      IHealthPlanRepository iHealthPlanRepository,
-                      PetMapper petMapper) {
+    public PetService(IPetRepository iPetRepository, PetMapper petMapper) {
         this.iPetRepository = iPetRepository;
-        this.iTutorPetRepository = iTutorPetRepository;
-        this.headquarterRepository = headquarterRepository;
-        this.iHealthPlanRepository = iHealthPlanRepository;
         this.petMapper = petMapper;
     }
 
@@ -69,9 +56,7 @@ public class PetService {
                 isActive
         );
 
-        return domains.stream()
-                .map(petMapper::toDTO)
-                .toList();
+        return petMapper.toDTOList(domains);
     }
 
     public PetDTO getById(UUID id) {
@@ -92,9 +77,7 @@ public class PetService {
                 headquarterId
         );
 
-        return domains.stream()
-                .map(petMapper::toDTO)
-                .toList();
+        return petMapper.toDTOList(domains);
     }
 
     @Transactional
@@ -102,27 +85,13 @@ public class PetService {
 
         validateFields(dto);
 
-        validateTutorExists(dto.getTutorId());
+        validateUUID(dto.getTutorId().toString());
 
-        validateHeadquarterExists(dto.getHeadquarterId());
+        validateUUID(dto.getHeadquarterId().toString());
 
-        validatePolicyExists(dto.getPolicyId());
+        validateUUID(dto.getPolicyId().toString());
 
-        PetDomain pet = new PetDomain();
-
-        pet.setName(dto.getName().trim());
-        pet.setBirthDate(dto.getBirthDate());
-        pet.setBreed(dto.getBreed().trim());
-        pet.setSpecies(dto.getSpecies().trim());
-        pet.setGender(dto.getGender().trim());
-
-        if (dto.getPhotoUrl() != null) {
-            pet.setPhotoUrl(dto.getPhotoUrl().trim());
-        }
-
-        pet.setTutorId(dto.getTutorId());
-        pet.setPolicyId(dto.getPolicyId());
-        pet.setHeadquarterId(dto.getHeadquarterId());
+        PetDomain pet = petMapper.toDomain(dto);
 
         pet.setActive(true);
         pet.setCreatedDate(LocalDateTime.now(ZONE_ID));
@@ -142,11 +111,11 @@ public class PetService {
 
         validateFields(dto);
 
-        validateTutorExists(dto.getTutorId());
+        validateUUID(dto.getTutorId().toString());
 
-        validateHeadquarterExists(dto.getHeadquarterId());
+        validateUUID(dto.getHeadquarterId().toString());
 
-        validatePolicyExists(dto.getPolicyId());
+        validateUUID(dto.getPolicyId().toString());
 
         existingPet.setName(dto.getName().trim());
         existingPet.setBirthDate(dto.getBirthDate());
@@ -357,40 +326,15 @@ public class PetService {
         }
     }
 
-    private void validateTutorExists(UUID tutorId) {
-
-        boolean exists = iTutorPetRepository.existsById(tutorId);
-
-        if (!exists) {
-            throw new BusinessException(
-                    "El tutor especificado no existe en la base de datos."
-            );
-        }
-    }
-
-    private void validateHeadquarterExists(UUID headquarterId) {
-
-        boolean exists = headquarterRepository.existsById(headquarterId);
-
-        if (!exists) {
-            throw new BusinessException(
-                    "La sede especificada no existe en la base de datos."
-            );
-        }
-    }
-
-    private void validatePolicyExists(UUID policyId) {
-
-        if (policyId == null) {
-            return;
+    public UUID validateUUID(String uuid) {
+        if (uuid == null || uuid.trim().isEmpty()) {
+            throw new BusinessException("El ID proporcionado no puede ser nulo o estar vacío.");
         }
 
-        boolean exists = iHealthPlanRepository.existsById(policyId);
-
-        if (!exists) {
-            throw new BusinessException(
-                    "La póliza especificada no existe en la base de datos."
-            );
+        try {
+            return UUID.fromString(uuid);
+        } catch (IllegalArgumentException _) {
+            throw new BusinessException("El tipo de dato proporcionado no es un UUID válido: " + uuid);
         }
     }
 }
