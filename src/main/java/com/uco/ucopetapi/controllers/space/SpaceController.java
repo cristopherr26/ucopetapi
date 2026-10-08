@@ -92,7 +92,7 @@ public class SpaceController {
     }
 
     // 4. PATCH: Actualización clave/valor
-    
+
     @PatchMapping("/{id}")
     public ResponseEntity<SpaceDTO> patchSpace(@PathVariable UUID id, @RequestBody Map<String, Object> updates) {
         Optional<SpaceDomain> domainOut = spaceService.patchSpace(id, updates);
