@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -90,23 +91,11 @@ public class SpaceController {
         return ResponseEntity.ok(new SpaceDTO(updated.getId(), updated.getCode(), updated.getType(), updated.getDescription(), updated.getActive()));
     }
 
-    // 4. PATCH: Desactivar
-    @PatchMapping("/{id}/deactivate")
-    public ResponseEntity<SpaceDTO> deactivateSpace(@PathVariable UUID id) {
-        Optional<SpaceDomain> domainOut = spaceService.changeStatus(id, false);
-
-        if (domainOut.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        SpaceDomain updated = domainOut.get();
-        return ResponseEntity.ok(new SpaceDTO(updated.getId(), updated.getCode(), updated.getType(), updated.getDescription(), updated.getActive()));
-    }
-
-    // 5. PATCH: Activar
-    @PatchMapping("/{id}/activate")
-    public ResponseEntity<SpaceDTO> activateSpace(@PathVariable UUID id) {
-        Optional<SpaceDomain> domainOut = spaceService.changeStatus(id, true);
+    // 4. PATCH: Actualización clave/valor
+    
+    @PatchMapping("/{id}")
+    public ResponseEntity<SpaceDTO> patchSpace(@PathVariable UUID id, @RequestBody Map<String, Object> updates) {
+        Optional<SpaceDomain> domainOut = spaceService.patchSpace(id, updates);
 
         if (domainOut.isEmpty()) {
             return ResponseEntity.notFound().build();
