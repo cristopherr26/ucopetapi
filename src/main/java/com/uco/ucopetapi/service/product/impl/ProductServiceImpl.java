@@ -10,6 +10,7 @@ import com.uco.ucopetapi.repository.provider.ProviderJPARepository;
 import com.uco.ucopetapi.service.product.CatalogValidationUtils;
 import com.uco.ucopetapi.service.product.ProductService;
 import com.uco.ucopetapi.service.product.StockService;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.uco.ucopetapi.domain.product.enums.ProductCategory;
@@ -72,7 +73,12 @@ public class ProductServiceImpl implements ProductService {
                 true,
                 request.getCategory()
         );
-        product = productRepository.save(product);
+
+        try {
+            product = productRepository.save(product);
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalArgumentException("Ya existe un producto con este nombre");
+        }
         saveProviderAssociations(product, request.getProviders());
         return toDto(product, null);
     }
@@ -88,7 +94,11 @@ public class ProductServiceImpl implements ProductService {
 
         applyUpdatableFields(product, request);
         applyPriceConsistency(product);
-        product = productRepository.save(product);
+        try {
+            product = productRepository.save(product);
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalArgumentException("Ya existe un producto con este nombre");
+        }
 
         applyProviderChanges(product, request.getProviders());
 

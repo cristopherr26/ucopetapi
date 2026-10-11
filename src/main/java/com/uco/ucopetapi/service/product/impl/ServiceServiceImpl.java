@@ -12,6 +12,7 @@ import com.uco.ucopetapi.repository.provider.ProviderJPARepository;
 import com.uco.ucopetapi.service.product.CatalogValidationUtils;
 import com.uco.ucopetapi.service.product.ServiceService;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.uco.ucopetapi.domain.product.enums.ServiceCategory;
@@ -76,7 +77,11 @@ public class ServiceServiceImpl implements ServiceService {
                 request.getCategory(),
                 request.getPurchasable()
         );
-        service = serviceRepository.save(service);
+        try {
+            service = serviceRepository.save(service);
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalArgumentException("Ya existe un servicio con este nombre");
+        }
         saveProviderAssociations(service, request.getProviders());
         saveHeadquarterAssociations(service, request.getHeadquarterIds());
         return toDto(service);
@@ -93,7 +98,11 @@ public class ServiceServiceImpl implements ServiceService {
 
         applyUpdatableFields(service, request);
         applyPriceConsistency(service);
-        service = serviceRepository.save(service);
+        try {
+            service = serviceRepository.save(service);
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalArgumentException("Ya existe un producto con este nombre");
+        }
 
         applyProviderChanges(service, request.getProviders());
         applyHeadquarterChanges(service, request.getHeadquarterIds());

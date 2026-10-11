@@ -1,7 +1,9 @@
 package com.uco.ucopetapi.domain.episode;
 
+import com.uco.ucopetapi.domain.clinical.ClinicalBaseDomain;
 import com.uco.ucopetapi.dto.episode.DischargeType;
 import com.uco.ucopetapi.dto.episode.EpisodeStatus;
+import com.uco.ucopetapi.exception.clinical.ClinicalException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -15,7 +17,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "episodes")
-public class EpisodeDomain {
+public class EpisodeDomain extends ClinicalBaseDomain {
 
     @Id
     @Column(nullable = false, updatable = false)
@@ -27,7 +29,7 @@ public class EpisodeDomain {
     @Column(name = "pet_id", nullable = false)
     private UUID pet;
 
-    @Column(name = "description")
+    @Column(name = "description", length = 500)
     private String description;
 
     @Column(name = "start_date", nullable = false)
@@ -151,5 +153,35 @@ public class EpisodeDomain {
 
     public void setDischargeNotes(String dischargeNotes) {
         this.dischargeNotes = dischargeNotes;
+    }
+
+    @Override
+    public void validate() {
+        requireNotNull(pet, "La mascota del episodio es obligatoria");
+        requireNotNull(startDate, "La fecha de inicio del episodio es obligatoria");
+        requireMaxLength(description, 500, "La descripción del episodio no puede superar 500 caracteres");
+        if (episodeStatus == EpisodeStatus.DISCHARGED) {
+            requireNotNull(dischargeType, "El tipo de alta es obligatorio para cerrar el episodio");
+            requireNotNull(dischargeDate, "La fecha de alta es obligatoria");
+            if (dischargeDate.isBefore(startDate)) {
+                throw ClinicalException.badRequest(
+                        "La fecha de alta no puede ser anterior a la fecha de inicio");
+            }
+        }
+    }
+
+    public boolean isOpen() {
+        return episodeStatus == EpisodeStatus.ACTIVE
+                || episodeStatus == EpisodeStatus.IN_OBSERVATION
+                || episodeStatus == EpisodeStatus.HOSPITALIZED;
+    }
+
+    public void discharge(final DischargeType type, final String notes, final LocalDateTime date) {
+        requireState(isOpen(), "Solo se puede dar de alta un episodio abierto");
+        requireNotNull(type, "El tipo de alta es obligatorio para cerrar el episodio");
+        this.episodeStatus = EpisodeStatus.DISCHARGED;
+        this.dischargeType = type;
+        this.dischargeDate = date;
+        this.dischargeNotes = notes;
     }
 }
