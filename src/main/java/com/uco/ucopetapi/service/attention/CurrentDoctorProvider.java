@@ -32,8 +32,6 @@ public class CurrentDoctorProvider {
         if (doctors.isEmpty()) {
             throw ClinicalException.forbidden(NOT_A_VETERINARIAN);
         }
-
-        // TODO(equipo): usar DoctorService.findByPersonId cuando exista.
         DoctorDomain doctor = doctors.getFirst();
         PersonDTO person = personService.findById(personId);
         String fullName = (person.firstName() + " " + person.lastName()).trim();
