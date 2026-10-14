@@ -146,17 +146,17 @@ public class InvoiceController {
         if (invoice.getIssueDate() == null) {
             invoice.setIssueDate(LocalDateTime.now());
         }
-        if (invoice.getPaidAmount() == null) {
-            invoice.setPaidAmount(0.0);
+        if (invoice.getPaidAmount() == null) { //si la cantidad pagada es nula
+            invoice.setPaidAmount(0.0); //se le asigna el valor 0
         }
-        double total = invoice.getTotalAmount() != null ? invoice.getTotalAmount() : 0.0;
-        invoice.setBalance(total - invoice.getPaidAmount());
-        invoice.setStatus(calculateStatus(invoice.getBalance(), total));
-        if (invoice.getItems() == null) {
+        double total = invoice.getTotalAmount() != null ? invoice.getTotalAmount() : 0.0; //si el monto total es nulo se le asigna 0
+        invoice.setBalance(total - invoice.getPaidAmount()); // calculamos el balance agregamos el balance
+        invoice.setStatus(calculateStatus(invoice.getBalance(), total)); // calculamos el estado
+        if (invoice.getItems() == null) {  //inicializa la lista de productos y si no trae productos se crea una lista vacia
             invoice.setItems(new ArrayList<>());
         }
-        invoicesDB.put(invoice.getId(), invoice);
-        return ResponseEntity.status(HttpStatus.CREATED).body(invoice);
+        invoicesDB.put(invoice.getId(), invoice); //guarda la factura
+        return ResponseEntity.status(HttpStatus.CREATED).body(invoice);//devuelve codigo HTTP 201 create
     }
 
     // PUT /api/invoices/{id} -> updateInvoice
@@ -255,12 +255,13 @@ public class InvoiceController {
     }
 
     private InvoiceStatus calculateStatus(double balance, double totalAmount) {
-        if (balance <= 0) {
+        if (balance <= 0) { // pagado: si el saldo pendiente es igual a 0 la factura se considera pagada
             return InvoiceStatus.PAID;
-        } else if (totalAmount > 0 && balance < totalAmount) {
+        } else if (totalAmount > 0 && balance < totalAmount) { // parcialmente pagado: Significa que se ha realizado algún pago, pero aún queda dinero pendiente.
             return InvoiceStatus.PARTIALLY_PAID;
         } else {
-            return InvoiceStatus.PENDING;
+            return InvoiceStatus.PENDING; //pendiente: ocurre cuando no se ha pagado nada
         }
     }
 }
+//metodo para calcular el  estado de la factura
