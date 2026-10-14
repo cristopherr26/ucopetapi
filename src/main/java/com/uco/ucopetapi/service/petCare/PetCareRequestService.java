@@ -114,8 +114,6 @@ public class PetCareRequestService {
         if (!Boolean.TRUE.equals(product.getActive())) {
             throw ClinicalException.badRequest("El producto no está activo");
         }
-        // TODO(equipo): validar categoría de medicamento cuando exista en ProductCategory.
-
         entity.setProductId(product.getId());
         entity.setItemName(product.getName());
     }

@@ -59,6 +59,21 @@ public class PetDomain {
         // // Constructor vacío necesario para crear el objeto.
     }
 
+    public PetDomain(UUID id, String name, LocalDate birthDate,
+                     String breed, String species, String gender,
+                     String photoUrl, UUID tutorId, UUID policyId, boolean isActive, UUID headquarterId) {
+        this.id = id;
+        this.name = name;
+        this.birthDate = birthDate;
+        this.breed = breed;
+        this.species = species;
+        this.gender = gender;
+        this.photoUrl = photoUrl;
+        this.tutorId = tutorId;
+        this.policyId = policyId;
+        this.isActive = isActive;
+        this.headquarterId = headquarterId;
+    }
 
     public UUID getId() {
         return id;

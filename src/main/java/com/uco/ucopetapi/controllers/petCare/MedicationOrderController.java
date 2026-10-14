@@ -30,7 +30,7 @@ public class MedicationOrderController {
     }
 
     @PostMapping("/{petCareId}/medication-orders")
-    @PreAuthorize("hasRole('DOCTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     public ResponseEntity<MedicationOrderDTO> issue(@PathVariable final UUID petCareId,
                                                     @RequestBody final CreateMedicationOrderRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(medicationOrderService.issue(petCareId, request));
@@ -57,7 +57,7 @@ public class MedicationOrderController {
     }
 
     @PatchMapping("/medication-orders/{orderId}/cancel")
-    @PreAuthorize("hasRole('DOCTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     public ResponseEntity<MedicationOrderDTO> cancel(@PathVariable final UUID orderId,
                                                      @RequestBody final CancellationRequest request) {
         return ResponseEntity.ok(medicationOrderService.cancel(orderId, request));
