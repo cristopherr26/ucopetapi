@@ -6,20 +6,13 @@ public class ProcedureProductDTO {
 
     private UUID productId;
 
-    private String productCode;
-
     private Integer quantity;
 
     public ProcedureProductDTO() {
     }
 
-    public ProcedureProductDTO(final String productCode, final Integer quantity) {
-        this(null, productCode, quantity);
-    }
-
-    public ProcedureProductDTO(final UUID productId, final String productCode, final Integer quantity) {
+    public ProcedureProductDTO(final UUID productId, final Integer quantity) {
         setProductId(productId);
-        setProductCode(productCode);
         setQuantity(quantity);
     }
 
@@ -29,14 +22,6 @@ public class ProcedureProductDTO {
 
     public void setProductId(final UUID productId) {
         this.productId = productId;
-    }
-
-    public String getProductCode() {
-        return productCode;
-    }
-
-    public void setProductCode(final String productCode) {
-        this.productCode = productCode;
     }
 
     public Integer getQuantity() {
