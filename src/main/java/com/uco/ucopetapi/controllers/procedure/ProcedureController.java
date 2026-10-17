@@ -2,7 +2,7 @@ package com.uco.ucopetapi.controllers.procedure;
 
 import com.uco.ucopetapi.dto.space.SpaceDTO;
 import com.uco.ucopetapi.dto.procedure.ProcedureDTO;
-import com.uco.ucopetapi.service.procedure.ProcedureService;
+import com.uco.ucopetapi.service.procedure.IProcedureService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,9 +22,9 @@ import java.util.UUID;
 @RequestMapping("/api/v1/procedures")
 public class ProcedureController {
 
-    private final ProcedureService procedureService;
+    private final IProcedureService procedureService;
 
-    public ProcedureController(final ProcedureService procedureService) {
+    public ProcedureController(final IProcedureService procedureService) {
         this.procedureService = procedureService;
     }
 
