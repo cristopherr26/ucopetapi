@@ -17,7 +17,7 @@ public record PersonDTO(
 
         @NotBlank(message = "El numero de documento es obligatorio")
         @Pattern(regexp = "[A-Za-z0-9-]{4,20}",
-                 message = "El numero de documento solo admite letras, numeros y guiones")
+                message = "El numero de documento solo admite letras, numeros y guiones")
         String documentNumber,
 
         @NotBlank(message = "El nombre es obligatorio")
@@ -37,12 +37,12 @@ public record PersonDTO(
 
         @Size(max = 20, message = "El telefono no puede pasar de 20 caracteres")
         @Pattern(regexp = "\\+?[0-9 -]{7,20}|",
-                 message = "El telefono solo admite numeros, espacios, guiones y un + inicial")
+                message = "El telefono solo admite numeros, espacios, guiones y un + inicial")
         String phone,
 
-        boolean admin,
+        Boolean admin,
 
-        boolean active,
+        Boolean active,
 
         Instant deactivatedAt) {
 }

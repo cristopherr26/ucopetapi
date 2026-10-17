@@ -33,7 +33,7 @@ public class JwtService {
         if (secret == null || secret.isBlank()) {
             this.key = Jwts.SIG.HS256.key().build();
             LOG.warn("UCOPET_JWT_SECRET no esta definida. Se genero una key temporal: "
-                    + "los tokens emitidos now NO van a servir despues de reiniciar.");
+                    + "los tokens emitidos ahora NO van a servir despues de reiniciar.");
         } else if (secret.getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalStateException(
                     "UCOPET_JWT_SECRET debe tener al menos 32 caracteres para HS256.");
