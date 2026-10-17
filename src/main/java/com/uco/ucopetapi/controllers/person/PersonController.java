@@ -24,6 +24,7 @@ import com.uco.ucopetapi.dto.person.DocumentTypeDTO;
 import com.uco.ucopetapi.dto.person.LoginRequestDTO;
 import com.uco.ucopetapi.dto.person.LoginResponseDTO;
 import com.uco.ucopetapi.dto.person.PersonDTO;
+import com.uco.ucopetapi.dto.person.Role;
 import com.uco.ucopetapi.dto.person.SetPasswordRequestDTO;
 import com.uco.ucopetapi.service.person.PersonService;
 
@@ -77,8 +78,12 @@ public class PersonController {
     @PreAuthorize("hasRole('ADMIN') or #personId.toString() == authentication.name")
     @PutMapping("/{personId}")
     public ResponseEntity<PersonDTO> update(@PathVariable UUID personId,
-                                            @Valid @RequestBody PersonDTO person) {
-        return new ResponseEntity<>(personService.update(personId, person), HttpStatus.OK);
+                                            @Valid @RequestBody PersonDTO person,
+                                            Authentication authentication) {
+        boolean requestedByAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> Role.ADMIN.authority().equals(a.getAuthority()));
+        return new ResponseEntity<>(personService.update(personId, person, requestedByAdmin),
+                HttpStatus.OK);
     }
 
     @DeleteMapping("/{personId}")
@@ -109,7 +114,7 @@ public class PersonController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-        @PostMapping("/login")
+    @PostMapping("/login")
     public LoginResponseDTO login(@Valid @RequestBody LoginRequestDTO request) {
         return personService.login(request);
     }
