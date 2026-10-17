@@ -13,6 +13,8 @@ import com.uco.ucopetapi.dto.person.DocumentType;
 public interface PersonRepository extends JpaRepository<PersonDomain, UUID> {
     Optional<PersonDomain> findByEmail(String email);
 
+    Optional<PersonDomain> findByEmailIgnoreCase(String email);
+
     long countByAdminTrueAndActiveTrue();
 
     Optional<PersonDomain> findByDocumentTypeAndDocumentNumber(DocumentType documentType, String documentNumber);

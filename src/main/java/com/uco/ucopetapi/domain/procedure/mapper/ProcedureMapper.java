@@ -31,29 +31,13 @@ public class ProcedureMapper {
                 .toList();
     }
 
-    public List<ProcedureProductDomain> toProductDomainList(final List<ProcedureProductDTO> products) {
-        if (products == null) {
-            return List.of();
-        }
-
-        return products.stream()
-                .map(product -> new ProcedureProductDomain(product.getProductId(), clean(product.getProductCode()),
-                        product.getQuantity()))
-                .toList();
-    }
-
     private List<ProcedureProductDTO> toProductDTOList(final List<ProcedureProductDomain> products) {
         if (products == null) {
             return List.of();
         }
 
         return products.stream()
-                .map(product -> new ProcedureProductDTO(product.getProductId(), product.getProductCode(),
-                        product.getQuantity()))
+                .map(item -> new ProcedureProductDTO(item.getProductId(), item.getQuantity()))
                 .toList();
-    }
-
-    private String clean(final String value) {
-        return value == null ? null : value.trim();
     }
 }
