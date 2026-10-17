@@ -38,6 +38,8 @@ dependencies {
 	//Conexión a Rabiit
 	implementation 'org.springframework.boot:spring-boot-starter-amqp'
 	implementation 'com.google.code.gson:gson'
+	implementation 'org.springframework.boot:spring-boot-starter-amqp'
+	implementation 'org.springframework.boot:spring-boot-starter-jackson'
 }
 
 tasks.named('test') {
