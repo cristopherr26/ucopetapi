@@ -2,13 +2,15 @@ package com.uco.ucopetapi.domain.vitalSigns;
 
 import com.uco.ucopetapi.domain.petCare.PetCareDomain;
 import jakarta.persistence.*;
+import com.uco.ucopetapi.domain.clinical.ClinicalBaseDomain;
+import com.uco.ucopetapi.exception.clinical.ClinicalException;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "vital_signs")
-public class VitalSignsDomain {
+public class VitalSignsDomain extends ClinicalBaseDomain {
 
     @Id
     @Column(nullable = false, updatable = false)
@@ -150,5 +152,30 @@ public class VitalSignsDomain {
 
     public void setMeasurementDate(LocalDateTime measurementDate) {
         this.measurementDate = measurementDate;
+    }
+
+
+    @Override
+    public void validate() {
+        // Rangos de referencia: ajustar con el equipo/docente si es necesario.
+        boolean hasMeasurement = temperature != null || heartRate != null || respiratoryRate != null
+                || systolicPressure != null || diastolicPressure != null
+                || weight != null || bodyConditionScore != null;
+        if (!hasMeasurement) {
+            throw ClinicalException.badRequest("Debe registrar al menos una medición de signos vitales");
+        }
+        requireNotNull(measurementDate, "La fecha de la medición es obligatoria");
+        requireRange(temperature, 30, 45, "La temperatura debe estar entre 30 y 45 °C");
+        requireRange(heartRate, 20, 350, "La frecuencia cardiaca debe estar entre 20 y 350");
+        requireRange(respiratoryRate, 5, 150, "La frecuencia respiratoria debe estar entre 5 y 150");
+        requireRange(systolicPressure, 20, 300, "La presión sistólica debe estar entre 20 y 300");
+        requireRange(diastolicPressure, 20, 300, "La presión diastólica debe estar entre 20 y 300");
+        if (weight != null && (weight <= 0 || weight > 200)) {
+            throw ClinicalException.badRequest("El peso debe ser mayor que 0 y hasta 200 kg");
+        }
+        requireRange(bodyConditionScore, 1, 9, "La condición corporal debe estar entre 1 y 9");
+        if (systolicPressure != null && diastolicPressure != null && systolicPressure <= diastolicPressure) {
+            throw ClinicalException.badRequest("La presión sistólica debe ser mayor que la diastólica");
+        }
     }
 }

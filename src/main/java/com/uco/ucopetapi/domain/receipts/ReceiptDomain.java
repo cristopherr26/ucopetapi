@@ -46,18 +46,20 @@ public class ReceiptDomain {
         // required by JPA/Hibernate
     }
 
-    public ReceiptDomain(final UUID id, final String receiptNumber, final UUID tutorId, final UUID petId,
-                         final String concept, final BigDecimal amount, final PayMethodDomain payMethod,
-                         final LocalDateTime date, final ReceiptStatus state) {
-        this.id = id;
-        this.receiptNumber = receiptNumber;
-        this.tutorId = tutorId;
-        this.petId = petId;
-        this.concept = concept;
-        this.amount = amount;
-        this.payMethod = payMethod;
-        this.date = date;
-        this.state = state;
+    private ReceiptDomain(final Builder builder) {
+        this.id = builder.id;
+        this.receiptNumber = builder.receiptNumber;
+        this.tutorId = builder.tutorId;
+        this.petId = builder.petId;
+        this.concept = builder.concept;
+        this.amount = builder.amount;
+        this.payMethod = builder.payMethod;
+        this.date = builder.date;
+        this.state = builder.state;
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public UUID getId() {
@@ -122,5 +124,69 @@ public class ReceiptDomain {
 
     public void setState(final ReceiptStatus state) {
         this.state = state;
+    }
+
+    public static final class Builder {
+        private UUID id;
+        private String receiptNumber;
+        private UUID tutorId;
+        private UUID petId;
+        private String concept;
+        private BigDecimal amount;
+        private PayMethodDomain payMethod;
+        private LocalDateTime date;
+        private ReceiptStatus state;
+
+        private Builder() {
+        }
+
+        public Builder id(final UUID id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder receiptNumber(final String receiptNumber) {
+            this.receiptNumber = receiptNumber;
+            return this;
+        }
+
+        public Builder tutorId(final UUID tutorId) {
+            this.tutorId = tutorId;
+            return this;
+        }
+
+        public Builder petId(final UUID petId) {
+            this.petId = petId;
+            return this;
+        }
+
+        public Builder concept(final String concept) {
+            this.concept = concept;
+            return this;
+        }
+
+        public Builder amount(final BigDecimal amount) {
+            this.amount = amount;
+            return this;
+        }
+
+        public Builder payMethod(final PayMethodDomain payMethod) {
+            this.payMethod = payMethod;
+            return this;
+        }
+
+        public Builder date(final LocalDateTime date) {
+            this.date = date;
+            return this;
+        }
+
+        public Builder state(final ReceiptStatus state) {
+            this.state = state;
+            return this;
+        }
+
+        public ReceiptDomain build() {
+            return new ReceiptDomain(this);
+        }
     }
 }

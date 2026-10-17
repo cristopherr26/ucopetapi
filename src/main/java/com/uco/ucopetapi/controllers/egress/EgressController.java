@@ -28,8 +28,8 @@ public class EgressController {
     @Value("${paymethod.service.url:http://localhost:8080/api/v1/PayMethods/getIdByName}")
     private String payMethodServiceUrl;
 
-    /*@Value("${provider.service.url}")
-    private String providerServiceUrl;*/
+    @Value("${provider.service.url:http://localhost:8080/api/v1/providers/filter}")
+    private String providerServiceUrl;
 
     @Value("${purchaseorder.service.url:http://localhost:8080/api/v1/purchases/lookup}")
     private String purchaseOrderServiceUrl;
@@ -137,9 +137,24 @@ public class EgressController {
         return httpRequest.getHeader("Authorization");
     }
 
-    private UUID getProviderIdByName(String nombre, String authHeader) {
-        // TODO: confirmar el query param real cuando exista el endpoint en Provider (ej. ?providerName=...)
-        throw new UnsupportedOperationException("Integración con el microservicio de Provider pendiente");
+    private UUID getProviderIdByName(String providerName, String authHeader) {
+        if (providerName == null || providerName.isBlank()) {
+            throw new IllegalArgumentException("El campo 'provider' es obligatorio");
+        }
+        try {
+            UUID id = restClient.get()
+                    .uri(providerServiceUrl + "?providerName={providerName}", providerName)
+                    .header("Authorization", authHeader)
+                    .retrieve()
+                    .body(UUID.class);
+
+            if (id == null) {
+                throw new IllegalArgumentException("Proveedor no encontrado: " + providerName);
+            }
+            return id;
+        } catch (HttpClientErrorException.NotFound _) {
+            throw new IllegalArgumentException("Proveedor no encontrado: " + providerName);
+        }
     }
 
     private record PurchaseIdResponse(UUID id) {}

@@ -1,13 +1,18 @@
 package com.uco.ucopetapi.dto.provider;
 
+import com.uco.ucopetapi.dto.person.DocumentType;
+import tools.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.annotation.JsonPOJOBuilder;
+
 import java.util.UUID;
 
+@JsonDeserialize(builder = ProviderDTO.Builder.class)
 public class ProviderDTO {
 
     private UUID id;
     private String providerName;
     private String representName;
-    private UUID idType;
+    private DocumentType idType;
     private String documentNumber;
     private String mobileNumber;
     private String address;
@@ -29,6 +34,7 @@ public class ProviderDTO {
     public static Builder builder() {
         return new Builder();
     }
+
     public UUID getId() {
         return id;
     }
@@ -41,7 +47,7 @@ public class ProviderDTO {
         return representName;
     }
 
-    public UUID getIdType() {
+    public DocumentType getIdType() {
         return idType;
     }
 
@@ -77,6 +83,10 @@ public class ProviderDTO {
         this.documentNumber = documentNumber;
     }
 
+    public void setIdType(DocumentType idType) {
+        this.idType = idType;
+    }
+
     public void setMobileNumber(String mobileNumber) {
         this.mobileNumber = mobileNumber;
     }
@@ -93,11 +103,12 @@ public class ProviderDTO {
         this.isActive = isActive;
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static class Builder {
         private UUID id;
         private String providerName;
         private String representName;
-        private UUID idType;
+        private DocumentType idType;
         private String documentNumber;
         private String mobileNumber;
         private String address;
@@ -122,7 +133,7 @@ public class ProviderDTO {
             return this;
         }
 
-        public Builder idType(UUID idType) {
+        public Builder idType(DocumentType idType) {
             this.idType = idType;
             return this;
         }
@@ -155,5 +166,4 @@ public class ProviderDTO {
         public ProviderDTO build() {
             return new ProviderDTO(this);
         }
-    }
-}
+    }}

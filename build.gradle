@@ -35,6 +35,9 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
 	runtimeOnly 'io.jsonwebtoken:jjwt-gson:0.12.6'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	//Conexión a Rabiit
+	implementation 'org.springframework.boot:spring-boot-starter-amqp'
+	implementation 'com.google.code.gson:gson'
 }
 
 tasks.named('test') {
