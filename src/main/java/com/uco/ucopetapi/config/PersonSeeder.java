@@ -63,9 +63,9 @@ public class PersonSeeder implements CommandLineRunner {
         LOG.info("No habia ningun administrador activo. Se creo el de arranque:");
         LOG.info("   correo:     {}", email);
         LOG.info("   nombre:     {} {}", firstName, lastName);
-        LOG.info("   contrasena: {}", password);
+        LOG.info("   contrasena: la de ucopet.admin.password (si no se definio, la del README)");
         LOG.info("");
-        LOG.info("Es generica y su clave esta en el repositorio: cualquiera que lo lea");
+        LOG.info("La clave por defecto esta en el repositorio: cualquiera que lo lea");
         LOG.info("la sabe. Sirve para arrancar, no como cuenta de trabajo.");
         LOG.info("");
         LOG.info("Que hacer ahora:");
