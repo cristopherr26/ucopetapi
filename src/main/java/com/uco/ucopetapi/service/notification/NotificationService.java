@@ -1,13 +1,18 @@
 package com.uco.ucopetapi.service.notification;
 
-import com.uco.ucopetapi.domain.notificacion.NotificationDomain;
+import com.uco.ucopetapi.domain.notification.NotificationDomain;
 import com.uco.ucopetapi.domain.person.PersonDomain;
 import com.uco.ucopetapi.dto.notification.NotificationDTO;
-import com.uco.ucopetapi.model.notification.enums.NotificationType;
+import com.uco.ucopetapi.dto.notification.NotificationRequest;
+import com.uco.ucopetapi.exception.BusinessException;
+import com.uco.ucopetapi.messaging.notification.MessageSenderBrokerNotification;
 import com.uco.ucopetapi.repository.notification.INotificationRepository;
 import com.uco.ucopetapi.repository.person.PersonRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,26 +21,22 @@ public class NotificationService {
 
     private final INotificationRepository notificationRepository;
     private final PersonRepository personRepository;
-
-    public NotificationService(INotificationRepository notificationRepository, PersonRepository personRepository) {
+    private final MessageSenderBrokerNotification messageSender;
+    public NotificationService(INotificationRepository notificationRepository,
+                               PersonRepository personRepository,
+                               MessageSenderBrokerNotification messageSender) {
         this.notificationRepository = notificationRepository;
         this.personRepository = personRepository;
+        this.messageSender = messageSender;
     }
 
-    public void create(UUID personId, String title, String message,
-                       NotificationType type, UUID referenceId, String referenceType) {
-        PersonDomain person = personRepository.findById(personId)
-                .orElseThrow(() -> new RuntimeException("Person not found: " + personId));
-
-        NotificationDomain notification = new NotificationDomain();
-        notification.setPerson(person);
-        notification.setTitle(title);
-        notification.setMessage(message);
-        notification.setType(type);
-        notification.setReferenceId(referenceId);
-        notification.setReferenceType(referenceType);
-
-        notificationRepository.save(notification);
+    public void create(NotificationRequest request) {
+        PersonDomain person = personRepository.findById(request.getPersonId())
+                .orElseThrow(() -> new BusinessException("La persona no existe"));
+        NotificationDomain notification = NotificationDomain.create(person, request);
+        notification.setId(UUID.randomUUID());
+        notification.setCreatedAt(LocalDateTime.now(ZoneId.of("America/Bogota")));
+        messageSender.sendCreate(notification);
     }
 
     public List<NotificationDTO> getAllByPerson(UUID personId) {
@@ -59,7 +60,7 @@ public class NotificationService {
     @Transactional
     public void markAsRead(UUID notificationId) {
         NotificationDomain notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new RuntimeException("Notification not found: " + notificationId));
+                .orElseThrow(() -> new BusinessException("Notificación no encontrada"));
         notification.markAsRead();
         notificationRepository.save(notification);
     }
@@ -69,8 +70,9 @@ public class NotificationService {
         notificationRepository.markAllAsReadByPersonId(personId);
     }
 
+
     public void delete(UUID notificationId) {
-        notificationRepository.deleteById(notificationId);
+        messageSender.sendDelete(notificationId);
     }
 
     private NotificationDTO toDTO(NotificationDomain n) {
