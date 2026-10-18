@@ -19,11 +19,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
-import com.uco.ucopetapi.domain.product.enums.ProductCategory;
+import com.uco.ucopetapi.domain.product.enums.CatalogCategory;
+import com.uco.ucopetapi.domain.product.enums.CatalogItemType;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
-import com.uco.ucopetapi.dto.product.ProductDTO;
+import com.uco.ucopetapi.dto.product.CatalogItemDTO;
 import com.uco.ucopetapi.repository.headquarter.HeadquarterRepository;
-import com.uco.ucopetapi.repository.product.IProductRepository;
+import com.uco.ucopetapi.repository.product.ICatalogItemRepository;
 import com.uco.ucopetapi.repository.product.IStockRepository;
 
 @SpringBootTest
@@ -33,13 +34,13 @@ class CatalogConcurrencyAuditTest {
     private static final int THREADS = 10;
 
     @Autowired
-    private ProductService productService;
+    private CatalogService catalogService;
 
     @Autowired
     private StockService stockService;
 
     @Autowired
-    private IProductRepository productRepository;
+    private ICatalogItemRepository itemRepository;
 
     @Autowired
     private IStockRepository stockRepository;
@@ -53,15 +54,21 @@ class CatalogConcurrencyAuditTest {
     @AfterEach
     void cleanUp() {
         for (UUID productId : createdProducts) {
-            stockRepository.deleteAll(stockRepository.findByProduct_Id(productId));
-            productRepository.deleteById(productId);
+            stockRepository.deleteAll(stockRepository.findByItem_Id(productId));
+            itemRepository.deleteById(productId);
         }
         headquarterRepository.deleteAllById(createdHeadquarters);
     }
 
-    private static ProductDTO product(String name) {
-        return new ProductDTO(null, name, "auditoria", null, 1000, TaxCategory.STANDARD,
-                true, true, ProductCategory.GENERAL, null, null);
+    private static CatalogItemDTO product(String name) {
+        return CatalogItemDTO.builder()
+                .name(name)
+                .description("auditoria")
+                .price(1000)
+                .taxCategory(TaxCategory.STANDARD)
+                .sellable(true)
+                .category(CatalogCategory.GENERAL)
+                .build();
     }
 
     private static void runTogether(Runnable task) throws InterruptedException {
@@ -85,7 +92,7 @@ class CatalogConcurrencyAuditTest {
         HeadquarterDomain hq = headquarterRepository.save(new HeadquarterDomain(null,
                 "Sede concurrencia " + UUID.randomUUID().toString().substring(0, 8), "Calle 1", true));
         createdHeadquarters.add(hq.getId());
-        ProductDTO created = productService.create(product("Concurrencia " + UUID.randomUUID()));
+        CatalogItemDTO created = catalogService.create(CatalogItemType.PRODUCT, product("Concurrencia " + UUID.randomUUID()));
         createdProducts.add(created.getId());
         stockService.adjustStock(created.getId(), hq.getId(), 1);
 
@@ -106,7 +113,7 @@ class CatalogConcurrencyAuditTest {
         HeadquarterDomain hq = headquarterRepository.save(new HeadquarterDomain(null,
                 "Sede carrera " + UUID.randomUUID().toString().substring(0, 8), "Calle 1", true));
         createdHeadquarters.add(hq.getId());
-        ProductDTO created = productService.create(product("Carrera " + UUID.randomUUID()));
+        CatalogItemDTO created = catalogService.create(CatalogItemType.PRODUCT, product("Carrera " + UUID.randomUUID()));
         createdProducts.add(created.getId());
 
         AtomicInteger succeeded = new AtomicInteger();
@@ -136,7 +143,7 @@ class CatalogConcurrencyAuditTest {
 
         runTogether(() -> {
             try {
-                createdProducts.add(productService.create(product(name)).getId());
+                createdProducts.add(catalogService.create(CatalogItemType.PRODUCT, product(name)).getId());
                 succeeded.incrementAndGet();
             } catch (IllegalArgumentException _) {
                 rejected.incrementAndGet();

@@ -5,13 +5,14 @@ import com.uco.ucopetapi.domain.procedure.ProcedureProductDomain;
 import com.uco.ucopetapi.domain.procedure.mapper.ProcedureMapper;
 import com.uco.ucopetapi.dto.procedure.ProcedureDTO;
 import com.uco.ucopetapi.dto.procedure.ProcedureProductDTO;
-import com.uco.ucopetapi.dto.product.ProductDTO;
+import com.uco.ucopetapi.domain.product.enums.CatalogItemType;
+import com.uco.ucopetapi.dto.product.CatalogItemDTO;
 import com.uco.ucopetapi.dto.space.SpaceDTO;
 import com.uco.ucopetapi.repository.procedure.IProcedureRepository;
 import com.uco.ucopetapi.service.procedure.exception.InvalidProcedureRequestException;
 import com.uco.ucopetapi.service.procedure.exception.ProcedureConflictException;
 import com.uco.ucopetapi.service.procedure.exception.ProcedureNotFoundException;
-import com.uco.ucopetapi.service.product.ProductService;
+import com.uco.ucopetapi.service.product.CatalogService;
 import com.uco.ucopetapi.service.space.SpaceService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,14 +38,14 @@ public class ProcedureService implements IProcedureService {
     private final IProcedureRepository procedureRepository;
     private final SpaceService spaceService;
     private final ProcedureMapper procedureMapper;
-    private final ProductService productService;
+    private final CatalogService catalogService;
 
     public ProcedureService(final IProcedureRepository procedureRepository, final SpaceService spaceService,
-                            final ProcedureMapper procedureMapper, final ProductService productService) {
+                            final ProcedureMapper procedureMapper, final CatalogService catalogService) {
         this.procedureRepository = procedureRepository;
         this.spaceService = spaceService;
         this.procedureMapper = procedureMapper;
-        this.productService = productService;
+        this.catalogService = catalogService;
     }
 
     @Override
@@ -323,9 +324,9 @@ public class ProcedureService implements IProcedureService {
     }
 
     private void validateProductExists(final UUID productId) {
-        final ProductDTO product;
+        final CatalogItemDTO product;
         try {
-            product = productService.getById(productId, null);
+            product = catalogService.getById(CatalogItemType.PRODUCT, productId, null);
         } catch (NoSuchElementException _) {
             throw new InvalidProcedureRequestException("El producto con id " + productId + " no existe");
         }

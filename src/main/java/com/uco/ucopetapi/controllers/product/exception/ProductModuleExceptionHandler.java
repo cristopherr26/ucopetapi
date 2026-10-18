@@ -47,7 +47,7 @@ public class ProductModuleExceptionHandler {
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<Map<String, Object>> handleUnreadableBody(HttpMessageNotReadableException ex) {
+    public ResponseEntity<Map<String, Object>> handleUnreadableBody() {
         return buildResponse(HttpStatus.BAD_REQUEST, "El cuerpo de la peticion no es un JSON valido o tiene un valor no permitido");
     }
 

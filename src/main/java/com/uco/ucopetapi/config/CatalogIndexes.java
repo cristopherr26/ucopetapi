@@ -5,19 +5,23 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityManager;
 
 @Component
+@Order(2)
 public class CatalogIndexes implements CommandLineRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(CatalogIndexes.class);
 
     private static final List<String> STATEMENTS = List.of(
-            "CREATE UNIQUE INDEX IF NOT EXISTS ux_products_lower_name ON products (lower(name))",
-            "CREATE UNIQUE INDEX IF NOT EXISTS ux_services_lower_name ON services (lower(name))");
+            "DROP INDEX IF EXISTS ux_products_lower_name",
+            "DROP INDEX IF EXISTS ux_services_lower_name",
+            "DROP INDEX IF EXISTS ux_catalog_items_lower_name",
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_catalog_name ON products (lower(name))");
 
     private final EntityManager entityManager;
 

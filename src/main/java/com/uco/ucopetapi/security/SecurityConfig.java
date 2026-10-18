@@ -76,7 +76,8 @@ public class SecurityConfig {
     private static final String[] CATALOG = {
         "/api/v1/products", "/api/v1/products/**",
         "/api/v1/services", "/api/v1/services/**",
-        "/api/v1/stock", "/api/v1/stock/**"
+        "/api/v1/stock", "/api/v1/stock/**",
+        "/api/v1/catalog"
     };
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;

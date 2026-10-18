@@ -14,15 +14,15 @@ import java.util.UUID;
 @Repository
 public interface IStockRepository extends JpaRepository<StockDomain, UUID> {
 
-    Optional<StockDomain> findByProduct_IdAndHeadquarter_Id(UUID productId, UUID headquarterId);
+    Optional<StockDomain> findByItem_IdAndHeadquarter_Id(UUID productId, UUID headquarterId);
 
-    List<StockDomain> findByProduct_Id(UUID productId);
+    List<StockDomain> findByItem_Id(UUID productId);
 
-    List<StockDomain> findByProduct_IdInAndHeadquarter_Id(List<UUID> productIds, UUID headquarterId);
+    List<StockDomain> findByItem_IdInAndHeadquarter_Id(List<UUID> productIds, UUID headquarterId);
 
     @Modifying(clearAutomatically = true)
     @Query("UPDATE StockDomain s SET s.quantity = s.quantity + :quantity "
-            + "WHERE s.product.id = :productId AND s.headquarter.id = :headquarterId "
+            + "WHERE s.item.id = :productId AND s.headquarter.id = :headquarterId "
             + "AND s.quantity + :quantity >= 0")
     int addQuantity(@Param("productId") UUID productId,
                     @Param("headquarterId") UUID headquarterId,
@@ -33,7 +33,7 @@ public interface IStockRepository extends JpaRepository<StockDomain, UUID> {
             + "VALUES (:id, :productId, :headquarterId, :quantity) "
             + "ON CONFLICT (product_id, headquarter_id) DO UPDATE "
             + "SET quantity = stocks.quantity + EXCLUDED.quantity", nativeQuery = true)
-    int createOrAddQuantity(@Param("id") UUID id,
+    void createOrAddQuantity(@Param("id") UUID id,
                             @Param("productId") UUID productId,
                             @Param("headquarterId") UUID headquarterId,
                             @Param("quantity") int quantity);

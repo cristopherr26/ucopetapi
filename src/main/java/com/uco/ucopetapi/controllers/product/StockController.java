@@ -1,6 +1,7 @@
 package com.uco.ucopetapi.controllers.product;
 
 import com.uco.ucopetapi.dto.product.AdjustStockRequestDTO;
+import com.uco.ucopetapi.config.InventoryQueueConfig;
 import com.uco.ucopetapi.dto.product.StockDTO;
 import com.uco.ucopetapi.service.product.StockService;
 import org.springframework.http.ResponseEntity;
@@ -14,9 +15,11 @@ import java.util.UUID;
 public class StockController {
 
     private final StockService stockService;
+    private final InventoryQueueConfig queueConfig;
 
-    public StockController(StockService stockService) {
+    public StockController(StockService stockService, InventoryQueueConfig queueConfig) {
         this.stockService = stockService;
+        this.queueConfig = queueConfig;
     }
 
     @GetMapping
@@ -34,6 +37,10 @@ public class StockController {
 
     @PostMapping("/adjust")
     public ResponseEntity<StockDTO> adjust(@RequestBody AdjustStockRequestDTO request) {
+        if (queueConfig.isAsyncWrites()) {
+            stockService.submitAdjust(request.getProductId(), request.getHeadquarterId(), request.getQuantity());
+            return ResponseEntity.accepted().build();
+        }
         return ResponseEntity.ok(stockService.adjustStock(request.getProductId(), request.getHeadquarterId(), request.getQuantity()));
     }
 }

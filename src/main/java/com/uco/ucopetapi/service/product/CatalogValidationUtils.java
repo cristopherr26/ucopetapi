@@ -1,7 +1,5 @@
 package com.uco.ucopetapi.service.product;
 
-import com.uco.ucopetapi.dto.product.AssociatedSupplierDTO;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -31,24 +29,6 @@ public final class CatalogValidationUtils {
     public static void validatePriceOnUpdate(Integer price) {
         if (price != null && price <= 0) {
             throw new IllegalArgumentException("El precio debe ser mayor a cero");
-        }
-    }
-
-    public static void validateProviders(List<AssociatedSupplierDTO> providers) {
-        if (providers == null) {
-            return;
-        }
-        Set<UUID> seen = new HashSet<>();
-        for (AssociatedSupplierDTO supplier : providers) {
-            if (supplier.getProviderId() == null) {
-                throw new IllegalArgumentException("Cada proveedor asociado necesita un providerId");
-            }
-            if (!seen.add(supplier.getProviderId())) {
-                throw new IllegalArgumentException("No puedes asociar el mismo proveedor más de una vez en la misma petición");
-            }
-            if (supplier.getReferencePrice() != null && supplier.getReferencePrice() < 0) {
-                throw new IllegalArgumentException("El precio de referencia no puede ser negativo");
-            }
         }
     }
 

@@ -27,18 +27,22 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.uco.ucopetapi.domain.person.PersonDomain;
-import com.uco.ucopetapi.domain.provider.ProviderDomain;
+import com.uco.ucopetapi.repository.headquarter.HeadquarterRepository;
 import com.uco.ucopetapi.repository.person.PersonRepository;
 import com.uco.ucopetapi.repository.product.IStockRepository;
-import com.uco.ucopetapi.repository.provider.ProviderJPARepository;
-import com.uco.ucopetapi.repository.product.IProductProviderRepository;
-import com.uco.ucopetapi.repository.product.IProductRepository;
-import com.uco.ucopetapi.repository.product.IServiceRepository;
+import com.uco.ucopetapi.repository.product.ICatalogItemRepository;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("API del catalogo: Location y formato de error")
 class CatalogApiIntegrationTest {
+
+    private static final String PRODUCTS = "/api/v1/products";
+    private static final String CONTENT_TYPE = "Content-Type";
 
     private static final String ADMIN = "admin@ucopet.com";
     private static final String ADMIN_PASSWORD = "claveCatalogoPrueba";
@@ -53,26 +57,21 @@ class CatalogApiIntegrationTest {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private IProductRepository productRepository;
+    private ICatalogItemRepository itemRepository;
 
-    @Autowired
-    private IProductProviderRepository productProviderRepository;
-
-    @Autowired
-    private IServiceRepository serviceRepository;
 
     private final HttpClient http = HttpClient.newHttpClient();
     private final List<UUID> createdProducts = new ArrayList<>();
-    private final List<UUID> createdProviders = new ArrayList<>();
     private final List<UUID> createdServices = new ArrayList<>();
+    private final List<UUID> createdHeadquarters = new ArrayList<>();
     @Autowired
     private EntityManagerFactory entityManagerFactory;
 
     @Autowired
-    private ProviderJPARepository providerRepository;
+    private IStockRepository stockRepository;
 
     @Autowired
-    private IStockRepository stockRepository;
+    private HeadquarterRepository headquarterRepository;
 
     private Statistics statistics;
 
@@ -99,19 +98,18 @@ class CatalogApiIntegrationTest {
         admin.setPasswordHash(originalAdminHash);
         personRepository.save(admin);
         for (UUID id : createdProducts) {
-            stockRepository.deleteAll(stockRepository.findByProduct_Id(id));
-            productProviderRepository.deleteAll(productProviderRepository.findByProduct_Id(id));
-            productRepository.deleteById(id);
+            stockRepository.deleteAll(stockRepository.findByItem_Id(id));
+            itemRepository.deleteById(id);
         }
-        serviceRepository.deleteAllById(createdServices);
-        providerRepository.deleteAllById(createdProviders);
+        itemRepository.deleteAllById(createdServices);
+        headquarterRepository.deleteAllById(createdHeadquarters);
     }
 
     @Test
     @DisplayName("crear un producto responde 201 con un Location que lleva al producto")
     void createProduct_returnsLocation() throws Exception {
         String name = "Producto Location " + UUID.randomUUID();
-        HttpResponse<String> created = call("POST", "/api/v1/products",
+        HttpResponse<String> created = call("POST", PRODUCTS,
                 "{\"name\":\"" + name + "\",\"category\":\"GENERAL\",\"taxCategory\":\"STANDARD\","
                         + "\"sellable\":true,\"price\":1000}");
         assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
@@ -119,7 +117,7 @@ class CatalogApiIntegrationTest {
         createdProducts.add(UUID.fromString(id));
 
         String location = created.headers().firstValue("Location").orElse("");
-        assertThat(location).endsWith("/api/v1/products/" + id);
+        assertThat(location).endsWith(PRODUCTS + "/" + id);
 
         HttpResponse<String> fetched = http.send(authorized(HttpRequest.newBuilder(URI.create(location)).GET()),
                 HttpResponse.BodyHandlers.ofString());
@@ -143,12 +141,12 @@ class CatalogApiIntegrationTest {
     @Test
     @DisplayName("un dato invalido responde 400 en JSON, con la forma del resto de la API")
     void validationError_isTeamJson() throws Exception {
-        HttpResponse<String> response = call("POST", "/api/v1/products",
+        HttpResponse<String> response = call("POST", PRODUCTS,
                 "{\"name\":\"Sin precio " + UUID.randomUUID() + "\",\"category\":\"GENERAL\","
                         + "\"taxCategory\":\"STANDARD\",\"sellable\":true}");
 
         assertThat(response.statusCode()).isEqualTo(400);
-        assertThat(response.headers().firstValue("Content-Type").orElse("")).contains("application/json");
+        assertThat(response.headers().firstValue(CONTENT_TYPE).orElse("")).contains("application/json");
         assertThat(response.body()).contains("\"status\":400", "\"error\":\"Bad Request\"", "\"timestamp\"");
         assertThat(field(response.body(), "message")).isEqualTo("Un producto vendible necesita un precio mayor a cero");
     }
@@ -156,10 +154,10 @@ class CatalogApiIntegrationTest {
     @Test
     @DisplayName("un producto que no existe responde 404 en JSON")
     void notFound_isTeamJson() throws Exception {
-        HttpResponse<String> response = call("GET", "/api/v1/products/" + UUID.randomUUID(), null);
+        HttpResponse<String> response = call("GET", PRODUCTS + "/" + UUID.randomUUID(), null);
 
         assertThat(response.statusCode()).isEqualTo(404);
-        assertThat(response.headers().firstValue("Content-Type").orElse("")).contains("application/json");
+        assertThat(response.headers().firstValue(CONTENT_TYPE).orElse("")).contains("application/json");
         assertThat(response.body()).contains("\"status\":404", "\"error\":\"Not Found\"");
         assertThat(field(response.body(), "message")).startsWith("Producto no encontrado");
     }
@@ -167,7 +165,7 @@ class CatalogApiIntegrationTest {
     @Test
     @DisplayName("un enum invalido en el cuerpo responde 400 en JSON, no 500")
     void unreadableBody_isTeamJson() throws Exception {
-        HttpResponse<String> response = call("POST", "/api/v1/products",
+        HttpResponse<String> response = call("POST", PRODUCTS,
                 "{\"name\":\"Enum malo\",\"category\":\"NO_EXISTE\",\"taxCategory\":\"STANDARD\",\"sellable\":false}");
 
         assertThat(response.statusCode()).isEqualTo(400);
@@ -178,43 +176,38 @@ class CatalogApiIntegrationTest {
     @DisplayName("el PUT ya no da de baja ni reactiva: eso es del DELETE")
     void update_cannotChangeActive() throws Exception {
         String name = "Producto Active " + UUID.randomUUID();
-        HttpResponse<String> created = call("POST", "/api/v1/products",
+        HttpResponse<String> created = call("POST", PRODUCTS,
                 "{\"name\":\"" + name + "\",\"category\":\"GENERAL\",\"taxCategory\":\"STANDARD\","
                         + "\"sellable\":true,\"price\":1000}");
         String id = field(created.body(), "id");
         createdProducts.add(UUID.fromString(id));
 
-        HttpResponse<String> ignored = call("PUT", "/api/v1/products/" + id,
+        HttpResponse<String> ignored = call("PUT", PRODUCTS + "/" + id,
                 "{\"active\":false,\"description\":\"sigue viva\"}");
         assertThat(ignored.statusCode()).as(ignored.body()).isEqualTo(200);
         assertThat(ignored.body()).contains("\"active\":true").contains("sigue viva");
 
-        assertThat(call("DELETE", "/api/v1/products/" + id, null).statusCode()).isEqualTo(204);
-        assertThat(call("GET", "/api/v1/products/" + id, null).body()).contains("\"active\":false");
+        assertThat(call("DELETE", PRODUCTS + "/" + id, null).statusCode()).isEqualTo(204);
+        assertThat(call("GET", PRODUCTS + "/" + id, null).body()).contains("\"active\":false");
 
-        HttpResponse<String> notRevived = call("PUT", "/api/v1/products/" + id, "{\"active\":true}");
+        HttpResponse<String> notRevived = call("PUT", PRODUCTS + "/" + id, "{\"active\":true}");
         assertThat(notRevived.statusCode()).as(notRevived.body()).isEqualTo(200);
-        assertThat(call("GET", "/api/v1/products/" + id, null).body()).contains("\"active\":false");
+        assertThat(call("GET", PRODUCTS + "/" + id, null).body()).contains("\"active\":false");
     }
 
     @Test
     @DisplayName("listar con sede no dispara una consulta por producto")
     void listWithHeadquarter_doesNotQueryPerProduct() throws Exception {
-        ProviderDomain provider = providerRepository.save(new ProviderDomain(UUID.randomUUID(),
-                "Proveedor N1 " + UUID.randomUUID().toString().substring(0, 8), "Representante",
-                UUID.randomUUID(), "900" + System.nanoTime() % 1000000, "3000000000",
-                "Calle 1", "n1@ucopet.com", true));
-        createdProviders.add(provider.getId());
         HttpResponse<String> headquarter = call("POST", "/api/v1/headquarter",
                 "{\"name\":\"Sede N+1 " + System.currentTimeMillis() % 100000 + "\",\"address\":\"Calle 1\"}");
         assertThat(headquarter.statusCode()).as(headquarter.body()).isEqualTo(201);
         String headquarterId = field(headquarter.body(), "id");
+        createdHeadquarters.add(UUID.fromString(headquarterId));
 
         for (int i = 0; i < 5; i++) {
-            HttpResponse<String> created = call("POST", "/api/v1/products",
+            HttpResponse<String> created = call("POST", PRODUCTS,
                     "{\"name\":\"Producto N1 " + UUID.randomUUID() + "\",\"category\":\"GENERAL\","
-                            + "\"taxCategory\":\"STANDARD\",\"sellable\":true,\"price\":1000,"
-                            + "\"providers\":[{\"providerId\":\"" + provider.getId() + "\",\"referencePrice\":500}]}");
+                            + "\"taxCategory\":\"STANDARD\",\"sellable\":true,\"price\":1000}");
             String productId = field(created.body(), "id");
             createdProducts.add(UUID.fromString(productId));
             assertThat(call("POST", "/api/v1/stock/adjust",
@@ -232,9 +225,42 @@ class CatalogApiIntegrationTest {
                 .isLessThanOrEqualTo(6);
     }
 
+    @Test
+    @DisplayName("el catalogo mixto lista productos y servicios juntos, por nombre y solo activos")
+    void mixedCatalog_listsBothTypesSortedByName() throws Exception {
+        String tag = UUID.randomUUID().toString().substring(0, 8);
+        String serviceId = field(call("POST", "/api/v1/services",
+                "{\"name\":\"Mixto A " + tag + "\",\"category\":\"GENERAL\",\"taxCategory\":\"STANDARD\","
+                        + "\"sellable\":true,\"price\":1000,\"purchasable\":false}").body(), "id");
+        createdServices.add(UUID.fromString(serviceId));
+        String productId = field(call("POST", PRODUCTS,
+                "{\"name\":\"Mixto B " + tag + "\",\"category\":\"GENERAL\",\"taxCategory\":\"STANDARD\","
+                        + "\"sellable\":true,\"price\":1000}").body(), "id");
+        createdProducts.add(UUID.fromString(productId));
+        String inactiveId = field(call("POST", PRODUCTS,
+                "{\"name\":\"Mixto C " + tag + "\",\"category\":\"GENERAL\",\"taxCategory\":\"STANDARD\","
+                        + "\"sellable\":false}").body(), "id");
+        createdProducts.add(UUID.fromString(inactiveId));
+        assertThat(call("DELETE", PRODUCTS + "/" + inactiveId, null).statusCode()).isEqualTo(204);
+
+        HttpResponse<String> listed = call("GET", "/api/v1/catalog", null);
+        assertThat(listed.statusCode()).as(listed.body()).isEqualTo(200);
+        List<String> mine = new ArrayList<>();
+        for (JsonNode item : new ObjectMapper().readTree(listed.body())) {
+            if (item.get("name").asString().endsWith(tag)) {
+                mine.add(item.get("id").asString() + ":" + item.get("type").asString());
+            }
+        }
+        assertThat(mine).containsExactly(serviceId + ":SERVICE", productId + ":PRODUCT");
+
+        assertThat(call("GET", "/api/v1/catalog?active=false", null).body())
+                .contains(inactiveId)
+                .doesNotContain(serviceId, productId);
+    }
+
     private HttpResponse<String> call(String method, String path, String body) throws Exception {
         HttpRequest.Builder request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
-                .header("Content-Type", "application/json")
+                .header(CONTENT_TYPE, "application/json")
                 .method(method, body == null ? HttpRequest.BodyPublishers.noBody()
                         : HttpRequest.BodyPublishers.ofString(body));
         return http.send(authorized(request), HttpResponse.BodyHandlers.ofString());

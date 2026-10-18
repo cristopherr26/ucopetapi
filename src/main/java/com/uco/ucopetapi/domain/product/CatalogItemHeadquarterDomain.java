@@ -7,7 +7,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "service_headquarters", uniqueConstraints = @UniqueConstraint(columnNames = {"service_id", "headquarter_id"}))
-public class ServiceHeadquarterDomain {
+public class CatalogItemHeadquarterDomain {
 
     @Id
     @Column(nullable = false, updatable = false)
@@ -15,18 +15,18 @@ public class ServiceHeadquarterDomain {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "service_id", nullable = false, updatable = false)
-    private ServiceDomain service;
+    private CatalogItemDomain item;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "headquarter_id", nullable = false, updatable = false)
     private HeadquarterDomain headquarter;
 
-    protected ServiceHeadquarterDomain() {
+    protected CatalogItemHeadquarterDomain() {
     }
 
-    public ServiceHeadquarterDomain(final UUID id, final ServiceDomain service, final HeadquarterDomain headquarter) {
+    public CatalogItemHeadquarterDomain(final UUID id, final CatalogItemDomain item, final HeadquarterDomain headquarter) {
         this.id = id;
-        this.service = service;
+        this.item = item;
         this.headquarter = headquarter;
     }
 
@@ -34,8 +34,8 @@ public class ServiceHeadquarterDomain {
         return id;
     }
 
-    public ServiceDomain getService() {
-        return service;
+    public CatalogItemDomain getItem() {
+        return item;
     }
 
     public HeadquarterDomain getHeadquarter() {

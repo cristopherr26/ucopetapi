@@ -8,11 +8,22 @@ public final class CatalogItems {
     private CatalogItems() {
     }
 
+    public static String normalizeName(String name) {
+        if (name == null) {
+            return null;
+        }
+        String clean = name.strip().replaceAll("\\s+", " ");
+        if (clean.isEmpty()) {
+            return clean;
+        }
+        return Character.toUpperCase(clean.charAt(0)) + clean.substring(1);
+    }
+
     public static void applyCommonFields(CatalogItemDomain item, String name, String description,
                                          String imageUrl, Integer price, TaxCategory taxCategory,
                                          Boolean sellable) {
         if (name != null) {
-            item.setName(name);
+            item.setName(normalizeName(name));
         }
         if (description != null) {
             item.setDescription(description);

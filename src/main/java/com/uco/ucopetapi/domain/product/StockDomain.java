@@ -15,7 +15,7 @@ public class StockDomain {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_id", nullable = false, updatable = false)
-    private ProductDomain product;
+    private CatalogItemDomain item;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "headquarter_id", nullable = false, updatable = false)
@@ -27,10 +27,10 @@ public class StockDomain {
     protected StockDomain() {
     }
 
-    public StockDomain(final UUID id, final ProductDomain product, final HeadquarterDomain headquarter,
+    public StockDomain(final UUID id, final CatalogItemDomain item, final HeadquarterDomain headquarter,
                        final Integer quantity) {
         this.id = id;
-        this.product = product;
+        this.item = item;
         this.headquarter = headquarter;
         this.quantity = quantity;
     }
@@ -39,8 +39,8 @@ public class StockDomain {
         return id;
     }
 
-    public ProductDomain getProduct() {
-        return product;
+    public CatalogItemDomain getItem() {
+        return item;
     }
 
     public HeadquarterDomain getHeadquarter() {

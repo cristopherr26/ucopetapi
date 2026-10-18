@@ -23,13 +23,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.uco.ucopetapi.domain.person.PersonDomain;
 import com.uco.ucopetapi.repository.person.PersonRepository;
-import com.uco.ucopetapi.repository.product.IProductProviderRepository;
-import com.uco.ucopetapi.repository.product.IProductRepository;
+import com.uco.ucopetapi.repository.product.ICatalogItemRepository;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("Auditoria del catalogo: el JSON de verdad, por HTTP")
 class CatalogHttpAuditTest {
+
+    private static final String PRODUCTS = "/api/v1/products";
 
     private static final String ADMIN = "admin@ucopet.com";
     private static final String ADMIN_PASSWORD = "claveAuditoriaCatalogo";
@@ -44,10 +45,7 @@ class CatalogHttpAuditTest {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private IProductRepository productRepository;
-
-    @Autowired
-    private IProductProviderRepository productProviderRepository;
+    private ICatalogItemRepository itemRepository;
 
     private final HttpClient http = HttpClient.newHttpClient();
     private String originalAdminHash;
@@ -72,8 +70,7 @@ class CatalogHttpAuditTest {
     void restore() {
         if (productId != null) {
             UUID id = UUID.fromString(productId);
-            productProviderRepository.deleteAll(productProviderRepository.findByProduct_Id(id));
-            productRepository.deleteById(id);
+            itemRepository.deleteById(id);
         }
         PersonDomain admin = personRepository.findByEmail(ADMIN).orElseThrow();
         admin.setPasswordHash(originalAdminHash);
@@ -100,13 +97,13 @@ class CatalogHttpAuditTest {
     @DisplayName("POST con JSON crea el producto, y un PUT parcial conserva lo que no se mando")
     void jsonRoundTrip() throws Exception {
         String name = "Producto HTTP " + UUID.randomUUID();
-        HttpResponse<String> created = call("POST", "/api/v1/products",
+        HttpResponse<String> created = call("POST", PRODUCTS,
                 "{\"name\":\"" + name + "\",\"category\":\"GENERAL\",\"taxCategory\":\"REDUCED\","
                         + "\"sellable\":true,\"price\":80000}", token);
         assertEquals(201, created.statusCode(), created.body());
         productId = field(created.body(), "id");
 
-        HttpResponse<String> updated = call("PUT", "/api/v1/products/" + productId,
+        HttpResponse<String> updated = call("PUT", PRODUCTS + "/" + productId,
                 "{\"price\":74000}", token);
         assertEquals(200, updated.statusCode(), updated.body());
         assertEquals("74000", field(updated.body(), "price"));
@@ -117,7 +114,7 @@ class CatalogHttpAuditTest {
     @Test
     @DisplayName("Un error de validacion responde 400 con cuerpo JSON, como el resto de la API")
     void validationError_isJson() throws Exception {
-        HttpResponse<String> response = call("POST", "/api/v1/products",
+        HttpResponse<String> response = call("POST", PRODUCTS,
                 "{\"name\":\"Sin precio " + UUID.randomUUID() + "\",\"category\":\"GENERAL\","
                         + "\"taxCategory\":\"STANDARD\",\"sellable\":true}", token);
 
@@ -130,7 +127,7 @@ class CatalogHttpAuditTest {
     @Test
     @DisplayName("Un enum invalido en el JSON responde 400, no 500")
     void invalidEnum_isBadRequest() throws Exception {
-        HttpResponse<String> response = call("POST", "/api/v1/products",
+        HttpResponse<String> response = call("POST", PRODUCTS,
                 "{\"name\":\"Enum malo\",\"category\":\"NO_EXISTE\",\"taxCategory\":\"STANDARD\","
                         + "\"sellable\":false}", token);
 

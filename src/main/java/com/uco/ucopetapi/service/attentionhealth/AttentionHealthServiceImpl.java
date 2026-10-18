@@ -8,7 +8,8 @@ import com.uco.ucopetapi.dto.attentionhealth.AttentionHealthDTO;
 import com.uco.ucopetapi.dto.attentionhealth.AttentionHealthVitalSignsDTO;
 import com.uco.ucopetapi.dto.attentionhealth.AttentionHealthProductDTO;
 import com.uco.ucopetapi.dto.order.OrderDTO;
-import com.uco.ucopetapi.dto.product.ProductDTO;
+import com.uco.ucopetapi.domain.product.enums.CatalogItemType;
+import com.uco.ucopetapi.dto.product.CatalogItemDTO;
 import com.uco.ucopetapi.dto.sale.AddItemSaleRequestDTO;
 import com.uco.ucopetapi.dto.sale.SaleOrderDTO;
 import com.uco.ucopetapi.dto.sale.enums.ItemType;
@@ -16,7 +17,7 @@ import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.repository.attentionhealth.IAttentionHealthRepository;
 import com.uco.ucopetapi.service.headquarter.HeadquarterService;
 import com.uco.ucopetapi.service.order.IOrderService;
-import com.uco.ucopetapi.service.product.ProductService;
+import com.uco.ucopetapi.service.product.CatalogService;
 import com.uco.ucopetapi.service.procedure.ProcedureService;
 import com.uco.ucopetapi.service.sale.ItemSaleService;
 import com.uco.ucopetapi.service.sale.SaleOrderService;
@@ -52,7 +53,7 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
     private final ProcedureService procedureService;
     private final IOrderService orderService;
     private final OrderMapper orderMapper;
-    private final ProductService productService;
+    private final CatalogService catalogService;
     private final HeadquarterService headquarterService;
     private final SaleOrderService saleOrderService;
     private final ItemSaleService itemSaleService;
@@ -61,7 +62,7 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
                                    final ProcedureService procedureService,
                                    final IOrderService orderService,
                                    final OrderMapper orderMapper,
-                                   final ProductService productService,
+                                   final CatalogService catalogService,
                                    final HeadquarterService headquarterService,
                                    final SaleOrderService saleOrderService,
                                    final ItemSaleService itemSaleService) {
@@ -69,7 +70,7 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         this.procedureService = procedureService;
         this.orderService = orderService;
         this.orderMapper = orderMapper;
-        this.productService = productService;
+        this.catalogService = catalogService;
         this.headquarterService = headquarterService;
         this.saleOrderService = saleOrderService;
         this.itemSaleService = itemSaleService;
@@ -304,7 +305,7 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
                 throw new BusinessException("La cantidad del producto debe ser mayor que cero.");
             }
             try {
-                productService.getById(productId, headquarterId);
+                catalogService.getById(CatalogItemType.PRODUCT, productId, headquarterId);
             } catch (RuntimeException _) {
                 throw new BusinessException("El producto " + productId + " no existe.");
             }
@@ -358,7 +359,7 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
 
         for (AttentionHealthProductDomain productReference : attention.getProducts()) {
             UUID productId = productReference.getProductId();
-            ProductDTO product = productService.getById(productId, attention.getHeadquarterId());
+            CatalogItemDTO product = catalogService.getById(CatalogItemType.PRODUCT, productId, attention.getHeadquarterId());
             AddItemSaleRequestDTO item = new AddItemSaleRequestDTO();
             item.setItemId(productId);
             item.setItemType(ItemType.PRODUCTO);

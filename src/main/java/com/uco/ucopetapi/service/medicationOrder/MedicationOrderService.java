@@ -10,14 +10,15 @@ import com.uco.ucopetapi.dto.medicationOrder.MedicationOrderItemRequest;
 import com.uco.ucopetapi.dto.medicationOrder.MedicationOrderSignatureDTO;
 import com.uco.ucopetapi.dto.medicationOrder.MedicationOrderStatus;
 import com.uco.ucopetapi.dto.medicationOrder.SignatureVerificationDTO;
-import com.uco.ucopetapi.dto.product.ProductDTO;
+import com.uco.ucopetapi.domain.product.enums.CatalogItemType;
+import com.uco.ucopetapi.dto.product.CatalogItemDTO;
 import com.uco.ucopetapi.exception.clinical.ClinicalException;
 import com.uco.ucopetapi.repository.medicationOrder.MedicationOrderRepository;
 import com.uco.ucopetapi.service.attention.CurrentDoctor;
 import com.uco.ucopetapi.service.attention.CurrentDoctorProvider;
 import com.uco.ucopetapi.service.attention.OpenPetCare;
 import com.uco.ucopetapi.service.attention.OpenPetCareLoader;
-import com.uco.ucopetapi.service.product.ProductService;
+import com.uco.ucopetapi.service.product.CatalogService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,16 +45,16 @@ public class MedicationOrderService {
     private final MedicationOrderRepository medicationOrderRepository;
     private final CurrentDoctorProvider currentDoctorProvider;
     private final OpenPetCareLoader openPetCareLoader;
-    private final ProductService productService;
+    private final CatalogService catalogService;
 
     public MedicationOrderService(final MedicationOrderRepository medicationOrderRepository,
                                   final CurrentDoctorProvider currentDoctorProvider,
                                   final OpenPetCareLoader openPetCareLoader,
-                                  final ProductService productService) {
+                                  final CatalogService catalogService) {
         this.medicationOrderRepository = medicationOrderRepository;
         this.currentDoctorProvider = currentDoctorProvider;
         this.openPetCareLoader = openPetCareLoader;
-        this.productService = productService;
+        this.catalogService = catalogService;
     }
 
     @Transactional
@@ -141,11 +142,11 @@ public class MedicationOrderService {
             return item;
         }
 
-        ProductDTO product = productService.getById(request.getProductId(), null);
+        CatalogItemDTO product = catalogService.getById(CatalogItemType.PRODUCT, request.getProductId(), null);
         if (!Boolean.TRUE.equals(product.getActive())) {
             throw ClinicalException.badRequest("El producto no está activo");
         }
-        // TODO(equipo): validar categoría de medicamento cuando exista en ProductCategory.
+        // TODO(equipo): validar categoría de medicamento cuando exista en CatalogCategory.
 
         item.setProductId(product.getId());
         item.setProductName(product.getName());

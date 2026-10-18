@@ -1,17 +1,21 @@
 package com.uco.ucopetapi.service.product;
 
 import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
-import com.uco.ucopetapi.domain.product.enums.ProductCategory;
+import com.uco.ucopetapi.domain.product.enums.CatalogCategory;
+import com.uco.ucopetapi.domain.product.enums.CatalogItemType;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
-import com.uco.ucopetapi.dto.product.ProductDTO;
+import com.uco.ucopetapi.dto.product.CatalogItemDTO;
 import com.uco.ucopetapi.dto.product.StockDTO;
 import com.uco.ucopetapi.repository.headquarter.HeadquarterRepository;
+import com.uco.ucopetapi.repository.product.ICatalogItemRepository;
+import com.uco.ucopetapi.repository.product.IStockRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -23,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ProductServiceIntegrationTest {
 
     @Autowired
-    private ProductService productService;
+    private CatalogService catalogService;
 
     @Autowired
     private StockService stockService;
@@ -31,29 +35,42 @@ class ProductServiceIntegrationTest {
     @Autowired
     private HeadquarterRepository headquarterRepository;
 
+    @Autowired
+    private ICatalogItemRepository itemRepository;
+
+    @Autowired
+    private IStockRepository stockRepository;
+
     @Test
     void createProduct_persistsAndCanBeRetrieved() {
-        ProductDTO request = new ProductDTO(
-                null, "Producto de prueba integración", "Descripción de prueba", null,
-                50000, TaxCategory.STANDARD, true, true, ProductCategory.GENERAL, null, null
-        );
+        CatalogItemDTO request = CatalogItemDTO.builder()
+                .name("Producto de prueba integración")
+                .description("Descripción de prueba")
+                .price(50000)
+                .taxCategory(TaxCategory.STANDARD)
+                .sellable(true)
+                .category(CatalogCategory.GENERAL)
+                .build();
 
-        ProductDTO created = productService.create(request);
+        CatalogItemDTO created = catalogService.create(CatalogItemType.PRODUCT, request);
         assertNotNull(created.getId());
 
-        ProductDTO fetched = productService.getById(created.getId(), null);
+        CatalogItemDTO fetched = catalogService.getById(CatalogItemType.PRODUCT, created.getId(), null);
         assertEquals("Producto de prueba integración", fetched.getName());
         assertEquals(50000, fetched.getPrice());
     }
 
     @Test
     void createProduct_sellableWithoutPrice_throwsValidationError() {
-        ProductDTO request = new ProductDTO(
-                null, "Producto sin precio", "Descripción", null,
-                null, TaxCategory.STANDARD, true, true, ProductCategory.GENERAL, null, null
-        );
+        CatalogItemDTO request = CatalogItemDTO.builder()
+                .name("Producto sin precio")
+                .description("Descripción")
+                .taxCategory(TaxCategory.STANDARD)
+                .sellable(true)
+                .category(CatalogCategory.GENERAL)
+                .build();
 
-        assertThrows(IllegalArgumentException.class, () -> productService.create(request));
+        assertThrows(IllegalArgumentException.class, () -> catalogService.create(CatalogItemType.PRODUCT, request));
     }
 
     @Test
@@ -62,11 +79,15 @@ class ProductServiceIntegrationTest {
                 new HeadquarterDomain(null, "Sede de prueba integración", "Dirección de prueba", true)
         );
 
-        ProductDTO request = new ProductDTO(
-                null, "Producto para stock", "Descripción", null,
-                30000, TaxCategory.STANDARD, true, true, ProductCategory.GENERAL, null, null
-        );
-        ProductDTO created = productService.create(request);
+        CatalogItemDTO request = CatalogItemDTO.builder()
+                .name("Producto para stock")
+                .description("Descripción")
+                .price(30000)
+                .taxCategory(TaxCategory.STANDARD)
+                .sellable(true)
+                .category(CatalogCategory.GENERAL)
+                .build();
+        CatalogItemDTO created = catalogService.create(CatalogItemType.PRODUCT, request);
 
         stockService.adjustStock(created.getId(), headquarter.getId(), 20);
         StockDTO afterSecond = stockService.adjustStock(created.getId(), headquarter.getId(), 15);
@@ -80,30 +101,40 @@ class ProductServiceIntegrationTest {
         HeadquarterDomain headquarter = headquarterRepository.save(
                 new HeadquarterDomain(null, "Sede concurrencia", "Direccion de prueba", true)
         );
-        ProductDTO request = new ProductDTO(
-                null, "Producto para concurrencia", "Descripcion", null,
-                10000, TaxCategory.STANDARD, true, true, ProductCategory.GENERAL, null, null
-        );
-        ProductDTO created = productService.create(request);
-        stockService.adjustStock(created.getId(), headquarter.getId(), 100);
+        CatalogItemDTO request = CatalogItemDTO.builder()
+                .name("Producto para concurrencia " + UUID.randomUUID())
+                .description("Descripcion")
+                .price(10000)
+                .taxCategory(TaxCategory.STANDARD)
+                .sellable(true)
+                .category(CatalogCategory.GENERAL)
+                .build();
+        CatalogItemDTO created = catalogService.create(CatalogItemType.PRODUCT, request);
+        try {
+            stockService.adjustStock(created.getId(), headquarter.getId(), 100);
 
-        int hilos = 10;
-        ExecutorService executor = Executors.newFixedThreadPool(hilos);
-        CountDownLatch latch = new CountDownLatch(hilos);
+            int threads = 10;
+            ExecutorService executor = Executors.newFixedThreadPool(threads);
+            CountDownLatch latch = new CountDownLatch(threads);
 
-        for (int i = 0; i < hilos; i++) {
-            executor.submit(() -> {
-                try {
-                    stockService.adjustStock(created.getId(), headquarter.getId(), 1);
-                } finally {
-                    latch.countDown();
-                }
-            });
+            for (int i = 0; i < threads; i++) {
+                executor.submit(() -> {
+                    try {
+                        stockService.adjustStock(created.getId(), headquarter.getId(), 1);
+                    } finally {
+                        latch.countDown();
+                    }
+                });
+            }
+            latch.await();
+            executor.shutdown();
+
+            StockDTO result = stockService.findByProductAndHeadquarter(created.getId(), headquarter.getId());
+            assertEquals(110, result.getQuantity());
+        } finally {
+            stockRepository.deleteAll(stockRepository.findByItem_Id(created.getId()));
+            itemRepository.deleteById(created.getId());
+            headquarterRepository.deleteById(headquarter.getId());
         }
-        latch.await();
-        executor.shutdown();
-
-        StockDTO resultado = stockService.findByProductAndHeadquarter(created.getId(), headquarter.getId());
-        assertEquals(110, resultado.getQuantity());
     }
 }
