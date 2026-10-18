@@ -115,7 +115,7 @@ public class ProviderDTO {
         private String email;
         private boolean isActive;
 
-        private Builder() {
+        public Builder(){
         }
 
         public Builder id(UUID id) {
