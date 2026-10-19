@@ -4,6 +4,7 @@ import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
 import com.uco.ucopetapi.domain.headquarter.mapper.HeadquarterMapper;
 import com.uco.ucopetapi.dto.headquarter.HeadquarterDTO;
 import com.uco.ucopetapi.exception.BusinessException;
+import com.uco.ucopetapi.messaging.headquarter.DeactivateHeadquarterCommand;
 import com.uco.ucopetapi.messaging.headquarter.HeadquarterCommand;
 import com.uco.ucopetapi.messaging.headquarter.SaveHeadquarterCommand;
 import com.uco.ucopetapi.repository.headquarter.HeadquarterRepository;
@@ -61,17 +62,32 @@ public class HeadquarterService {
     }
 
     public HeadquarterDTO updateHeadquarter(UUID id, HeadquarterDTO dto) {
-        
+        HeadquarterDomain existing = headquarterRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(HEADQUARTER_NOT_FOUND_MSG + 1));
+
+        Boolean isActive = dto.getIsActive() == null ? existing.getIsActive() : dto.getIsActive();
+
+        publish(new SaveHeadquarterCommand(
+                id,
+                dto.getName(),
+                dto.getAddress(),
+                isActive,
+                Instant.now()
+        ));
+
+        dto.setId(id);
+        dto.setIsActive(isActive);
+
+        return dto;
     }
 
     public HeadquarterDTO deactivateHeadquarter(UUID id) {
         HeadquarterDomain existing = headquarterRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(HEADQUARTER_NOT_FOUND_MSG + id));
 
-        existing.setIsActive(false);
+        publish(new DeactivateHeadquarterCommand(id, Instant.now()));
 
-        HeadquarterDomain deactivated = headquarterRepository.save(existing);
-        return headquarterMapper.toDTO(deactivated);
+        return headquarterMapper.toDTO(existing);
     }
 
     private void publish(HeadquarterCommand command) {

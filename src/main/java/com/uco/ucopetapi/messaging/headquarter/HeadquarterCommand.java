@@ -6,5 +6,4 @@ import java.util.UUID;
 public sealed interface HeadquarterCommand
         permits SaveHeadquarterCommand, DeactivateHeadquarterCommand{
     UUID headquarterId();
-    Instant occurredAt();
 }

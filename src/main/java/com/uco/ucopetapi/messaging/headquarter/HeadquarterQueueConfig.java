@@ -6,7 +6,7 @@ import org.springframework.context.annotation.PropertySource;
 
 @Configuration
 @PropertySource("classpath:inventory.properties")
-@ConfigurationProperties(prefix = "headquarter")
+@ConfigurationProperties(prefix = "inventory.headquarter")
 public class HeadquarterQueueConfig {
     private Destiny save = new Destiny();
     private Destiny deactivate = new Destiny();
