@@ -31,26 +31,6 @@ public class SaleOrderControllerImpl implements SaleOrderController {
     }
 
     @Override
-    @PostMapping
-    public ResponseEntity<SaleOrderDTO> registerNewSaleOrder(@RequestBody SaleOrderDTO saleOrderDTO) {
-        SaleOrderDTO created = saleOrderService.registerNewSaleOrder(saleOrderDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
-
-    @Override
-    @PutMapping("/{id}")
-    public ResponseEntity<SaleOrderDTO> editExistentSaleOrder(@PathVariable UUID id,
-                                                              @RequestBody SaleOrderDTO saleOrderDTO) {
-        return ResponseEntity.ok(saleOrderService.editExistentSaleOrder(id, saleOrderDTO));
-    }
-
-    @Override
-    @PutMapping("/{id}/cancel")
-    public ResponseEntity<SaleOrderDTO> cancelSaleOrder(@PathVariable UUID id) {
-        return ResponseEntity.ok(saleOrderService.cancelSaleOrder(id));
-    }
-
-    @Override
     @GetMapping
     public ResponseEntity<List<SaleOrderDTO>> findSaleOrderByFilter(
             @RequestParam(required = false) UUID headquarterId,
@@ -82,9 +62,24 @@ public class SaleOrderControllerImpl implements SaleOrderController {
     }
 
     @Override
-    @GetMapping("/all")
-    public ResponseEntity<List<SaleOrderDTO>> findAll() {
-        return ResponseEntity.ok(saleOrderService.findAll());
+    @PostMapping
+    public ResponseEntity<SaleOrderDTO> registerNewSaleOrder(@RequestBody SaleOrderDTO saleOrderDTO) {
+        SaleOrderDTO created = saleOrderService.registerNewSaleOrder(saleOrderDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
+
+    @Override
+    @PutMapping("/{id}")
+    public ResponseEntity<SaleOrderDTO> editExistentSaleOrder(@PathVariable UUID id,
+                                                              @RequestBody SaleOrderDTO saleOrderDTO) {
+        return ResponseEntity.ok(saleOrderService.editExistentSaleOrder(id, saleOrderDTO));
+    }
+
+    @Override
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<SaleOrderDTO> cancelSaleOrder(@PathVariable UUID id) {
+        return ResponseEntity.ok(saleOrderService.cancelSaleOrder(id));
+    }
+
 }
 

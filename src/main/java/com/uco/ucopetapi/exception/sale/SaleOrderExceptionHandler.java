@@ -1,8 +1,5 @@
-package com.uco.ucopetapi.controllers.sale.exception;
+package com.uco.ucopetapi.exception.sale;
 
-import com.uco.ucopetapi.service.sale.exception.SaleOrderNotFoundException;
-import com.uco.ucopetapi.service.sale.exception.SaleOrderStateConflictException;
-import com.uco.ucopetapi.service.sale.exception.SaleOrderValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
