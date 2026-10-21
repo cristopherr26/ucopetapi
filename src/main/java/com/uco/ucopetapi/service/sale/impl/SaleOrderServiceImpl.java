@@ -6,9 +6,9 @@ import com.uco.ucopetapi.dto.sale.SaleOrderDTO;
 import com.uco.ucopetapi.dto.sale.enums.SaleOrderState;
 import com.uco.ucopetapi.repository.sale.SaleOrderRepository;
 import com.uco.ucopetapi.service.sale.SaleOrderService;
-import com.uco.ucopetapi.service.sale.exception.SaleOrderNotFoundException;
-import com.uco.ucopetapi.service.sale.exception.SaleOrderStateConflictException;
-import com.uco.ucopetapi.service.sale.exception.SaleOrderValidationException;
+import com.uco.ucopetapi.exception.sale.SaleOrderNotFoundException;
+import com.uco.ucopetapi.exception.sale.SaleOrderStateConflictException;
+import com.uco.ucopetapi.exception.sale.SaleOrderValidationException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;

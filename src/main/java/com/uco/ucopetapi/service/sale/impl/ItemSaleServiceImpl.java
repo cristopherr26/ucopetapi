@@ -20,9 +20,9 @@ import com.uco.ucopetapi.service.healthPlan.HealthPlanService;
 import com.uco.ucopetapi.service.product.ProductService;
 import com.uco.ucopetapi.service.product.ServiceService;
 import com.uco.ucopetapi.service.sale.ItemSaleService;
-import com.uco.ucopetapi.service.sale.exception.SaleOrderNotFoundException;
-import com.uco.ucopetapi.service.sale.exception.SaleOrderStateConflictException;
-import com.uco.ucopetapi.service.sale.exception.SaleOrderValidationException;
+import com.uco.ucopetapi.exception.sale.SaleOrderNotFoundException;
+import com.uco.ucopetapi.exception.sale.SaleOrderStateConflictException;
+import com.uco.ucopetapi.exception.sale.SaleOrderValidationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

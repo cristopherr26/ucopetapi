@@ -18,6 +18,5 @@ public interface SaleOrderController {
 
     ResponseEntity<List<SaleOrderDTO>> findSaleOrderByFilter(UUID headquarterId, UUID clientID, UUID petId, UUID healthPlanId, String orderNumber, SaleOrderState state, LocalDate dateFrom, LocalDate dateTo);
 
-    ResponseEntity<List<SaleOrderDTO>> findAll();
 }
 
