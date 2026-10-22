@@ -180,6 +180,7 @@ public class HealthPlanService {
                 coverage.getId(),
                 coverage.getHealthPlan() != null ? coverage.getHealthPlan().getId() : null,
                 coverage.getServiceId(),
+                coverage.getProcedureId(),
                 coverage.getCoveragePercentage(),
                 coverage.getCoverageLimit()
         );

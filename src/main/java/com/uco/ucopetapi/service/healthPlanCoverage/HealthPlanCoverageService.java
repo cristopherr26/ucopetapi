@@ -87,6 +87,7 @@ public class HealthPlanCoverageService {
         healthPlanCoverage.setId(UUID.randomUUID());
         healthPlanCoverage.setHealthPlan(healthPlan);
         healthPlanCoverage.setServiceId(dto.getServiceId());
+        healthPlanCoverage.setProcedureId(dto.getProcedureId()); // <-- ¡Asignado aquí!
         healthPlanCoverage.setCoveragePercentage(dto.getCoveragePercentage());
         healthPlanCoverage.setCoverageLimit(dto.getCoverageLimit());
         healthPlanCoverage.setDeleted(false);
@@ -108,6 +109,7 @@ public class HealthPlanCoverageService {
 
         healthPlanCoverage.setCoveragePercentage(dto.getCoveragePercentage());
         healthPlanCoverage.setCoverageLimit(dto.getCoverageLimit());
+        healthPlanCoverage.setProcedureId(dto.getProcedureId()); // <-- ¡Asignado aquí también!
 
         String idMessage = UUID.randomUUID().toString();
         updateSenderBroker.execute(healthPlanCoverage, idMessage);
@@ -130,6 +132,10 @@ public class HealthPlanCoverageService {
 
         if (dto.getCoverageLimit() != null) {
             healthPlanCoverage.setCoverageLimit(dto.getCoverageLimit());
+        }
+
+        if (dto.getProcedureId() != null) { // <-- ¡Agregado para patch!
+            healthPlanCoverage.setProcedureId(dto.getProcedureId());
         }
 
         String idMessage = UUID.randomUUID().toString();
@@ -262,6 +268,7 @@ public class HealthPlanCoverageService {
                 healthPlanCoverage.getId(),
                 healthPlanCoverage.getHealthPlan() != null ? healthPlanCoverage.getHealthPlan().getId() : null,
                 healthPlanCoverage.getServiceId(),
+                healthPlanCoverage.getProcedureId(),
                 healthPlanCoverage.getCoveragePercentage(),
                 healthPlanCoverage.getCoverageLimit()
         );

@@ -7,7 +7,6 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-
 @Entity
 @Table(
         name = "health_plan_coverages",
@@ -17,8 +16,6 @@ import java.util.UUID;
                 )
         }
 )
-
-// Reglas específicas (beneficios) q me genera la membresía (HealthPlan)
 public class HealthPlanCoverageDomain {
 
     @Id
@@ -26,11 +23,14 @@ public class HealthPlanCoverageDomain {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "health_plan_id",  nullable = false)
+    @JoinColumn(name = "health_plan_id", nullable = false)
     private HealthPlanDomain healthPlan;
 
     @Column(name = "service_id", nullable = false)
     private UUID serviceId;
+
+    @Column(name = "procedure_id", nullable = false)
+    private UUID procedureId; // <-- Agregado con su respectiva columna
 
     @Column(nullable = false)
     private Integer coveragePercentage;
@@ -48,14 +48,15 @@ public class HealthPlanCoverageDomain {
             UUID id,
             HealthPlanDomain healthPlan,
             UUID serviceId,
+            UUID procedureId,
             Integer coveragePercentage,
             BigDecimal coverageLimit,
             boolean deleted
     ) {
-
         this.id = id;
         this.healthPlan = healthPlan;
         this.serviceId = serviceId;
+        this.procedureId = procedureId;
         this.coveragePercentage = coveragePercentage;
         this.coverageLimit = coverageLimit;
         this.deleted = deleted;
@@ -85,6 +86,14 @@ public class HealthPlanCoverageDomain {
         this.serviceId = serviceId;
     }
 
+    public UUID getProcedureId() {
+        return procedureId;
+    }
+
+    public void setProcedureId(UUID procedureId) {
+        this.procedureId = procedureId;
+    }
+
     public Integer getCoveragePercentage() {
         return coveragePercentage;
     }
@@ -101,8 +110,11 @@ public class HealthPlanCoverageDomain {
         this.coverageLimit = coverageLimit;
     }
 
-    public boolean isDeleted() {return deleted;}
+    public boolean isDeleted() {
+        return deleted;
+    }
 
-    public void setDeleted(boolean deleted) {this.deleted = deleted;}
-
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
+    }
 }

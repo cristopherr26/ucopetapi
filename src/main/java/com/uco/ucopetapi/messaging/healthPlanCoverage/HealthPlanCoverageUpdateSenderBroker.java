@@ -38,6 +38,7 @@ public class HealthPlanCoverageUpdateSenderBroker implements MessageSender<Healt
         payload.put("id", message.getId());
         payload.put("healthPlanId", message.getHealthPlan() != null ? message.getHealthPlan().getId() : null);
         payload.put("serviceId", message.getServiceId());
+        payload.put("procedureId", message.getProcedureId()); // <-- ¡Agregado aquí también!
         payload.put("coveragePercentage", message.getCoveragePercentage());
         payload.put("coverageLimit", message.getCoverageLimit());
         payload.put("deleted", message.isDeleted());
