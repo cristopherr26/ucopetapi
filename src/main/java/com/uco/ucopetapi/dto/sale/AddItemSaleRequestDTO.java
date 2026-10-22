@@ -2,6 +2,7 @@ package com.uco.ucopetapi.dto.sale;
 
 import com.uco.ucopetapi.dto.sale.enums.ItemType;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public class AddItemSaleRequestDTO {
@@ -9,7 +10,7 @@ public class AddItemSaleRequestDTO {
     private UUID itemId;
     private ItemType itemType;
     private Integer quantity;
-    private Integer unitPrice;
+    private BigDecimal unitPrice;
 
     public AddItemSaleRequestDTO() {
     }
@@ -23,7 +24,7 @@ public class AddItemSaleRequestDTO {
     public Integer getQuantity() { return quantity; }
     public void setQuantity(Integer quantity) { this.quantity = quantity; }
 
-    public Integer getUnitPrice() { return unitPrice; }
-    public void setUnitPrice(Integer unitPrice) { this.unitPrice = unitPrice; }
+    public BigDecimal getUnitPrice() { return unitPrice; }
+    public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
 
 }

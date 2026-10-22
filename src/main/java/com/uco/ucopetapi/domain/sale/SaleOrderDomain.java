@@ -13,6 +13,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import org.springframework.data.domain.Persistable;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -47,16 +48,16 @@ public class SaleOrderDomain implements Persistable<UUID> {
     private UUID healthPlanId;
 
     @Column(name = "subtotal", nullable = false)
-    private Integer subtotal;
+    private BigDecimal subtotal;
 
     @Column(name = "total_discount", nullable = false)
-    private Integer totalDiscount;
+    private BigDecimal totalDiscount;
 
     @Column(name = "total_taxes", nullable = false)
-    private Integer totalTaxes;
+    private BigDecimal totalTaxes;
 
     @Column(name = "total", nullable = false)
-    private Integer total;
+    private BigDecimal total;
 
     @Column(name = "comment", length = 255)
     private String comment;
@@ -73,7 +74,7 @@ public class SaleOrderDomain implements Persistable<UUID> {
         // leer filas de la base de datos. No usar directamente.
     }
 
-    public SaleOrderDomain(UUID id, UUID headquarterId, String orderNumber, LocalDateTime saleDate, UUID clientID, UUID petId, UUID healthPlanId, Integer subtotal, Integer totalDiscount, Integer totalTaxes, Integer total, String comment, SaleOrderState state) {
+    public SaleOrderDomain(UUID id, UUID headquarterId, String orderNumber, LocalDateTime saleDate, UUID clientID, UUID petId, UUID healthPlanId, BigDecimal subtotal, BigDecimal totalDiscount, BigDecimal totalTaxes, BigDecimal total, String comment, SaleOrderState state) {
         setID(id);
         setHeadquarterId(headquarterId);
         setOrderNumber(orderNumber);
@@ -97,10 +98,10 @@ public class SaleOrderDomain implements Persistable<UUID> {
     public UUID getClientID() { return clientID; }
     public UUID getPetId() { return petId; }
     public UUID getHealthPlanId() { return healthPlanId; }
-    public Integer getSubtotal() { return subtotal; }
-    public Integer getTotalDiscount() { return totalDiscount; }
-    public Integer getTotalTaxes() { return totalTaxes; }
-    public Integer getTotal() { return total; }
+    public BigDecimal getSubtotal() { return subtotal; }
+    public BigDecimal getTotalDiscount() { return totalDiscount; }
+    public BigDecimal getTotalTaxes() { return totalTaxes; }
+    public BigDecimal getTotal() { return total; }
     public String getComment() { return comment; }
     public SaleOrderState getState() { return state; }
 
@@ -111,10 +112,10 @@ public class SaleOrderDomain implements Persistable<UUID> {
     public void setClientID(UUID clientID) { this.clientID = clientID; }
     public void setPetId(UUID petId) { this.petId = petId; }
     public void setHealthPlanId(UUID healthPlanId) { this.healthPlanId = healthPlanId; }
-    public void setSubtotal(Integer subtotal) { this.subtotal = subtotal; }
-    public void setTotalDiscount(Integer totalDiscount) { this.totalDiscount = totalDiscount; }
-    public void setTotalTaxes(Integer totalTaxes) { this.totalTaxes = totalTaxes; }
-    public void setTotal(Integer total) { this.total = total; }
+    public void setSubtotal(BigDecimal subtotal) { this.subtotal = subtotal; }
+    public void setTotalDiscount(BigDecimal totalDiscount) { this.totalDiscount = totalDiscount; }
+    public void setTotalTaxes(BigDecimal totalTaxes) { this.totalTaxes = totalTaxes; }
+    public void setTotal(BigDecimal total) { this.total = total; }
     public void setComment(String comment) { this.comment = comment; }
     public void setState(SaleOrderState state) { this.state = state; }
 
