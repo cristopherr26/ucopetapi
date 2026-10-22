@@ -17,6 +17,8 @@ import java.util.UUID;
                 )
         }
 )
+
+// Reglas específicas (beneficios) q me genera la membresía (HealthPlan)
 public class HealthPlanCoverageDomain {
 
     @Id
