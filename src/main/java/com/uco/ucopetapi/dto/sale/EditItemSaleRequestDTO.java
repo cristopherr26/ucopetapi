@@ -1,5 +1,7 @@
 package com.uco.ucopetapi.dto.sale;
 
+import java.math.BigDecimal;
+
 public class EditItemSaleRequestDTO {
 
     private Integer quantity;
@@ -11,6 +13,6 @@ public class EditItemSaleRequestDTO {
     public Integer getQuantity() { return quantity; }
     public void setQuantity(Integer quantity) { this.quantity = quantity; }
 
-    public Integer getUnitPrice() { return unitPrice; }
-    public void setUnitPrice(Integer unitPrice) { this.unitPrice = unitPrice; }
+    public BigDecimal getUnitPrice() { return unitPrice; }
+    public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
 }

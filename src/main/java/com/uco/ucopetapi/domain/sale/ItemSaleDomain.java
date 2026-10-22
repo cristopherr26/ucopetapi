@@ -14,6 +14,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import org.springframework.data.domain.Persistable;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
@@ -40,11 +41,11 @@ public class ItemSaleDomain implements Persistable<UUID> {
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
-    @Column(name = "unit_price", nullable = false)
-    private Integer unitPrice;
+    @Column(name = "unit_price", nullable = false, precision = 15, scale = 2)
+    private BigDecimal unitPrice;
 
-    @Column(name = "subtotal", nullable = false)
-    private Integer subtotal;
+    @Column(name = "subtotal", nullable = false, precision = 15, scale = 2)
+    private BigDecimal subtotal;
 
     @Transient
     private boolean isNew = true;
@@ -55,7 +56,7 @@ public class ItemSaleDomain implements Persistable<UUID> {
     }
 
     public ItemSaleDomain(UUID id, UUID saleOrderId, UUID itemId, ItemType itemType,
-                          TaxCategory taxCategory, Integer quantity, Integer unitPrice, Integer subtotal) {
+                          TaxCategory taxCategory, Integer quantity, BigDecimal unitPrice, BigDecimal subtotal) {
         this.id = id;
         this.saleOrderId = saleOrderId;
         this.itemId = itemId;
@@ -76,11 +77,11 @@ public class ItemSaleDomain implements Persistable<UUID> {
     public Integer getQuantity() { return quantity; }
     public void setQuantity(Integer quantity) { this.quantity = quantity; }
 
-    public Integer getUnitPrice() { return unitPrice; }
-    public void setUnitPrice(Integer unitPrice) { this.unitPrice = unitPrice; }
+    public BigDecimal getUnitPrice() { return unitPrice; }
+    public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
 
-    public Integer getSubtotal() { return subtotal; }
-    public void setSubtotal(Integer subtotal) { this.subtotal = subtotal; }
+    public BigDecimal getSubtotal() { return subtotal; }
+    public void setSubtotal(BigDecimal subtotal) { this.subtotal = subtotal; }
 
     @Override
     public boolean isNew() {

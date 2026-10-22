@@ -8,6 +8,7 @@ import com.uco.ucopetapi.crosscutting.helpers.UUIDHelper;
 import com.uco.ucopetapi.domain.sale.SaleOrderDomain;
 import com.uco.ucopetapi.dto.sale.enums.SaleOrderState;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -19,10 +20,10 @@ public final class SaleOrderDTO {
     private UUID clientID;
     private UUID petId;
     private UUID healthPlanId;
-    private Integer subtotal;
-    private Integer totalDiscount;
-    private Integer totalTaxes;
-    private Integer total;
+    private BigDecimal subtotal;
+    private BigDecimal totalDiscount;
+    private BigDecimal totalTaxes;
+    private BigDecimal total;
     private String comment;
     private SaleOrderState state;
     private static SaleOrderDTO DEFAULT = new SaleOrderDTO();
@@ -39,10 +40,10 @@ public final class SaleOrderDTO {
         this.clientID = UUIDHelper.getUUIDHelper().getDefault();
         this.petId = UUIDHelper.getUUIDHelper().getDefault();
         this.healthPlanId = UUIDHelper.getUUIDHelper().getDefault();
-        this.subtotal = IntHelper.getDefault();
-        this.totalDiscount = IntHelper.getDefault();
-        this.totalTaxes = IntHelper.getDefault();
-        this.total = IntHelper.getDefault();
+        this.subtotal = BigDecimal.valueOf(IntHelper.getDefault());
+        this.totalDiscount = BigDecimal.valueOf(IntHelper.getDefault());
+        this.totalTaxes = BigDecimal.valueOf(IntHelper.getDefault());
+        this.total = BigDecimal.valueOf(IntHelper.getDefault());
         this.comment = TextHelper.getDefault();
         this.state = SaleOrderState.SIN_ESTADO;
     }
@@ -55,10 +56,10 @@ public final class SaleOrderDTO {
         this.clientID = UUIDHelper.getUUIDHelper().getDefault();
         this.petId = UUIDHelper.getUUIDHelper().getDefault();
         this.healthPlanId = UUIDHelper.getUUIDHelper().getDefault();
-        this.subtotal = IntHelper.getDefault();
-        this.totalDiscount = IntHelper.getDefault();
-        this.totalTaxes = IntHelper.getDefault();
-        this.total = IntHelper.getDefault();
+        this.subtotal = BigDecimal.valueOf(IntHelper.getDefault());
+        this.totalDiscount = BigDecimal.valueOf(IntHelper.getDefault());
+        this.totalTaxes = BigDecimal.valueOf(IntHelper.getDefault());
+        this.total = BigDecimal.valueOf(IntHelper.getDefault());
         this.comment = TextHelper.getDefault();
         this.state = SaleOrderState.SIN_ESTADO;
     }
@@ -86,10 +87,10 @@ public final class SaleOrderDTO {
     public UUID getClientID() { return clientID; }
     public UUID getPetId() { return petId; }
     public UUID getHealthPlanId() { return healthPlanId; }
-    public Integer getSubtotal() { return subtotal; }
-    public Integer getTotalDiscount() { return totalDiscount; }
-    public Integer getTotalTaxes() { return totalTaxes; }
-    public Integer getTotal() { return total; }
+    public BigDecimal getSubtotal() { return subtotal; }
+    public BigDecimal getTotalDiscount() { return totalDiscount; }
+    public BigDecimal getTotalTaxes() { return totalTaxes; }
+    public BigDecimal getTotal() { return total; }
     public String getComment() { return comment; }
     public SaleOrderState getState() { return state; }
 
@@ -115,16 +116,16 @@ public final class SaleOrderDTO {
         this.healthPlanId = UUIDHelper.getUUIDHelper().getDefault(healthPlanId);
     }
     public void setSubtotal(Integer subtotal){
-        this.subtotal = IntHelper.getDefault(subtotal);
+        this.subtotal = BigDecimal.valueOf(IntHelper.getDefault(subtotal));
     }
     public void setTotalDiscount(Integer totalDiscount){
-        this.totalDiscount = IntHelper.getDefault(totalDiscount);
+        this.totalDiscount = BigDecimal.valueOf(IntHelper.getDefault(totalDiscount));
     }
     public void setTotalTaxes(Integer totalTaxes){
-        this.totalTaxes = IntHelper.getDefault(totalTaxes);
+        this.totalTaxes = BigDecimal.valueOf(IntHelper.getDefault(totalTaxes));
     }
     public void setTotal(Integer total){
-        this.total = IntHelper.getDefault(total);
+        this.total = BigDecimal.valueOf(IntHelper.getDefault(total));
     }
     public void setComment(String comment){
         this.comment = TextHelper.getDefault(comment);

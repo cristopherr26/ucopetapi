@@ -57,9 +57,12 @@ public class ItemSaleServiceImpl implements ItemSaleService {
         requireBorrador(order);
         validateRequest(request);
         TaxCategory taxCategory = resolveAndValidateCatalogItem(request.getItemId(), request.getItemType(), order.getHeadquarterId());
-        int unitPrice = request.getUnitPrice();
+
+        BigDecimal unitPrice = request.getUnitPrice();
         int quantity = request.getQuantity();
-        int subtotal = unitPrice * quantity;
+        BigDecimal subtotal = unitPrice.multiply(
+                BigDecimal.valueOf(quantity)
+        );
 
         ItemSaleDomain newItem = new ItemSaleDomain(
                 UUID.randomUUID(),
@@ -94,10 +97,17 @@ public class ItemSaleServiceImpl implements ItemSaleService {
         validateEditRequest(request);
 
         int quantity = request.getQuantity();
-        int unitPrice = request.getUnitPrice();
+        BigDecimal unitPrice = request.getUnitPrice();
+
+        BigDecimal subtotal = unitPrice.multiply(
+                BigDecimal.valueOf(quantity)
+        );
+
         item.setQuantity(quantity);
         item.setUnitPrice(unitPrice);
-        item.setSubtotal(quantity * unitPrice);
+        item.setSubtotal(subtotal);
+
+        itemSaleRepository.save(item);
         itemSaleRepository.save(item);
 
         recalculateOrderTotals(order);
@@ -154,7 +164,7 @@ public class ItemSaleServiceImpl implements ItemSaleService {
         if (request.getQuantity() == null || request.getQuantity() <= 0) {
             throw new SaleOrderValidationException("quantity debe ser mayor a 0.");
         }
-        if (request.getUnitPrice() == null || request.getUnitPrice() < 0) {
+        if (request.getUnitPrice() == null || request.getUnitPrice().compareTo(BigDecimal.ZERO)  < 0) {
             throw new SaleOrderValidationException("unitPrice no puede ser negativo.");
         }
     }
@@ -163,7 +173,7 @@ public class ItemSaleServiceImpl implements ItemSaleService {
         if (request.getQuantity() == null || request.getQuantity() <= 0) {
             throw new SaleOrderValidationException("quantity debe ser mayor a 0.");
         }
-        if (request.getUnitPrice() == null || request.getUnitPrice() < 0) {
+        if (request.getUnitPrice() == null || request.getUnitPrice().compareTo(BigDecimal.ZERO)  < 0) {
             throw new SaleOrderValidationException("unitPrice no puede ser negativo.");
         }
     }
@@ -199,46 +209,77 @@ public class ItemSaleServiceImpl implements ItemSaleService {
     }
 
     private void recalculateOrderTotals(SaleOrderDomain order) {
-        List<ItemSaleDomain> items = itemSaleRepository.findBySaleOrderId(order.getId());
+        List<ItemSaleDomain> items =
+                itemSaleRepository.findBySaleOrderId(order.getId());
 
-        int subtotal = 0;
-        int totalTaxes = 0;
+        BigDecimal subtotal = BigDecimal.ZERO;
+        BigDecimal totalTaxes = BigDecimal.ZERO;
 
         for (ItemSaleDomain item : items) {
-            subtotal += item.getSubtotal();
-            totalTaxes += item.getSubtotal() * item.getTaxCategory().getPercentage() / 100;
+            BigDecimal itemSubtotal = item.getSubtotal();
+
+            subtotal = subtotal.add(itemSubtotal);
+
+            BigDecimal taxPercentage = BigDecimal.valueOf(
+                    item.getTaxCategory().getPercentage()
+            );
+
+            BigDecimal itemTaxes = itemSubtotal
+                    .multiply(taxPercentage)
+                    .divide(
+                            BigDecimal.valueOf(100),
+                            2,
+                            RoundingMode.HALF_UP
+                    );
+
+            totalTaxes = totalTaxes.add(itemTaxes);
         }
 
-        int totalDiscount = calculateTotalDiscount(order.getHealthPlanId(), items);
+        BigDecimal totalDiscount = calculateTotalDiscount(
+                order.getHealthPlanId(),
+                items
+        );
+
+        BigDecimal total = subtotal
+                .subtract(totalDiscount)
+                .add(totalTaxes);
 
         order.setSubtotal(subtotal);
         order.setTotalTaxes(totalTaxes);
         order.setTotalDiscount(totalDiscount);
-        order.setTotal(subtotal - totalDiscount + totalTaxes);
+        order.setTotal(total);
     }
 
-    private int calculateTotalDiscount(UUID healthPlanId, List<ItemSaleDomain> items) {
+    private BigDecimal calculateTotalDiscount(UUID healthPlanId, List<ItemSaleDomain> items) {
 
         UUID defaultUUID = UUIDHelper.getUUIDHelper().getDefault();
+
         if (healthPlanId == null || healthPlanId.equals(defaultUUID)) {
-            return 0;
+            return BigDecimal.ZERO;
         }
 
         HealthPlanDTO healthPlan = healthPlanService.findById(healthPlanId);
 
         BigDecimal totalDiscount = BigDecimal.ZERO;
+
         for (ItemSaleDomain item : items) {
             if (item.getItemType() != ItemType.SERVICIO) {
                 continue;
             }
-            HealthPlanCoverageDTO coverage = findCoverageForService(healthPlan, item.getItemId());
+
+            HealthPlanCoverageDTO coverage =
+                    findCoverageForService(healthPlan, item.getItemId());
+
             if (coverage == null) {
                 continue;
             }
-            totalDiscount = totalDiscount.add(calculateLineDiscount(item, coverage));
+
+            totalDiscount = totalDiscount.add(
+                    calculateLineDiscount(item, coverage)
+            );
         }
 
-            return totalDiscount.setScale(0, RoundingMode.HALF_UP).intValue();
+        return totalDiscount.setScale(2, RoundingMode.HALF_UP);
     }
 
     private HealthPlanCoverageDTO findCoverageForService(HealthPlanDTO healthPlan, UUID serviceId) {
@@ -248,12 +289,20 @@ public class ItemSaleServiceImpl implements ItemSaleService {
                 .orElse(null);
     }
 
-    private BigDecimal calculateLineDiscount(ItemSaleDomain item, HealthPlanCoverageDTO coverage) {
-        BigDecimal percentage = BigDecimal.valueOf(coverage.getCoveragePercentage())
-                .divide(BigDecimal.valueOf(100));
-        BigDecimal perUnitDiscount = BigDecimal.valueOf(item.getUnitPrice()).multiply(percentage);
-        BigDecimal cappedPerUnit = perUnitDiscount.min(coverage.getCoverageLimit());
-        return cappedPerUnit.multiply(BigDecimal.valueOf(item.getQuantity()));
+    private BigDecimal calculateLineDiscount(
+            ItemSaleDomain item,
+            HealthPlanCoverageDTO coverage) {
+
+        BigDecimal percentage = BigDecimal.valueOf(
+                coverage.getCoveragePercentage()
+        ).divide(BigDecimal.valueOf(100));
+
+        BigDecimal subtotal = item.getUnitPrice()
+                .multiply(BigDecimal.valueOf(item.getQuantity()));
+
+        BigDecimal calculatedDiscount = subtotal.multiply(percentage);
+
+        return calculatedDiscount.min(coverage.getCoverageLimit());
     }
 
 }
