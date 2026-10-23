@@ -7,6 +7,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,6 +40,7 @@ public class PersonService {
     private static final int ATTEMPTS_TO_LOCK = 5;
     private static final int FIRST_LOCK_MINUTES = 15;
     private static final int SECOND_LOCK_MINUTES = 60;
+    private static final String DUMMY_PASSWORD = "ucopet-clave-de-relleno-para-tiempos";
 
     private final PersonRepository personRepository;
     private final PasswordEncoder passwordEncoder;
@@ -46,18 +48,24 @@ public class PersonService {
     private final UnknownEmailAttempts unknownEmailAttempts;
     private final IDoctorRepository doctorRepository;
     private final ApplicationEventPublisher eventPublisher;
+    // Hash de relleno: cuando no hay contrasena real contra que comparar (correo inexistente o
+    // cuenta sin clave) se compara igual contra este, para que la respuesta tarde lo mismo y
+    // por el tiempo no se pueda adivinar que correos existen.
+    private final String dummyHash;
 
     public PersonService(PersonRepository personRepository,
-                             PasswordEncoder passwordEncoder,
-                             JwtService jwtService,
-                             UnknownEmailAttempts unknownEmailAttempts,
-                          IDoctorRepository doctorRepository, ApplicationEventPublisher eventPublisher) {
+                         PasswordEncoder passwordEncoder,
+                         JwtService jwtService,
+                         UnknownEmailAttempts unknownEmailAttempts,
+                         IDoctorRepository doctorRepository,
+                         ApplicationEventPublisher eventPublisher) {
         this.personRepository = personRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.unknownEmailAttempts = unknownEmailAttempts;
         this.doctorRepository = doctorRepository;
         this.eventPublisher = eventPublisher;
+        this.dummyHash = passwordEncoder.encode(DUMMY_PASSWORD);
     }
 
     @Transactional(readOnly = true)
@@ -75,15 +83,16 @@ public class PersonService {
         return personRepository.findByDocumentTypeAndDocumentNumber(documentType, documentNumber)
                 .map(PersonService::toDTO)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "No existe una person con ese documento"));
+                        "No existe una persona con ese documento"));
     }
 
     @Transactional(readOnly = true)
     public PersonDTO findByEmail(String email) {
-        return personRepository.findByEmail(email)
+        return Optional.ofNullable(normalizeEmail(email))
+                .flatMap(personRepository::findByEmailIgnoreCase)
                 .map(PersonService::toDTO)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "No existe una person con ese correo"));
+                        "No existe una persona con ese correo"));
     }
 
     @Transactional
@@ -92,7 +101,7 @@ public class PersonService {
 
         PersonDomain created = new PersonDomain();
         copyData(person, created);
-        created.setAdmin(person.admin());
+        created.setAdmin(Boolean.TRUE.equals(person.admin()));
         created.setActive(true);
 
         return toDTO(saveOrConflict(created));
@@ -100,15 +109,19 @@ public class PersonService {
 
     @Transactional
     public PersonDTO update(UUID personId, PersonDTO person) {
+        return update(personId, person, true);
+    }
+
+    @Transactional
+    public PersonDTO update(UUID personId, PersonDTO person, boolean requestedByAdmin) {
         PersonDomain current = findOrThrow(personId);
         validateUniqueness(person, personId);
 
         copyData(person, current);
-        if (!person.active()) {
-            validateNotLastAdmin(current);
+        if (requestedByAdmin) {
+            applyAdminFlag(current, person.admin());
+            applyActiveFlag(current, person.active());
         }
-        current.setActive(person.active());
-        syncDeactivation(current);
 
         return toDTO(saveOrConflict(current));
     }
@@ -164,8 +177,9 @@ public class PersonService {
     }
 
     public LoginResponseDTO login(LoginRequestDTO request) {
-        Optional<PersonDomain> found = personRepository.findByEmail(request.email());
+        Optional<PersonDomain> found = personRepository.findByEmailIgnoreCase(normalizeEmail(request.email()));
         if (found.isEmpty()) {
+            passwordEncoder.matches(request.password(), dummyHash);
             Instant until = unknownEmailAttempts.lockedUntil(request.email());
             if (until != null) {
                 throw new ResponseStatusException(HttpStatus.LOCKED, lockMessage(until));
@@ -183,7 +197,8 @@ public class PersonService {
                     lockMessage(person.getLockedUntil()));
         }
 
-        if (!person.isActive() || !passwordMatches(request.password(), person.getPasswordHash())) {
+        boolean passwordOk = passwordMatches(request.password(), person.getPasswordHash());
+        if (!person.isActive() || !passwordOk) {
             registerFailure(person);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, INVALID_CREDENTIALS);
         }
@@ -214,7 +229,7 @@ public class PersonService {
         hacia.setDocumentNumber(desde.documentNumber());
         hacia.setFirstName(desde.firstName());
         hacia.setLastName(desde.lastName());
-        hacia.setEmail(desde.email());
+        hacia.setEmail(normalizeEmail(desde.email()));
         hacia.setAddress(desde.address());
         hacia.setPhone(desde.phone());
     }
@@ -223,9 +238,32 @@ public class PersonService {
         if (person.isAdmin() && person.isActive()
                 && personRepository.countByAdminTrueAndActiveTrue() <= 1) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "No se puede dar de baja al unico administrador activo. "
-                            + "Primero hay que darle el rol a otra person.");
+                    "No se puede dejar el sistema sin administradores activos. "
+                            + "Primero hay que darle el rol ADMIN a otra persona.");
         }
+    }
+
+    // null = el campo no vino en el JSON: no se cambia nada.
+    private void applyActiveFlag(PersonDomain current, Boolean active) {
+        if (active == null || active.booleanValue() == current.isActive()) {
+            return;
+        }
+        if (!active) {
+            validateNotLastAdmin(current);
+        }
+        current.setActive(active);
+        syncDeactivation(current);
+    }
+
+    private void applyAdminFlag(PersonDomain current, Boolean admin) {
+        if (admin == null || admin.booleanValue() == current.isAdmin()) {
+            return;
+        }
+        if (!admin) {
+            validateNotLastAdmin(current);
+        }
+        current.setAdmin(admin);
+        current.setTokenVersion(current.getTokenVersion() + 1);
     }
 
     private boolean isLocked(PersonDomain person) {
@@ -287,17 +325,22 @@ public class PersonService {
         return roles;
     }
 
-    private boolean passwordMatches(String raw, String almacenada) {
-        return almacenada != null && passwordEncoder.matches(raw, almacenada);
+    private boolean passwordMatches(String raw, String stored) {
+        if (stored == null) {
+            passwordEncoder.matches(raw, dummyHash);
+            return false;
+        }
+        return passwordEncoder.matches(raw, stored);
     }
 
     private void validateUniqueness(PersonDTO person, UUID personId) {
-        if (person.email() != null && !person.email().isBlank()) {
-            personRepository.findByEmail(person.email())
+        String email = normalizeEmail(person.email());
+        if (email != null) {
+            personRepository.findByEmailIgnoreCase(email)
                     .filter(otra -> !otra.getId().equals(personId))
                     .ifPresent(_ -> {
                         throw new ResponseStatusException(HttpStatus.CONFLICT,
-                                "Ya hay una person registrada con ese correo");
+                                "Ya hay una persona registrada con ese correo");
                     });
         }
         personRepository.findByDocumentTypeAndDocumentNumber(
@@ -305,7 +348,7 @@ public class PersonService {
                 .filter(otra -> !otra.getId().equals(personId))
                 .ifPresent(_ -> {
                     throw new ResponseStatusException(HttpStatus.CONFLICT,
-                            "Ya hay una person registrada con ese documento");
+                            "Ya hay una persona registrada con ese documento");
                 });
     }
 
@@ -321,7 +364,14 @@ public class PersonService {
     private PersonDomain findOrThrow(UUID personId) {
         return personRepository.findById(personId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "No existe una person con ese id"));
+                        "No existe una persona con ese id"));
+    }
+
+    private static String normalizeEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return null;
+        }
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 
     private static PersonDTO toDTO(PersonDomain person) {
