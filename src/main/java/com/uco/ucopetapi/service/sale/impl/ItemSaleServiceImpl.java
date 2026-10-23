@@ -1,35 +1,32 @@
 package com.uco.ucopetapi.service.sale.impl;
 
-import com.uco.ucopetapi.crosscutting.helpers.UUIDHelper;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 import com.uco.ucopetapi.domain.sale.ItemSaleDomain;
 import com.uco.ucopetapi.domain.sale.SaleOrderDomain;
-import com.uco.ucopetapi.dto.healthPlan.HealthPlanDTO;
-import com.uco.ucopetapi.dto.healthPlanCoverage.HealthPlanCoverageDTO;
-import com.uco.ucopetapi.dto.product.ProductDTO;
-import com.uco.ucopetapi.dto.product.ServiceDTO;
 import com.uco.ucopetapi.dto.sale.AddItemSaleRequestDTO;
 import com.uco.ucopetapi.dto.sale.EditItemSaleRequestDTO;
 import com.uco.ucopetapi.dto.sale.ItemSaleDTO;
 import com.uco.ucopetapi.dto.sale.SaleOrderDTO;
 import com.uco.ucopetapi.dto.sale.enums.ItemType;
 import com.uco.ucopetapi.dto.sale.enums.SaleOrderState;
-import com.uco.ucopetapi.repository.sale.ItemSaleRepository;
-import com.uco.ucopetapi.repository.sale.SaleOrderRepository;
-import com.uco.ucopetapi.service.healthPlan.HealthPlanService;
-import com.uco.ucopetapi.service.product.ProductService;
-import com.uco.ucopetapi.service.product.ServiceService;
-import com.uco.ucopetapi.service.sale.ItemSaleService;
 import com.uco.ucopetapi.exception.sale.SaleOrderNotFoundException;
 import com.uco.ucopetapi.exception.sale.SaleOrderStateConflictException;
 import com.uco.ucopetapi.exception.sale.SaleOrderValidationException;
+import com.uco.ucopetapi.integration.sale.catalog.CatalogClient;
+import com.uco.ucopetapi.integration.sale.catalog.CatalogItemResponse;
+import com.uco.ucopetapi.integration.sale.healthPlan.HealthPlanClient;
+import com.uco.ucopetapi.integration.sale.healthPlan.HealthPlanCoverageResponse;
+import com.uco.ucopetapi.integration.sale.healthPlan.HealthPlanResponse;
+import com.uco.ucopetapi.repository.sale.ItemSaleRepository;
+import com.uco.ucopetapi.repository.sale.SaleOrderRepository;
+import com.uco.ucopetapi.service.sale.ItemSaleService;
+import com.uco.ucopetapi.crosscutting.helpers.UUIDHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @Service
@@ -37,178 +34,276 @@ public class ItemSaleServiceImpl implements ItemSaleService {
 
     private final ItemSaleRepository itemSaleRepository;
     private final SaleOrderRepository saleOrderRepository;
-    private final ProductService productService;
-    private final ServiceService serviceService;
-    private final HealthPlanService healthPlanService;
+    private final CatalogClient catalogClient;
+    private final HealthPlanClient healthPlanClient;
 
+    public ItemSaleServiceImpl(
+            ItemSaleRepository itemSaleRepository,
+            SaleOrderRepository saleOrderRepository,
+            CatalogClient catalogClient,
+            HealthPlanClient healthPlanClient) {
 
-    public ItemSaleServiceImpl(ItemSaleRepository itemSaleRepository, SaleOrderRepository saleOrderRepository, ProductService productService, ServiceService serviceService, HealthPlanService healthPlanService) {
         this.itemSaleRepository = itemSaleRepository;
         this.saleOrderRepository = saleOrderRepository;
-        this.productService = productService;
-        this.serviceService = serviceService;
-        this.healthPlanService = healthPlanService;
+        this.catalogClient = catalogClient;
+        this.healthPlanClient = healthPlanClient;
     }
 
     @Override
     @Transactional
-    public SaleOrderDTO addItemToSaleOrder(UUID saleOrderId, AddItemSaleRequestDTO request) {
-        SaleOrderDomain order = findOrderOrThrow(saleOrderId);
-        requireBorrador(order);
-        validateRequest(request);
-        TaxCategory taxCategory = resolveAndValidateCatalogItem(request.getItemId(), request.getItemType(), order.getHeadquarterId());
+    public SaleOrderDTO addItemToSaleOrder(
+            UUID saleOrderId,
+            AddItemSaleRequestDTO request) {
 
-        BigDecimal unitPrice = request.getUnitPrice();
-        int quantity = request.getQuantity();
-        BigDecimal subtotal = unitPrice.multiply(
-                BigDecimal.valueOf(quantity)
+        SaleOrderDomain order = findOrderOrThrow(saleOrderId);
+
+        requireBorrador(order);
+        validateAddRequest(request);
+
+        CatalogItemResponse catalogItem = resolveCatalogItem(
+                request.getItemId(),
+                request.getItemType(),
+                order.getHeadquarterId()
         );
+
+        validateCatalogItem(catalogItem, request.getItemId());
+
+        if (request.getItemType() == ItemType.SERVICIO) {
+            boolean alreadyAdded = itemSaleRepository
+                    .findBySaleOrderId(saleOrderId)
+                    .stream()
+                    .anyMatch(item ->
+                            item.getItemType() == ItemType.SERVICIO
+                                    && item.getItemId().equals(request.getItemId()));
+
+            if (alreadyAdded) {
+                throw new SaleOrderValidationException(
+                        "El servicio ya está incluido en esta orden de venta."
+                );
+            }
+        }
+
+        BigDecimal unitPrice = BigDecimal.valueOf(catalogItem.getPrice());
+        int quantity = request.getQuantity();
+
+        BigDecimal subtotal = unitPrice
+                .multiply(BigDecimal.valueOf(quantity))
+                .setScale(2, RoundingMode.HALF_UP);
 
         ItemSaleDomain newItem = new ItemSaleDomain(
                 UUID.randomUUID(),
                 saleOrderId,
                 request.getItemId(),
                 request.getItemType(),
-                taxCategory,
+                catalogItem.getTaxCategory(),
                 quantity,
                 unitPrice,
                 subtotal
         );
+
         itemSaleRepository.save(newItem);
 
         recalculateOrderTotals(order);
-        SaleOrderDomain saved = saleOrderRepository.save(order);
-        return saved.toDTO();
+
+        SaleOrderDomain savedOrder = saleOrderRepository.save(order);
+
+        return savedOrder.toDTO();
     }
 
     @Override
     @Transactional
-    public SaleOrderDTO editItemInSaleOrder(UUID saleOrderId, UUID itemSaleId, EditItemSaleRequestDTO request) {
+    public SaleOrderDTO editItemInSaleOrder(
+            UUID saleOrderId,
+            UUID itemSaleId,
+            EditItemSaleRequestDTO request) {
+
         SaleOrderDomain order = findOrderOrThrow(saleOrderId);
         requireBorrador(order);
-
-        ItemSaleDomain item = itemSaleRepository.findById(itemSaleId)
-                .orElseThrow(() -> new SaleOrderValidationException("No existe un item con id " + itemSaleId + " en esta orden."));
-
-        if (!item.getSaleOrderId().equals(saleOrderId)) {
-            throw new SaleOrderValidationException("El item " + itemSaleId + " no pertenece a la orden " + saleOrderId + ".");
-        }
-
         validateEditRequest(request);
 
-        int quantity = request.getQuantity();
-        BigDecimal unitPrice = request.getUnitPrice();
+        ItemSaleDomain item = itemSaleRepository.findById(itemSaleId)
+                .orElseThrow(() -> new SaleOrderValidationException(
+                        "No existe un artículo de venta con id " + itemSaleId
+                ));
 
-        BigDecimal subtotal = unitPrice.multiply(
-                BigDecimal.valueOf(quantity)
-        );
+        if (!item.getSaleOrderId().equals(saleOrderId)) {
+            throw new SaleOrderValidationException(
+                    "El artículo no pertenece a la orden de venta indicada."
+            );
+        }
 
-        item.setQuantity(quantity);
-        item.setUnitPrice(unitPrice);
+        /*
+         * El precio no se recibe del cliente.
+         * Se conserva el precio registrado cuando se agregó el artículo.
+         */
+        BigDecimal subtotal = item.getUnitPrice()
+                .multiply(BigDecimal.valueOf(request.getQuantity()))
+                .setScale(2, RoundingMode.HALF_UP);
+
+        item.setQuantity(request.getQuantity());
         item.setSubtotal(subtotal);
 
         itemSaleRepository.save(item);
-        itemSaleRepository.save(item);
 
         recalculateOrderTotals(order);
-        SaleOrderDomain saved = saleOrderRepository.save(order);
-        return saved.toDTO();
+
+        SaleOrderDomain savedOrder = saleOrderRepository.save(order);
+
+        return savedOrder.toDTO();
     }
 
     @Override
     @Transactional
-    public SaleOrderDTO removeItemFromSaleOrder(UUID saleOrderId, UUID itemSaleId) {
+    public SaleOrderDTO removeItemFromSaleOrder(
+            UUID saleOrderId,
+            UUID itemSaleId) {
+
         SaleOrderDomain order = findOrderOrThrow(saleOrderId);
         requireBorrador(order);
 
         ItemSaleDomain item = itemSaleRepository.findById(itemSaleId)
-                .orElseThrow(() -> new SaleOrderValidationException("No existe un item con id " + itemSaleId + " en esta orden."));
+                .orElseThrow(() -> new SaleOrderValidationException(
+                        "No existe un artículo de venta con id " + itemSaleId
+                ));
 
         if (!item.getSaleOrderId().equals(saleOrderId)) {
-            throw new SaleOrderValidationException("El item " + itemSaleId + " no pertenece a la orden " + saleOrderId + ".");
+            throw new SaleOrderValidationException(
+                    "El artículo no pertenece a la orden de venta indicada."
+            );
         }
 
         itemSaleRepository.deleteById(itemSaleId);
 
         recalculateOrderTotals(order);
-        SaleOrderDomain saved = saleOrderRepository.save(order);
-        return saved.toDTO();
+
+        SaleOrderDomain savedOrder = saleOrderRepository.save(order);
+
+        return savedOrder.toDTO();
     }
 
     @Override
     public List<ItemSaleDTO> listItemsBySaleOrder(UUID saleOrderId) {
+
         findOrderOrThrow(saleOrderId);
-        return itemSaleRepository.findBySaleOrderId(saleOrderId).stream()
+
+        return itemSaleRepository.findBySaleOrderId(saleOrderId)
+                .stream()
                 .map(ItemSaleDomain::toDTO)
                 .toList();
     }
 
     private SaleOrderDomain findOrderOrThrow(UUID saleOrderId) {
         return saleOrderRepository.findById(saleOrderId)
-                .orElseThrow(() -> new SaleOrderNotFoundException("No existe una orden de venta con id " + saleOrderId));
+                .orElseThrow(() -> new SaleOrderNotFoundException(
+                        "No existe una orden de venta con id " + saleOrderId
+                ));
     }
 
     private void requireBorrador(SaleOrderDomain order) {
         if (order.getState() != SaleOrderState.BORRADOR) {
-            throw new SaleOrderStateConflictException("No se pueden agregar ni quitar items de una orden en estado " + order.getState() + ". Solo se permite mientras está en BORRADOR.");
+            throw new SaleOrderStateConflictException(
+                    "Solo se pueden modificar artículos de una orden en estado BORRADOR."
+            );
         }
     }
 
-    private void validateRequest(AddItemSaleRequestDTO request) {
+    private void validateAddRequest(AddItemSaleRequestDTO request) {
+        if (request == null) {
+            throw new SaleOrderValidationException(
+                    "La solicitud para agregar el artículo es obligatoria."
+            );
+        }
+
         if (request.getItemId() == null) {
             throw new SaleOrderValidationException("itemId es obligatorio.");
         }
+
         if (request.getItemType() == null) {
-            throw new SaleOrderValidationException("itemType es obligatorio (PRODUCTO o SERVICIO).");
+            throw new SaleOrderValidationException(
+                    "itemType debe ser PRODUCTO o SERVICIO."
+            );
         }
+
         if (request.getQuantity() == null || request.getQuantity() <= 0) {
-            throw new SaleOrderValidationException("quantity debe ser mayor a 0.");
-        }
-        if (request.getUnitPrice() == null || request.getUnitPrice().compareTo(BigDecimal.ZERO)  < 0) {
-            throw new SaleOrderValidationException("unitPrice no puede ser negativo.");
+            throw new SaleOrderValidationException(
+                    "quantity debe ser mayor que cero."
+            );
         }
     }
 
     private void validateEditRequest(EditItemSaleRequestDTO request) {
-        if (request.getQuantity() == null || request.getQuantity() <= 0) {
-            throw new SaleOrderValidationException("quantity debe ser mayor a 0.");
+        if (request == null) {
+            throw new SaleOrderValidationException(
+                    "La solicitud para editar el artículo es obligatoria."
+            );
         }
-        if (request.getUnitPrice() == null || request.getUnitPrice().compareTo(BigDecimal.ZERO)  < 0) {
-            throw new SaleOrderValidationException("unitPrice no puede ser negativo.");
+
+        if (request.getQuantity() == null || request.getQuantity() <= 0) {
+            throw new SaleOrderValidationException(
+                    "quantity debe ser mayor que cero."
+            );
         }
     }
 
-    private TaxCategory resolveAndValidateCatalogItem(UUID itemId, ItemType itemType, UUID headquarterId) {
+    private CatalogItemResponse resolveCatalogItem(
+            UUID itemId,
+            ItemType itemType,
+            UUID headquarterId) {
+
+        CatalogItemResponse response;
+
         if (itemType == ItemType.PRODUCTO) {
-            ProductDTO product;
-            try {
-                product = productService.getById(itemId, headquarterId);
-            } catch (NoSuchElementException ex) {
-                throw new SaleOrderValidationException("No existe un producto con id " + itemId);
-            }
-            if (!Boolean.TRUE.equals(product.getSellable()) || !Boolean.TRUE.equals(product.getActive())) {
-                throw new SaleOrderValidationException("El producto " + itemId + " no está disponible para la venta.");
-            }
-            return product.getTaxCategory();
+            response = catalogClient.getProduct(itemId, headquarterId);
+        } else {
+            response = catalogClient.getService(itemId);
         }
 
-        ServiceDTO service;
-        try {
-            service = serviceService.getById(itemId);
-        } catch (NoSuchElementException ex) {
-            throw new SaleOrderValidationException("No existe un servicio con id " + itemId);
+        if (response == null) {
+            throw new SaleOrderValidationException(
+                    "El catálogo no devolvió información para el artículo " + itemId
+            );
         }
-        if (!Boolean.TRUE.equals(service.getSellable()) || !Boolean.TRUE.equals(service.getActive())) {
-            throw new SaleOrderValidationException("El servicio " + itemId + " no está disponible para la venta.");
+
+        if (itemType == ItemType.SERVICIO) {
+            List<UUID> headquarters = response.getHeadquarterIds();
+
+            if (headquarters == null || !headquarters.contains(headquarterId)) {
+                throw new SaleOrderValidationException(
+                        "El servicio no está ofrecido en la sede de la orden."
+                );
+            }
         }
-        List<UUID> headquarterIds = service.getHeadquarterIds();
-        if (headquarterIds == null || !headquarterIds.contains(headquarterId)) {
-            throw new SaleOrderValidationException("El servicio " + itemId + " no está ofrecido en la sede de esta orden.");
+
+        return response;
+    }
+
+    private void validateCatalogItem(
+            CatalogItemResponse item,
+            UUID itemId) {
+
+        if (!Boolean.TRUE.equals(item.getActive())
+                || !Boolean.TRUE.equals(item.getSellable())) {
+
+            throw new SaleOrderValidationException(
+                    "El artículo " + itemId + " no está disponible para la venta."
+            );
         }
-        return service.getTaxCategory();
+
+        if (item.getPrice() == null || item.getPrice() < 0) {
+            throw new SaleOrderValidationException(
+                    "El catálogo devolvió un precio inválido para el artículo " + itemId
+            );
+        }
+
+        if (item.getTaxCategory() == null) {
+            throw new SaleOrderValidationException(
+                    "El artículo no tiene una categoría de impuesto válida."
+            );
+        }
     }
 
     private void recalculateOrderTotals(SaleOrderDomain order) {
+
         List<ItemSaleDomain> items =
                 itemSaleRepository.findBySaleOrderId(order.getId());
 
@@ -220,17 +315,13 @@ public class ItemSaleServiceImpl implements ItemSaleService {
 
             subtotal = subtotal.add(itemSubtotal);
 
-            BigDecimal taxPercentage = BigDecimal.valueOf(
+            BigDecimal percentage = BigDecimal.valueOf(
                     item.getTaxCategory().getPercentage()
             );
 
             BigDecimal itemTaxes = itemSubtotal
-                    .multiply(taxPercentage)
-                    .divide(
-                            BigDecimal.valueOf(100),
-                            2,
-                            RoundingMode.HALF_UP
-                    );
+                    .multiply(percentage)
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
 
             totalTaxes = totalTaxes.add(itemTaxes);
         }
@@ -242,15 +333,18 @@ public class ItemSaleServiceImpl implements ItemSaleService {
 
         BigDecimal total = subtotal
                 .subtract(totalDiscount)
-                .add(totalTaxes);
+                .add(totalTaxes)
+                .setScale(2, RoundingMode.HALF_UP);
 
-        order.setSubtotal(subtotal);
-        order.setTotalTaxes(totalTaxes);
-        order.setTotalDiscount(totalDiscount);
+        order.setSubtotal(subtotal.setScale(2, RoundingMode.HALF_UP));
+        order.setTotalTaxes(totalTaxes.setScale(2, RoundingMode.HALF_UP));
+        order.setTotalDiscount(totalDiscount.setScale(2, RoundingMode.HALF_UP));
         order.setTotal(total);
     }
 
-    private BigDecimal calculateTotalDiscount(UUID healthPlanId, List<ItemSaleDomain> items) {
+    private BigDecimal calculateTotalDiscount(
+            UUID healthPlanId,
+            List<ItemSaleDomain> items) {
 
         UUID defaultUUID = UUIDHelper.getUUIDHelper().getDefault();
 
@@ -258,7 +352,20 @@ public class ItemSaleServiceImpl implements ItemSaleService {
             return BigDecimal.ZERO;
         }
 
-        HealthPlanDTO healthPlan = healthPlanService.findById(healthPlanId);
+        HealthPlanResponse healthPlan =
+                healthPlanClient.getHealthPlan(healthPlanId);
+
+        if (healthPlan == null) {
+            throw new SaleOrderValidationException(
+                    "No se encontró información de la póliza asociada a la venta."
+            );
+        }
+
+        if (!"ACTIVA".equalsIgnoreCase(healthPlan.getStatus())) {
+            throw new SaleOrderValidationException(
+                    "La póliza asociada a la venta no está activa."
+            );
+        }
 
         BigDecimal totalDiscount = BigDecimal.ZERO;
 
@@ -267,7 +374,7 @@ public class ItemSaleServiceImpl implements ItemSaleService {
                 continue;
             }
 
-            HealthPlanCoverageDTO coverage =
+            HealthPlanCoverageResponse coverage =
                     findCoverageForService(healthPlan, item.getItemId());
 
             if (coverage == null) {
@@ -282,27 +389,49 @@ public class ItemSaleServiceImpl implements ItemSaleService {
         return totalDiscount.setScale(2, RoundingMode.HALF_UP);
     }
 
-    private HealthPlanCoverageDTO findCoverageForService(HealthPlanDTO healthPlan, UUID serviceId) {
-        return healthPlan.getCoverages().stream()
-                .filter(coverage -> coverage.getServiceId().equals(serviceId))
+    private HealthPlanCoverageResponse findCoverageForService(
+            HealthPlanResponse healthPlan,
+            UUID serviceId) {
+
+        if (healthPlan.getCoverages() == null) {
+            return null;
+        }
+
+        return healthPlan.getCoverages()
+                .stream()
+                .filter(coverage ->
+                        coverage.getServiceId() != null
+                                && coverage.getServiceId().equals(serviceId))
                 .findFirst()
                 .orElse(null);
     }
 
     private BigDecimal calculateLineDiscount(
             ItemSaleDomain item,
-            HealthPlanCoverageDTO coverage) {
+            HealthPlanCoverageResponse coverage) {
+
+        if (coverage.getCoveragePercentage() == null
+                || coverage.getCoverageLimit() == null
+                || coverage.getCoveragePercentage() < 0
+                || coverage.getCoveragePercentage() > 100
+                || coverage.getCoverageLimit().signum() < 0) {
+
+            throw new SaleOrderValidationException(
+                    "La cobertura de la póliza contiene valores inválidos."
+            );
+        }
 
         BigDecimal percentage = BigDecimal.valueOf(
                 coverage.getCoveragePercentage()
-        ).divide(BigDecimal.valueOf(100));
+        ).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
 
-        BigDecimal subtotal = item.getUnitPrice()
+        BigDecimal lineSubtotal = item.getUnitPrice()
                 .multiply(BigDecimal.valueOf(item.getQuantity()));
 
-        BigDecimal calculatedDiscount = subtotal.multiply(percentage);
+        BigDecimal calculatedDiscount = lineSubtotal
+                .multiply(percentage)
+                .setScale(2, RoundingMode.HALF_UP);
 
         return calculatedDiscount.min(coverage.getCoverageLimit());
     }
-
 }
