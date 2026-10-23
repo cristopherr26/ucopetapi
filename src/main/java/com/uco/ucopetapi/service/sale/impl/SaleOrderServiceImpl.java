@@ -11,6 +11,7 @@ import com.uco.ucopetapi.exception.sale.SaleOrderStateConflictException;
 import com.uco.ucopetapi.exception.sale.SaleOrderValidationException;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -45,10 +46,10 @@ public class SaleOrderServiceImpl implements SaleOrderService {
                 saleOrderDTO.getClientID(),
                 saleOrderDTO.getPetId(),
                 saleOrderDTO.getHealthPlanId(),
-                0,
-                0,
-                0,
-                0,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
                 saleOrderDTO.getComment(),
                 SaleOrderState.BORRADOR
         );

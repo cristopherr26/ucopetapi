@@ -70,11 +70,12 @@ public class SaleOrderDomain implements Persistable<UUID> {
     private boolean isNew = true;
 
     protected SaleOrderDomain() {
-        // Requerido por JPA/Hibernate para instanciar por reflexion al
-        // leer filas de la base de datos. No usar directamente.
+
     }
 
-    public SaleOrderDomain(UUID id, UUID headquarterId, String orderNumber, LocalDateTime saleDate, UUID clientID, UUID petId, UUID healthPlanId, BigDecimal subtotal, BigDecimal totalDiscount, BigDecimal totalTaxes, BigDecimal total, String comment, SaleOrderState state) {
+    public SaleOrderDomain(UUID id, UUID headquarterId, String orderNumber, LocalDateTime saleDate, UUID clientID, UUID petId,
+                           UUID healthPlanId, BigDecimal subtotal, BigDecimal totalDiscount, BigDecimal totalTaxes,
+                           BigDecimal total, String comment, SaleOrderState state) {
         setID(id);
         setHeadquarterId(headquarterId);
         setOrderNumber(orderNumber);

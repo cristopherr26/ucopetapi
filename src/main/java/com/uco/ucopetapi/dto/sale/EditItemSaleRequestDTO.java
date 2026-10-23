@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 public class EditItemSaleRequestDTO {
 
     private Integer quantity;
-    private Integer unitPrice;
+    private BigDecimal unitPrice;
 
     public EditItemSaleRequestDTO() {
     }
