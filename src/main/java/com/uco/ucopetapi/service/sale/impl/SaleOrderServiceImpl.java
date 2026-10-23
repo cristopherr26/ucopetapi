@@ -4,12 +4,15 @@ import com.uco.ucopetapi.crosscutting.helpers.UUIDHelper;
 import com.uco.ucopetapi.domain.sale.SaleOrderDomain;
 import com.uco.ucopetapi.dto.sale.SaleOrderDTO;
 import com.uco.ucopetapi.dto.sale.enums.SaleOrderState;
-import com.uco.ucopetapi.repository.sale.SaleOrderRepository;
-import com.uco.ucopetapi.service.sale.SaleOrderService;
 import com.uco.ucopetapi.exception.sale.SaleOrderNotFoundException;
 import com.uco.ucopetapi.exception.sale.SaleOrderStateConflictException;
 import com.uco.ucopetapi.exception.sale.SaleOrderValidationException;
+import com.uco.ucopetapi.integration.sale.healthPlan.HealthPlanClient;
+import com.uco.ucopetapi.integration.sale.healthPlan.HealthPlanResponse;
+import com.uco.ucopetapi.repository.sale.SaleOrderRepository;
+import com.uco.ucopetapi.service.sale.SaleOrderService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -26,18 +29,35 @@ public class SaleOrderServiceImpl implements SaleOrderService {
     private static final int COMMENT_MAX_LENGTH = 255;
 
     private final SaleOrderRepository saleOrderRepository;
+    private final HealthPlanClient healthPlanClient;
 
-    public SaleOrderServiceImpl(SaleOrderRepository saleOrderRepository) {
+    public SaleOrderServiceImpl(
+            SaleOrderRepository saleOrderRepository,
+            HealthPlanClient healthPlanClient) {
+
         this.saleOrderRepository = saleOrderRepository;
+        this.healthPlanClient = healthPlanClient;
     }
 
     @Override
+    @Transactional
     public SaleOrderDTO registerNewSaleOrder(SaleOrderDTO saleOrderDTO) {
+
+        if (saleOrderDTO == null) {
+            throw new SaleOrderValidationException(
+                    "La información de la orden de venta es obligatoria."
+            );
+        }
+
         validateRequiredReferences(saleOrderDTO);
         validateComment(saleOrderDTO.getComment());
+        validateHealthPlan(saleOrderDTO.getHealthPlanId());
 
         UUID newId = generateUniqueId();
-        String newOrderNumber = generateNextOrderNumber(saleOrderDTO.getHeadquarterId());
+
+        String newOrderNumber =
+                generateNextOrderNumber(saleOrderDTO.getHeadquarterId());
+
         SaleOrderDTO toPersist = new SaleOrderDTO(
                 newId,
                 saleOrderDTO.getHeadquarterId(),
@@ -54,124 +74,231 @@ public class SaleOrderServiceImpl implements SaleOrderService {
                 SaleOrderState.BORRADOR
         );
 
-        SaleOrderDomain saved = saleOrderRepository.save(toPersist.toDomain());
+        SaleOrderDomain saved =
+                saleOrderRepository.save(toPersist.toDomain());
+
         return saved.toDTO();
     }
 
     @Override
-    public SaleOrderDTO editExistentSaleOrder(UUID id, SaleOrderDTO saleOrderDTO) {
+    @Transactional
+    public SaleOrderDTO editExistentSaleOrder(
+            UUID id,
+            SaleOrderDTO saleOrderDTO) {
+
+        if (saleOrderDTO == null) {
+            throw new SaleOrderValidationException(
+                    "La información para editar la orden es obligatoria."
+            );
+        }
+
         SaleOrderDomain existing = findExistingOrThrow(id);
 
-        if (existing.getState() == SaleOrderState.FACTURADA || existing.getState() == SaleOrderState.ANULADA) {
+        if (existing.getState() != SaleOrderState.BORRADOR) {
             throw new SaleOrderStateConflictException(
-                    "No se puede editar una orden de venta en estado " + existing.getState()
-                            + ". Solo las órdenes en BORRADOR son editables; use cancelSaleOrder para anular.");
+                    "Solo se pueden editar órdenes en estado BORRADOR."
+            );
         }
 
-        SaleOrderState requestedState = saleOrderDTO.getState();
-        if (requestedState == SaleOrderState.SIN_ESTADO) {
-            requestedState = existing.getState();
-        }
-        if (requestedState != SaleOrderState.BORRADOR && requestedState != SaleOrderState.FACTURADA) {
-            throw new SaleOrderStateConflictException(
-                    "Desde BORRADOR solo se permite mantener BORRADOR o pasar a FACTURADO. "
-                            + "Para anular use cancelSaleOrder.");
-        }
-
+        validateRequiredReferences(saleOrderDTO);
         validateComment(saleOrderDTO.getComment());
+        validateHealthPlan(saleOrderDTO.getHealthPlanId());
 
         existing.setClientID(saleOrderDTO.getClientID());
         existing.setPetId(saleOrderDTO.getPetId());
         existing.setHealthPlanId(saleOrderDTO.getHealthPlanId());
-        existing.setSubtotal(saleOrderDTO.getSubtotal());
-        existing.setTotalDiscount(saleOrderDTO.getTotalDiscount());
-        existing.setTotalTaxes(saleOrderDTO.getTotalTaxes());
-        existing.setTotal(saleOrderDTO.getTotal());
         existing.setComment(saleOrderDTO.getComment());
-        existing.setState(requestedState);
+
+        /*
+         * No modificar aquí:
+         * - subtotal
+         * - totalDiscount
+         * - totalTaxes
+         * - total
+         * - state
+         *
+         * Los totales se calculan desde los artículos.
+         * La facturación no se realiza desde Ventas.
+         */
 
         SaleOrderDomain saved = saleOrderRepository.save(existing);
+
         return saved.toDTO();
     }
 
     @Override
+    @Transactional
     public SaleOrderDTO cancelSaleOrder(UUID id) {
+
         SaleOrderDomain existing = findExistingOrThrow(id);
 
         if (existing.getState() == SaleOrderState.ANULADA) {
-            throw new SaleOrderStateConflictException("La orden de venta ya se encuentra ANULADA.");
+            throw new SaleOrderStateConflictException(
+                    "La orden de venta ya se encuentra ANULADA."
+            );
+        }
+
+        if (existing.getState() == SaleOrderState.FACTURADA) {
+            throw new SaleOrderStateConflictException(
+                    "No se puede anular desde Ventas una orden ya facturada. "
+                            + "Debe coordinarse con el proceso de Facturación."
+            );
+        }
+
+        if (existing.getState() != SaleOrderState.BORRADOR) {
+            throw new SaleOrderStateConflictException(
+                    "La orden no se puede anular desde su estado actual."
+            );
         }
 
         existing.setState(SaleOrderState.ANULADA);
+
         SaleOrderDomain saved = saleOrderRepository.save(existing);
+
         return saved.toDTO();
     }
 
     @Override
-    public List<SaleOrderDTO> findSaleOrderByFilter(SaleOrderDTO filter, LocalDate dateFrom, LocalDate dateTo) {
-        if (dateFrom != null && dateTo != null && dateFrom.isAfter(dateTo)) {
-            throw new SaleOrderValidationException("dateFrom no puede ser posterior a dateTo.");
+    @Transactional(readOnly = true)
+    public List<SaleOrderDTO> findSaleOrderByFilter(
+            SaleOrderDTO filter,
+            LocalDate dateFrom,
+            LocalDate dateTo) {
+
+        if (filter == null) {
+            throw new SaleOrderValidationException(
+                    "El filtro de búsqueda es obligatorio."
+            );
         }
 
-        return saleOrderRepository.findByFilter(filter, dateFrom, dateTo).stream()
+        if (dateFrom != null && dateTo != null
+                && dateFrom.isAfter(dateTo)) {
+
+            throw new SaleOrderValidationException(
+                    "dateFrom no puede ser posterior a dateTo."
+            );
+        }
+
+        return saleOrderRepository
+                .findByFilter(filter, dateFrom, dateTo)
+                .stream()
                 .map(SaleOrderDomain::toDTO)
                 .toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SaleOrderDTO> findAll() {
-        return saleOrderRepository.findAll().stream()
+
+        return saleOrderRepository.findAll()
+                .stream()
                 .map(SaleOrderDomain::toDTO)
                 .toList();
     }
 
     private SaleOrderDomain findExistingOrThrow(UUID id) {
+
         return saleOrderRepository.findById(id)
-                .orElseThrow(() -> new SaleOrderNotFoundException("No existe una orden de venta con id " + id));
+                .orElseThrow(() -> new SaleOrderNotFoundException(
+                        "No existe una orden de venta con id " + id
+                ));
     }
 
     private void validateRequiredReferences(SaleOrderDTO dto) {
+
         UUID defaultUUID = UUIDHelper.getUUIDHelper().getDefault();
 
-        if (dto.getHeadquarterId() == null || dto.getHeadquarterId().equals(defaultUUID)) {
-            throw new SaleOrderValidationException("headquarterId es obligatorio.");
+        if (dto.getHeadquarterId() == null
+                || dto.getHeadquarterId().equals(defaultUUID)) {
+
+            throw new SaleOrderValidationException(
+                    "headquarterId es obligatorio."
+            );
         }
-        if (dto.getClientID() == null || dto.getClientID().equals(defaultUUID)) {
-            throw new SaleOrderValidationException("clientID es obligatorio.");
+
+        if (dto.getClientID() == null
+                || dto.getClientID().equals(defaultUUID)) {
+
+            throw new SaleOrderValidationException(
+                    "clientID es obligatorio."
+            );
         }
-        if (dto.getPetId() == null || dto.getPetId().equals(defaultUUID)) {
-            throw new SaleOrderValidationException("petId es obligatorio.");
+
+        if (dto.getPetId() == null
+                || dto.getPetId().equals(defaultUUID)) {
+
+            throw new SaleOrderValidationException(
+                    "petId es obligatorio."
+            );
+        }
+    }
+
+    private void validateHealthPlan(UUID healthPlanId) {
+
+        UUID defaultUUID = UUIDHelper.getUUIDHelper().getDefault();
+
+        if (healthPlanId == null || healthPlanId.equals(defaultUUID)) {
+            return;
+        }
+
+        HealthPlanResponse healthPlan =
+                healthPlanClient.getHealthPlan(healthPlanId);
+
+        if (healthPlan == null) {
+            throw new SaleOrderValidationException(
+                    "No se encontró la póliza indicada."
+            );
+        }
+
+        if (!"ACTIVA".equalsIgnoreCase(healthPlan.getStatus())) {
+            throw new SaleOrderValidationException(
+                    "No se puede asociar una póliza que no esté activa."
+            );
         }
     }
 
     private void validateComment(String comment) {
+
         if (comment != null && comment.length() > COMMENT_MAX_LENGTH) {
             throw new SaleOrderValidationException(
-                    "comment no puede superar los " + COMMENT_MAX_LENGTH + " caracteres.");
+                    "comment no puede superar los "
+                            + COMMENT_MAX_LENGTH + " caracteres."
+            );
         }
     }
 
     private UUID generateUniqueId() {
+
         UUID candidate = UUID.randomUUID();
+
         while (saleOrderRepository.existsById(candidate)) {
             candidate = UUID.randomUUID();
         }
+
         return candidate;
     }
 
     private String generateNextOrderNumber(UUID headquarterId) {
-        return saleOrderRepository.findLastOrderNumberByHeadquarter(headquarterId)
+
+        return saleOrderRepository
+                .findLastOrderNumberByHeadquarter(headquarterId)
                 .map(last -> increment(last.getOrderNumber()))
                 .orElse(format(1));
     }
 
     private String increment(String lastOrderNumber) {
-        String numericPart = lastOrderNumber.substring(ORDER_NUMBER_PREFIX.length());
+
+        String numericPart =
+                lastOrderNumber.substring(ORDER_NUMBER_PREFIX.length());
+
         int next = Integer.parseInt(numericPart) + 1;
+
         return format(next);
     }
 
     private String format(int sequence) {
-        return ORDER_NUMBER_PREFIX + String.format("%0" + ORDER_NUMBER_DIGITS + "d", sequence);
+
+        return ORDER_NUMBER_PREFIX
+                + String.format("%0" + ORDER_NUMBER_DIGITS + "d", sequence);
     }
 }

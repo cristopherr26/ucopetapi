@@ -10,6 +10,8 @@ import com.uco.ucopetapi.dto.sale.enums.SaleOrderState;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class SaleOrderDTO {
     private UUID id;
@@ -19,6 +21,7 @@ public final class SaleOrderDTO {
     private UUID clientID;
     private UUID petId;
     private UUID healthPlanId;
+    private List<ItemSaleDTO> items;
     private BigDecimal subtotal;
     private BigDecimal totalDiscount;
     private BigDecimal totalTaxes;
@@ -39,6 +42,7 @@ public final class SaleOrderDTO {
         this.clientID = UUIDHelper.getUUIDHelper().getDefault();
         this.petId = UUIDHelper.getUUIDHelper().getDefault();
         this.healthPlanId = UUIDHelper.getUUIDHelper().getDefault();
+        this.items = new ArrayList<>();
         this.subtotal = BigDecimal.ZERO;
         this.totalDiscount = BigDecimal.ZERO;
         this.totalTaxes = BigDecimal.ZERO;
@@ -88,6 +92,7 @@ public final class SaleOrderDTO {
     public UUID getClientID() { return clientID; }
     public UUID getPetId() { return petId; }
     public UUID getHealthPlanId() { return healthPlanId; }
+    public List<ItemSaleDTO> getItems() {return items;}
     public BigDecimal getSubtotal() { return subtotal; }
     public BigDecimal getTotalDiscount() { return totalDiscount; }
     public BigDecimal getTotalTaxes() { return totalTaxes; }
@@ -98,9 +103,7 @@ public final class SaleOrderDTO {
     public void setId(UUID id){
         this.id = UUIDHelper.getUUIDHelper().getDefault(id);
     }
-    public void setHeadquarterId(UUID headquarterId){
-        this.headquarterId = UUIDHelper.getUUIDHelper().getDefault(headquarterId);
-    }
+    public void setHeadquarterId(UUID headquarterId){ this.headquarterId = UUIDHelper.getUUIDHelper().getDefault(headquarterId);}
     public void setOrderNumber(String orderNumber){
         this.orderNumber = TextHelper.getDefault(orderNumber);
     }
@@ -113,27 +116,16 @@ public final class SaleOrderDTO {
     public void setPetId(UUID petId){
         this.petId = UUIDHelper.getUUIDHelper().getDefault(petId);
     }
-    public void setHealthPlanId(UUID healthPlanId){
-        this.healthPlanId = UUIDHelper.getUUIDHelper().getDefault(healthPlanId);
-    }
-    public void setSubtotal(BigDecimal subtotal){
-        this.subtotal = BigDecimal.ZERO;
-    }
-    public void setTotalDiscount(BigDecimal totalDiscount){
-        this.totalDiscount =BigDecimal.ZERO;
-    }
-    public void setTotalTaxes(BigDecimal totalTaxes){
-        this.totalTaxes = BigDecimal.ZERO;
-    }
-    public void setTotal(BigDecimal total){
-        this.total = BigDecimal.ZERO;
-    }
+    public void setHealthPlanId(UUID healthPlanId){this.healthPlanId = UUIDHelper.getUUIDHelper().getDefault(healthPlanId);}
+    public void setItems(List<ItemSaleDTO> items) {this.items = items == null ? new ArrayList<>() : new ArrayList<>(items);}
+    public void setSubtotal(BigDecimal subtotal) {this.subtotal = ObjectHelper.getDefault(subtotal, BigDecimal.ZERO);}
+    public void setTotalDiscount(BigDecimal totalDiscount) {this.totalDiscount = ObjectHelper.getDefault(totalDiscount, BigDecimal.ZERO);}
+    public void setTotalTaxes(BigDecimal totalTaxes) {this.totalTaxes = ObjectHelper.getDefault(totalTaxes, BigDecimal.ZERO);}
+    public void setTotal(BigDecimal total) {this.total = ObjectHelper.getDefault(total, BigDecimal.ZERO);}
     public void setComment(String comment){
         this.comment = TextHelper.getDefault(comment);
     }
-    public void setState(SaleOrderState state){
-        this.state = ObjectHelper.getDefault(state, SaleOrderState.SIN_ESTADO);
-    }
+    public void setState(SaleOrderState state){this.state = ObjectHelper.getDefault(state, SaleOrderState.SIN_ESTADO);}
 
     public SaleOrderDomain toDomain() {
         if (this.state == SaleOrderState.SIN_ESTADO) {
