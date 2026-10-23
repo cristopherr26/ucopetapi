@@ -6,11 +6,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class SpaceService {
+
+    // Claves que el PATCH acepta
+    private static final Set<String> PATCHABLE_FIELDS = Set.of("type", "description", "active");
 
     private final ISpaceRepository spaceRepository;
 
@@ -40,12 +45,8 @@ public class SpaceService {
         if (code.length() > 10) {
             throw new IllegalArgumentException("El código no puede superar los 10 caracteres.");
         }
-        if (type.length() > 50 || description.length() < 5) {
-            throw new IllegalArgumentException("El tipo de espacio no puede superar los 50 caracteres y debe tener un mínimo de 5 caracteres..");
-        }
-        if (description.length() > 255 || description.length() < 10) {
-            throw new IllegalArgumentException("La descripción no puede superar los 255 caracteres y debe tener un mínimo de 10 caracteres.");
-        }
+        validateType(type);
+        validateDescription(description);
 
         // - VALIDATE CODE DUPLICATION -
         if (spaceRepository.findByCode(code).isPresent()) {
@@ -76,32 +77,81 @@ public class SpaceService {
         return Optional.of(spaceRepository.save(updatedSpace));
     }
 
+    // PATCH clave/valor = Se modifican las claves que vienen en el body.
+    // Cuando la clave o valor es invalido se lanza IllegalArgumentException
     @Transactional
-    public Optional<SpaceDomain> changeStatus(UUID id, Boolean status) {
+    public Optional<SpaceDomain> patchSpace(UUID id, Map<String, Object> updates) {
         Optional<SpaceDomain> existingSpace = spaceRepository.findById(id);
 
         if (existingSpace.isEmpty()) {
             return Optional.empty();
         }
 
-        SpaceDomain updatedSpace = existingSpace.get();
-        updatedSpace.setActive(status);
+        if (updates == null || updates.isEmpty()) {
+            throw new IllegalArgumentException("Debe enviar al menos un campo para actualizar.");
+        }
 
-        return Optional.of(spaceRepository.save(updatedSpace));
+        SpaceDomain space = existingSpace.get();
+        updates.forEach((key, value) -> applyChange(space, key, value));
+
+        return Optional.of(spaceRepository.save(space));
+    }
+
+    private void applyChange(SpaceDomain space, String key, Object value) {
+        if (!PATCHABLE_FIELDS.contains(key)) {
+            throw new IllegalArgumentException("El campo '" + key + "' no se puede modificar. Campos permitidos: " + PATCHABLE_FIELDS + ".");
+        }
+
+        switch (key) {
+            case "type" -> space.setType(validateType(asText(key, value)));
+            case "description" -> space.setDescription(validateDescription(asText(key, value)));
+            default -> space.setActive(asBoolean(key, value));
+        }
+    }
+
+    private String asText(String key, Object value) {
+        if (value instanceof String text) {
+            return text.trim();
+        }
+        throw new IllegalArgumentException("El campo '" + key + "' debe ser un texto.");
+    }
+
+    private Boolean asBoolean(String key, Object value) {
+        if (value instanceof Boolean flag) {
+            return flag;
+        }
+        throw new IllegalArgumentException("El campo '" + key + "' debe ser true o false.");
+    }
+
+    private String validateType(String type) {
+        if (type.isBlank() || type.length() < 5 || type.length() > 50) {
+            throw new IllegalArgumentException("El tipo de espacio debe tener entre 5 y 50 caracteres.");
+        }
+        return type;
+    }
+
+    private String validateDescription(String description) {
+        if (description.isBlank() || description.length() < 10 || description.length() > 255) {
+            throw new IllegalArgumentException("La descripción debe tener entre 10 y 255 caracteres.");
+        }
+        return description;
     }
 
     @Transactional
     public Optional<SpaceDomain> getSpaceByCode(String code) {
+
         return spaceRepository.findByCode(code);
     }
 
     @Transactional
     public List<SpaceDomain> getSpacesByType(String type) {
+
         return spaceRepository.findByType(type);
     }
 
     @Transactional
     public List<SpaceDomain> getSpacesByStatus(Boolean active) {
+
         return spaceRepository.findByActive(active);
     }
 

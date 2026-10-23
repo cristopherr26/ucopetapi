@@ -3,6 +3,7 @@ package com.uco.ucopetapi.repository.petCare;
 import com.uco.ucopetapi.domain.petCare.PetCareDomain;
 import com.uco.ucopetapi.dto.petCare.PetCareStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
 
 import java.util.List;
 import java.util.UUID;
@@ -14,4 +15,8 @@ public interface PetCareRepository extends JpaRepository <PetCareDomain, UUID> {
     List<PetCareDomain> findByPetCareStatus(PetCareStatus petCareStatus);
 
     List<PetCareDomain> findByDescriptionContainingIgnoreCase(String description);
+
+    boolean existsByAppointmentId(UUID appointmentId);
+
+    Optional<PetCareDomain> findByAppointmentId(UUID appointmentId);
 }

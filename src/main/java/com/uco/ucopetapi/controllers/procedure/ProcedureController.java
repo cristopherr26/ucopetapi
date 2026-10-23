@@ -2,7 +2,7 @@ package com.uco.ucopetapi.controllers.procedure;
 
 import com.uco.ucopetapi.dto.space.SpaceDTO;
 import com.uco.ucopetapi.dto.procedure.ProcedureDTO;
-import com.uco.ucopetapi.service.procedure.ProcedureService;
+import com.uco.ucopetapi.service.procedure.IProcedureService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,15 +16,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/procedures")
 public class ProcedureController {
 
-    private final ProcedureService procedureService;
+    private final IProcedureService procedureService;
 
-    public ProcedureController(final ProcedureService procedureService) {
+    public ProcedureController(final IProcedureService procedureService) {
         this.procedureService = procedureService;
     }
 
@@ -59,26 +60,31 @@ public class ProcedureController {
     }
 
     @PostMapping
-    public ResponseEntity<ProcedureDTO> createProcedure(@RequestBody final ProcedureDTO request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(procedureService.create(request));
+    public ResponseEntity<Map<String, String>> createProcedure(@RequestBody final ProcedureDTO request) {
+        return accepted("La creación del procedimiento fue iniciada", procedureService.create(request));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProcedureDTO> updateProcedure(
+    public ResponseEntity<Map<String, String>> updateProcedure(
             @PathVariable final UUID id,
             @RequestBody final ProcedureDTO request) {
-        return ResponseEntity.ok(procedureService.update(id, request));
+        return accepted("La actualización del procedimiento fue iniciada", procedureService.update(id, request));
     }
 
     @PatchMapping("/{id}/deactivate")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ProcedureDTO> deactivateProcedure(@PathVariable final UUID id) {
-        return ResponseEntity.ok(procedureService.deactivate(id));
+    public ResponseEntity<Map<String, String>> deactivateProcedure(@PathVariable final UUID id) {
+        return accepted("La desactivación del procedimiento fue iniciada", procedureService.deactivate(id));
     }
 
     @PatchMapping("/{id}/activate")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ProcedureDTO> activateProcedure(@PathVariable final UUID id) {
-        return ResponseEntity.ok(procedureService.activate(id));
+    public ResponseEntity<Map<String, String>> activateProcedure(@PathVariable final UUID id) {
+        return accepted("La activación del procedimiento fue iniciada", procedureService.activate(id));
+    }
+
+    private ResponseEntity<Map<String, String>> accepted(final String message, final String idMessage) {
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(Map.of("message", message, "idMessage", idMessage));
     }
 }
