@@ -6,7 +6,8 @@ import com.uco.ucopetapi.domain.sale.ItemSaleDomain;
 import com.uco.ucopetapi.domain.sale.SaleOrderDomain;
 import com.uco.ucopetapi.dto.healthPlan.HealthPlanDTO;
 import com.uco.ucopetapi.dto.healthPlanCoverage.HealthPlanCoverageDTO;
-import com.uco.ucopetapi.dto.product.CatalogItemDTO;
+import com.uco.ucopetapi.dto.product.ProductDTO;
+import com.uco.ucopetapi.dto.product.ServiceDTO;
 import com.uco.ucopetapi.dto.sale.AddItemSaleRequestDTO;
 import com.uco.ucopetapi.dto.sale.EditItemSaleRequestDTO;
 import com.uco.ucopetapi.dto.sale.ItemSaleDTO;
@@ -16,8 +17,8 @@ import com.uco.ucopetapi.dto.sale.enums.SaleOrderState;
 import com.uco.ucopetapi.repository.sale.ItemSaleRepository;
 import com.uco.ucopetapi.repository.sale.SaleOrderRepository;
 import com.uco.ucopetapi.service.healthPlan.HealthPlanService;
-import com.uco.ucopetapi.service.product.CatalogService;
-import com.uco.ucopetapi.domain.product.enums.CatalogItemType;
+import com.uco.ucopetapi.service.product.ProductService;
+import com.uco.ucopetapi.service.product.ServiceService;
 import com.uco.ucopetapi.service.sale.ItemSaleService;
 import com.uco.ucopetapi.service.sale.exception.SaleOrderNotFoundException;
 import com.uco.ucopetapi.service.sale.exception.SaleOrderStateConflictException;
@@ -36,16 +37,16 @@ public class ItemSaleServiceImpl implements ItemSaleService {
 
     private final ItemSaleRepository itemSaleRepository;
     private final SaleOrderRepository saleOrderRepository;
-    private final CatalogService catalogService;
-
+    private final ProductService productService;
+    private final ServiceService serviceService;
     private final HealthPlanService healthPlanService;
 
 
-    public ItemSaleServiceImpl(ItemSaleRepository itemSaleRepository, SaleOrderRepository saleOrderRepository, CatalogService catalogService, HealthPlanService healthPlanService) {
+    public ItemSaleServiceImpl(ItemSaleRepository itemSaleRepository, SaleOrderRepository saleOrderRepository, ProductService productService, ServiceService serviceService, HealthPlanService healthPlanService) {
         this.itemSaleRepository = itemSaleRepository;
         this.saleOrderRepository = saleOrderRepository;
-        this.catalogService = catalogService;
-
+        this.productService = productService;
+        this.serviceService = serviceService;
         this.healthPlanService = healthPlanService;
     }
 
@@ -169,9 +170,9 @@ public class ItemSaleServiceImpl implements ItemSaleService {
 
     private TaxCategory resolveAndValidateCatalogItem(UUID itemId, ItemType itemType, UUID headquarterId) {
         if (itemType == ItemType.PRODUCTO) {
-            CatalogItemDTO product;
+            ProductDTO product;
             try {
-                product = catalogService.getById(CatalogItemType.PRODUCT, itemId, headquarterId);
+                product = productService.getById(itemId, headquarterId);
             } catch (NoSuchElementException ex) {
                 throw new SaleOrderValidationException("No existe un producto con id " + itemId);
             }
@@ -181,9 +182,9 @@ public class ItemSaleServiceImpl implements ItemSaleService {
             return product.getTaxCategory();
         }
 
-        CatalogItemDTO service;
+        ServiceDTO service;
         try {
-            service = catalogService.getById(CatalogItemType.SERVICE, itemId, null);
+            service = serviceService.getById(itemId);
         } catch (NoSuchElementException ex) {
             throw new SaleOrderValidationException("No existe un servicio con id " + itemId);
         }

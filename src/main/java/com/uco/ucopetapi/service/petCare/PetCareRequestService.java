@@ -10,8 +10,7 @@ import com.uco.ucopetapi.dto.petCare.PetCareRequestDTO;
 import com.uco.ucopetapi.dto.petCare.PetCareRequestStatus;
 import com.uco.ucopetapi.dto.petCare.PetCareRequestType;
 import com.uco.ucopetapi.dto.procedure.ProcedureDTO;
-import com.uco.ucopetapi.domain.product.enums.CatalogItemType;
-import com.uco.ucopetapi.dto.product.CatalogItemDTO;
+import com.uco.ucopetapi.dto.product.ProductDTO;
 import com.uco.ucopetapi.exception.clinical.ClinicalException;
 import com.uco.ucopetapi.repository.petCare.PetCareRequestRepository;
 import com.uco.ucopetapi.service.attention.CurrentDoctor;
@@ -20,7 +19,7 @@ import com.uco.ucopetapi.service.attention.OpenPetCare;
 import com.uco.ucopetapi.service.attention.OpenPetCareLoader;
 import com.uco.ucopetapi.service.order.IOrderService;
 import com.uco.ucopetapi.service.procedure.ProcedureService;
-import com.uco.ucopetapi.service.product.CatalogService;
+import com.uco.ucopetapi.service.product.ProductService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,7 +36,7 @@ public class PetCareRequestService {
     private final PetCareRequestRepository petCareRequestRepository;
     private final CurrentDoctorProvider currentDoctorProvider;
     private final OpenPetCareLoader openPetCareLoader;
-    private final CatalogService catalogService;
+    private final ProductService productService;
     private final ProcedureService procedureService;
     private final OrderMapper orderMapper;
     private final IOrderService orderService;
@@ -45,14 +44,14 @@ public class PetCareRequestService {
     public PetCareRequestService(final PetCareRequestRepository petCareRequestRepository,
                                  final CurrentDoctorProvider currentDoctorProvider,
                                  final OpenPetCareLoader openPetCareLoader,
-                                 final CatalogService catalogService,
+                                 final ProductService productService,
                                  final ProcedureService procedureService,
                                  final OrderMapper orderMapper,
                                  final IOrderService orderService) {
         this.petCareRequestRepository = petCareRequestRepository;
         this.currentDoctorProvider = currentDoctorProvider;
         this.openPetCareLoader = openPetCareLoader;
-        this.catalogService = catalogService;
+        this.productService = productService;
         this.procedureService = procedureService;
         this.orderMapper = orderMapper;
         this.orderService = orderService;
@@ -111,7 +110,7 @@ public class PetCareRequestService {
             return;
         }
 
-        CatalogItemDTO product = catalogService.getById(CatalogItemType.PRODUCT, request.getProductId(), null);
+        ProductDTO product = productService.getById(request.getProductId(), null);
         if (!Boolean.TRUE.equals(product.getActive())) {
             throw ClinicalException.badRequest("El producto no está activo");
         }

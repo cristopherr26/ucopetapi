@@ -20,11 +20,11 @@ public interface IProcedureService {
 
     ProcedureDTO findByCode(String code);
 
-    ProcedureDTO create(ProcedureDTO request);
+    String create(ProcedureDTO request);
 
-    ProcedureDTO update(UUID id, ProcedureDTO request);
+    String update(UUID id, ProcedureDTO request);
 
-    ProcedureDTO deactivate(UUID id);
+    String deactivate(UUID id);
 
-    ProcedureDTO activate(UUID id);
+    String activate(UUID id);
 }

@@ -3,6 +3,9 @@ package com.uco.ucopetapi.service.pet;
 import com.uco.ucopetapi.domain.pet.PetDomain;
 import com.uco.ucopetapi.dto.pet.PetDTO;
 import com.uco.ucopetapi.exception.BusinessException;
+import com.uco.ucopetapi.messaging.pet.PetCreationSenderBroker;
+import com.uco.ucopetapi.messaging.pet.PetDeactivationSenderBroker;
+import com.uco.ucopetapi.messaging.pet.PetUpdateSenderBroker;
 import com.uco.ucopetapi.repository.pet.IPetRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +21,9 @@ public class PetService {
 
     private final IPetRepository iPetRepository;
     private final PetMapper petMapper;
+    private final PetCreationSenderBroker petCreationSenderBroker;
+    private final PetUpdateSenderBroker petUpdateSenderBroker;
+    private final PetDeactivationSenderBroker petDeactivationSenderBroker;
 
     private static final String TEXT_REGEX = "\\S+";
     private static final String GENDER_REGEX = "^[MF]$";
@@ -37,9 +43,13 @@ public class PetService {
 
     private static final ZoneId ZONE_ID = ZoneId.of("America/Bogota");
 
-    public PetService(IPetRepository iPetRepository, PetMapper petMapper) {
+    public PetService(IPetRepository iPetRepository, PetMapper petMapper, PetCreationSenderBroker petCreationSenderBroker,
+                      PetUpdateSenderBroker petUpdateSenderBroker, PetDeactivationSenderBroker petDeactivationSenderBroker) {
         this.iPetRepository = iPetRepository;
         this.petMapper = petMapper;
+        this.petCreationSenderBroker = petCreationSenderBroker;
+        this.petUpdateSenderBroker = petUpdateSenderBroker;
+        this.petDeactivationSenderBroker = petDeactivationSenderBroker;
     }
 
     public List<PetDTO> getAllPets(UUID headquarterId,
@@ -96,9 +106,11 @@ public class PetService {
         pet.setActive(true);
         pet.setCreatedDate(LocalDateTime.now(ZONE_ID));
 
-        PetDomain savedPet = iPetRepository.save(pet);
+        String idMessage = UUID.randomUUID().toString();
 
-        return petMapper.toDTO(savedPet);
+        petCreationSenderBroker.execute(pet, idMessage);
+
+        return petMapper.toDTO(pet);
     }
 
     @Transactional
@@ -135,9 +147,11 @@ public class PetService {
 
         existingPet.setModifiedDate(LocalDateTime.now(ZONE_ID));
 
-        PetDomain updatedPet = iPetRepository.save(existingPet);
+        String idMessage = UUID.randomUUID().toString();
 
-        return petMapper.toDTO(updatedPet);
+        petUpdateSenderBroker.execute(existingPet, idMessage);
+
+        return petMapper.toDTO(existingPet);
     }
 
     @Transactional
@@ -151,9 +165,11 @@ public class PetService {
         existingPet.setActive(false);
         existingPet.setModifiedDate(LocalDateTime.now(ZONE_ID));
 
-        PetDomain deactivatedPet = iPetRepository.save(existingPet);
+        String idMessage = UUID.randomUUID().toString();
 
-        return petMapper.toDTO(deactivatedPet);
+        petDeactivationSenderBroker.execute(existingPet, idMessage);
+
+        return petMapper.toDTO(existingPet);
     }
 
     private void validateFields(PetDTO dto) {

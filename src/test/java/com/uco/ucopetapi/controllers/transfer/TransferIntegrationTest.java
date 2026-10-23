@@ -21,15 +21,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
 import com.uco.ucopetapi.domain.person.PersonDomain;
-import com.uco.ucopetapi.domain.product.enums.CatalogCategory;
-import com.uco.ucopetapi.domain.product.enums.CatalogItemType;
+import com.uco.ucopetapi.domain.product.enums.ProductCategory;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
-import com.uco.ucopetapi.dto.product.CatalogItemDTO;
+import com.uco.ucopetapi.dto.product.ProductDTO;
 import com.uco.ucopetapi.repository.headquarter.HeadquarterRepository;
 import com.uco.ucopetapi.repository.person.PersonRepository;
-import com.uco.ucopetapi.service.product.CatalogService;
-import com.uco.ucopetapi.repository.product.ICatalogItemRepository;
-import com.uco.ucopetapi.repository.product.IStockRepository;
+import com.uco.ucopetapi.service.product.ProductService;
 import com.uco.ucopetapi.service.product.StockService;
 
 /**
@@ -61,16 +58,10 @@ class TransferIntegrationTest {
     private HeadquarterRepository headquarterRepository;
 
     @Autowired
-    private CatalogService catalogService;
+    private ProductService productService;
 
     @Autowired
     private StockService stockService;
-
-    @Autowired
-    private ICatalogItemRepository itemRepository;
-
-    @Autowired
-    private IStockRepository stockRepository;
 
     private final HttpClient http = HttpClient.newHttpClient();
 
@@ -104,15 +95,21 @@ class TransferIntegrationTest {
         sedeInactivaId = headquarterRepository.save(
                 new HeadquarterDomain(null, "Sede Integracion Inactiva", "Cra 3 Test", false)).getId();
 
-        CatalogItemDTO producto = catalogService.create(CatalogItemType.PRODUCT,
-                CatalogItemDTO.builder()
-                        .name("Producto Integracion Transfer " + UUID.randomUUID())
-                        .description("Producto para pruebas de transferencias")
-                        .price(50000)
-                        .taxCategory(TaxCategory.STANDARD)
-                        .sellable(true)
-                        .category(CatalogCategory.GENERAL)
-                        .build());
+        ProductDTO producto = productService.create(
+                new ProductDTO(
+                        null,
+                        "Producto Integracion Transfer",
+                        "Producto para pruebas de transferencias",
+                        null,
+                        50000,
+                        TaxCategory.STANDARD,
+                        true,
+                        true,
+                        ProductCategory.GENERAL,
+                        null,
+                        null
+                )
+        );
 
         productoId = producto.getId();
 
@@ -126,12 +123,6 @@ class TransferIntegrationTest {
         admin.setFailedAttempts(0);
         admin.setLockedUntil(null);
         personRepository.save(admin);
-
-        // El producto si se borra: transfers guarda productId como UUID suelto, sin FK.
-        if (productoId != null) {
-            stockRepository.deleteAll(stockRepository.findByItem_Id(productoId));
-            itemRepository.deleteById(productoId);
-        }
     }
 
     @Nested
