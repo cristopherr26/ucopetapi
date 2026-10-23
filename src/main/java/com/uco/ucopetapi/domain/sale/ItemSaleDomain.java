@@ -51,8 +51,7 @@ public class ItemSaleDomain implements Persistable<UUID> {
     private boolean isNew = true;
 
     protected ItemSaleDomain() {
-        // Requerido por JPA/Hibernate para instanciar por reflexion al leer
-        // filas de la base de datos. No usar directamente.
+
     }
 
     public ItemSaleDomain(UUID id, UUID saleOrderId, UUID itemId, ItemType itemType,

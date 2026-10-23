@@ -4,6 +4,7 @@ import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 import com.uco.ucopetapi.domain.sale.ItemSaleDomain;
 import com.uco.ucopetapi.dto.sale.enums.ItemType;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public final class ItemSaleDTO {
@@ -14,11 +15,11 @@ public final class ItemSaleDTO {
     private final ItemType itemType;
     private final TaxCategory taxCategory;
     private final Integer quantity;
-    private final Integer unitPrice;
-    private final Integer subtotal;
+    private final BigDecimal unitPrice;
+    private final BigDecimal subtotal;
 
     public ItemSaleDTO(UUID id, UUID saleOrderId, UUID itemId, ItemType itemType,
-                       TaxCategory taxCategory, Integer quantity, Integer unitPrice, Integer subtotal) {
+                       TaxCategory taxCategory, Integer quantity, BigDecimal unitPrice, BigDecimal subtotal) {
         this.id = id;
         this.saleOrderId = saleOrderId;
         this.itemId = itemId;
@@ -35,8 +36,8 @@ public final class ItemSaleDTO {
     public ItemType getItemType() { return itemType; }
     public TaxCategory getTaxCategory() { return taxCategory; }
     public Integer getQuantity() { return quantity; }
-    public Integer getUnitPrice() { return unitPrice; }
-    public Integer getSubtotal() { return subtotal; }
+    public BigDecimal getUnitPrice() { return unitPrice; }
+    public BigDecimal getSubtotal() { return subtotal; }
 
     public ItemSaleDomain toDomain() {
         return new ItemSaleDomain(id, saleOrderId, itemId, itemType, taxCategory, quantity, unitPrice, subtotal);
