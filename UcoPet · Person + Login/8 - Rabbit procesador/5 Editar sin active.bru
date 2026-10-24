@@ -1,0 +1,36 @@
+meta {
+  name: Editar la direccion, sin mandar active → 200
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/persons/{{rabbitId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "{{rabbitDoc}}",
+    "firstName": "Prueba",
+    "lastName": "Rabbit",
+    "email": "{{rabbitCorreo}}",
+    "address": "Carrera 50 # 40-10, La Ceja",
+    "phone": "3001234567"
+  }
+}
+
+script:post-response {
+  test("200", () => expect(res.getStatus()).to.equal(200));
+  test("la respuesta la muestra activa", () => expect(res.getBody().active).to.be.true);
+}
+
+settings {
+  encodeUrl: true
+}

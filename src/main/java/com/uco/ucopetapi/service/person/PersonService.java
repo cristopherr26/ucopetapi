@@ -12,7 +12,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,14 +24,19 @@ import com.uco.ucopetapi.dto.person.DocumentType;
 import com.uco.ucopetapi.dto.person.LoginRequestDTO;
 import com.uco.ucopetapi.dto.person.LoginResponseDTO;
 import com.uco.ucopetapi.dto.person.PersonDTO;
+import com.uco.ucopetapi.dto.person.PersonMessageDTO;
 import com.uco.ucopetapi.dto.person.Role;
 import com.uco.ucopetapi.dto.person.SetPasswordRequestDTO;
 import com.uco.ucopetapi.event.LoginSuccededEvent;
+import com.uco.ucopetapi.messaging.person.PersonCreationSenderBroker;
+import com.uco.ucopetapi.messaging.person.PersonDeactivationSenderBroker;
+import com.uco.ucopetapi.messaging.person.PersonUpdateSenderBroker;
 import com.uco.ucopetapi.repository.doctor.IDoctorRepository;
 import com.uco.ucopetapi.repository.person.PersonRepository;
 import com.uco.ucopetapi.security.UnknownEmailAttempts;
 import com.uco.ucopetapi.security.JwtService;
 
+// Las consultas, el login, el logout y las contrasenas siguen siendo sincronos.
 @Service
 public class PersonService {
     private static final String INVALID_CREDENTIALS = "Correo o contrasena incorrectos";
@@ -48,9 +52,9 @@ public class PersonService {
     private final UnknownEmailAttempts unknownEmailAttempts;
     private final IDoctorRepository doctorRepository;
     private final ApplicationEventPublisher eventPublisher;
-    // Hash de relleno: cuando no hay contrasena real contra que comparar (correo inexistente o
-    // cuenta sin clave) se compara igual contra este, para que la respuesta tarde lo mismo y
-    // por el tiempo no se pueda adivinar que correos existen.
+    private final PersonCreationSenderBroker personCreationSenderBroker;
+    private final PersonUpdateSenderBroker personUpdateSenderBroker;
+    private final PersonDeactivationSenderBroker personDeactivationSenderBroker;
     private final String dummyHash;
 
     public PersonService(PersonRepository personRepository,
@@ -58,13 +62,19 @@ public class PersonService {
                          JwtService jwtService,
                          UnknownEmailAttempts unknownEmailAttempts,
                          IDoctorRepository doctorRepository,
-                         ApplicationEventPublisher eventPublisher) {
+                         ApplicationEventPublisher eventPublisher,
+                         PersonCreationSenderBroker personCreationSenderBroker,
+                         PersonUpdateSenderBroker personUpdateSenderBroker,
+                         PersonDeactivationSenderBroker personDeactivationSenderBroker) {
         this.personRepository = personRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.unknownEmailAttempts = unknownEmailAttempts;
         this.doctorRepository = doctorRepository;
         this.eventPublisher = eventPublisher;
+        this.personCreationSenderBroker = personCreationSenderBroker;
+        this.personUpdateSenderBroker = personUpdateSenderBroker;
+        this.personDeactivationSenderBroker = personDeactivationSenderBroker;
         this.dummyHash = passwordEncoder.encode(DUMMY_PASSWORD);
     }
 
@@ -95,16 +105,17 @@ public class PersonService {
                         "No existe una persona con ese correo"));
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public PersonDTO create(PersonDTO person) {
         validateUniqueness(person, null);
 
-        PersonDomain created = new PersonDomain();
-        copyData(person, created);
-        created.setAdmin(Boolean.TRUE.equals(person.admin()));
-        created.setActive(true);
+        PersonMessageDTO message = toMessage(UUID.randomUUID(), person,
+                Boolean.TRUE.equals(person.admin()), true);
+        personCreationSenderBroker.execute(message, UUID.randomUUID().toString());
 
-        return toDTO(saveOrConflict(created));
+        return new PersonDTO(message.id(), message.documentType(), message.documentNumber(),
+                message.firstName(), message.lastName(), message.email(), message.address(),
+                message.phone(), message.admin(), message.active(), null);
     }
 
     @Transactional
@@ -112,27 +123,36 @@ public class PersonService {
         return update(personId, person, true);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public PersonDTO update(UUID personId, PersonDTO person, boolean requestedByAdmin) {
         PersonDomain current = findOrThrow(personId);
         validateUniqueness(person, personId);
 
-        copyData(person, current);
-        if (requestedByAdmin) {
-            applyAdminFlag(current, person.admin());
-            applyActiveFlag(current, person.active());
+        Boolean admin = requestedByAdmin ? person.admin() : null;
+        Boolean active = requestedByAdmin ? person.active() : null;
+
+        boolean finalAdmin = admin != null ? admin : current.isAdmin();
+        boolean finalActive = active != null ? active : current.isActive();
+        if (!finalAdmin || !finalActive) {
+            validateNotLastAdmin(current);
         }
 
-        return toDTO(saveOrConflict(current));
+        PersonMessageDTO message = toMessage(personId, person, admin, active);
+        personUpdateSenderBroker.execute(message, UUID.randomUUID().toString());
+
+        Instant deactivatedAt = finalActive ? null
+                : Optional.ofNullable(current.getDeactivatedAt()).orElseGet(Instant::now);
+        return new PersonDTO(personId, message.documentType(), message.documentNumber(),
+                message.firstName(), message.lastName(), message.email(), message.address(),
+                message.phone(), finalAdmin, finalActive, deactivatedAt);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public void delete(UUID personId) {
         PersonDomain current = findOrThrow(personId);
         validateNotLastAdmin(current);
-        current.setActive(false);
-        syncDeactivation(current);
-        personRepository.save(current);
+        personDeactivationSenderBroker.execute(PersonMessageDTO.onlyId(personId),
+                UUID.randomUUID().toString());
     }
 
     @Transactional
@@ -224,14 +244,10 @@ public class PersonService {
         return dto;
     }
 
-    private void copyData(PersonDTO desde, PersonDomain hacia) {
-        hacia.setDocumentType(desde.documentType());
-        hacia.setDocumentNumber(desde.documentNumber());
-        hacia.setFirstName(desde.firstName());
-        hacia.setLastName(desde.lastName());
-        hacia.setEmail(normalizeEmail(desde.email()));
-        hacia.setAddress(desde.address());
-        hacia.setPhone(desde.phone());
+    private static PersonMessageDTO toMessage(UUID id, PersonDTO person, Boolean admin, Boolean active) {
+        return new PersonMessageDTO(id, person.documentType(), person.documentNumber(),
+                person.firstName(), person.lastName(), normalizeEmail(person.email()),
+                person.address(), person.phone(), admin, active);
     }
 
     private void validateNotLastAdmin(PersonDomain person) {
@@ -241,29 +257,6 @@ public class PersonService {
                     "No se puede dejar el sistema sin administradores activos. "
                             + "Primero hay que darle el rol ADMIN a otra persona.");
         }
-    }
-
-    // null = el campo no vino en el JSON: no se cambia nada.
-    private void applyActiveFlag(PersonDomain current, Boolean active) {
-        if (active == null || active.booleanValue() == current.isActive()) {
-            return;
-        }
-        if (!active) {
-            validateNotLastAdmin(current);
-        }
-        current.setActive(active);
-        syncDeactivation(current);
-    }
-
-    private void applyAdminFlag(PersonDomain current, Boolean admin) {
-        if (admin == null || admin.booleanValue() == current.isAdmin()) {
-            return;
-        }
-        if (!admin) {
-            validateNotLastAdmin(current);
-        }
-        current.setAdmin(admin);
-        current.setTokenVersion(current.getTokenVersion() + 1);
     }
 
     private boolean isLocked(PersonDomain person) {
@@ -306,14 +299,6 @@ public class PersonService {
         }
     }
 
-    private void syncDeactivation(PersonDomain person) {
-        if (person.isActive()) {
-            person.setDeactivatedAt(null);
-        } else if (person.getDeactivatedAt() == null) {
-            person.setDeactivatedAt(Instant.now());
-        }
-    }
-
     private List<Role> rolesOf(PersonDomain person) {
         List<Role> roles = new ArrayList<>();
         if (person.isAdmin()) {
@@ -350,15 +335,6 @@ public class PersonService {
                     throw new ResponseStatusException(HttpStatus.CONFLICT,
                             "Ya hay una persona registrada con ese documento");
                 });
-    }
-
-    private PersonDomain saveOrConflict(PersonDomain person) {
-        try {
-            return personRepository.saveAndFlush(person);
-        } catch (DataIntegrityViolationException _) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "El correo o el documento ya estan registrados");
-        }
     }
 
     private PersonDomain findOrThrow(UUID personId) {

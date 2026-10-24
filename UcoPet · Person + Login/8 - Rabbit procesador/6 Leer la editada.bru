@@ -1,0 +1,27 @@
+meta {
+  name: Leerla → direccion nueva y sigue activa
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/persons/{{rabbitId}}
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.sleep(1000);
+}
+
+script:post-response {
+  test("200", () => expect(res.getStatus()).to.equal(200));
+  test("el procesador guardo la direccion nueva", () =>
+      expect(res.getBody().address).to.equal("Carrera 50 # 40-10, La Ceja"));
+  test("no mandar active NO la dio de baja", () =>
+      expect(res.getBody().active).to.be.true);
+}
+
+settings {
+  encodeUrl: true
+}
