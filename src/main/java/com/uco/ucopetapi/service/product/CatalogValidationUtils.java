@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.service.product;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -13,21 +14,21 @@ public final class CatalogValidationUtils {
     public static final String PRODUCT = "producto";
     public static final String SERVICE = "servicio";
 
-    public static void requirePriceWhenSellable(Boolean sellable, Integer price, String item) {
-        if (Boolean.TRUE.equals(sellable) && (price == null || price <= 0)) {
+    public static void requirePriceWhenSellable(Boolean sellable, BigDecimal price, String item) {
+        if (Boolean.TRUE.equals(sellable) && (price == null || price.signum() <= 0)) {
             throw new IllegalArgumentException("Un " + item + " vendible necesita un precio mayor a cero");
         }
     }
 
-    public static void rejectPriceWhenNotSellable(Boolean sellable, Integer price, String item) {
+    public static void rejectPriceWhenNotSellable(Boolean sellable, BigDecimal price, String item) {
         if (Boolean.FALSE.equals(sellable) && price != null) {
             throw new IllegalArgumentException(
                     "Un " + item + " que no se vende al público no puede llevar precio");
         }
     }
 
-    public static void validatePriceOnUpdate(Integer price) {
-        if (price != null && price <= 0) {
+    public static void validatePriceOnUpdate(BigDecimal price) {
+        if (price != null && price.signum() <= 0) {
             throw new IllegalArgumentException("El precio debe ser mayor a cero");
         }
     }

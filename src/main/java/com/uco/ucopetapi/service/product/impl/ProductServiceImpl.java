@@ -10,6 +10,7 @@ import com.uco.ucopetapi.service.product.CatalogService;
 import com.uco.ucopetapi.service.product.ProductService;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -57,7 +58,7 @@ public class ProductServiceImpl implements ProductService {
                 .name(request.getName())
                 .description(request.getDescription())
                 .imageUrl(request.getImageUrl())
-                .price(request.getPrice())
+                .price(request.getPrice() == null ? null : BigDecimal.valueOf(request.getPrice()))
                 .taxCategory(request.getTaxCategory())
                 .sellable(request.getSellable())
                 .active(request.getActive())
@@ -67,7 +68,8 @@ public class ProductServiceImpl implements ProductService {
 
     private static ProductDTO toDto(CatalogItemDTO item) {
         return new ProductDTO(item.getId(), item.getName(), item.getDescription(), item.getImageUrl(),
-                item.getPrice(), item.getTaxCategory(), item.getSellable(), item.getActive(),
+                item.getPrice() == null ? null : item.getPrice().intValue(), item.getTaxCategory(),
+                item.getSellable(), item.getActive(),
                 item.getCategory() == null ? null : ProductCategory.valueOf(item.getCategory().name()),
                 List.of(), item.getStockAtLocation());
     }

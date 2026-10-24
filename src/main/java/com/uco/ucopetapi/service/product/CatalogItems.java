@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.service.product;
 
+import java.math.BigDecimal;
 import com.uco.ucopetapi.domain.product.CatalogItemDomain;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 
@@ -20,7 +21,7 @@ public final class CatalogItems {
     }
 
     public static void applyCommonFields(CatalogItemDomain item, String name, String description,
-                                         String imageUrl, Integer price, TaxCategory taxCategory,
+                                         String imageUrl, BigDecimal price, TaxCategory taxCategory,
                                          Boolean sellable) {
         if (name != null) {
             item.setName(normalizeName(name));

@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.service.product;
 
+import java.math.BigDecimal;
 import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
 import com.uco.ucopetapi.domain.product.enums.CatalogCategory;
 import com.uco.ucopetapi.domain.product.enums.CatalogItemType;
@@ -46,7 +47,7 @@ class ProductServiceIntegrationTest {
         CatalogItemDTO request = CatalogItemDTO.builder()
                 .name("Producto de prueba integración")
                 .description("Descripción de prueba")
-                .price(50000)
+                .price(BigDecimal.valueOf(50000))
                 .taxCategory(TaxCategory.STANDARD)
                 .sellable(true)
                 .category(CatalogCategory.GENERAL)
@@ -57,7 +58,7 @@ class ProductServiceIntegrationTest {
 
         CatalogItemDTO fetched = catalogService.getById(CatalogItemType.PRODUCT, created.getId(), null);
         assertEquals("Producto de prueba integración", fetched.getName());
-        assertEquals(50000, fetched.getPrice());
+        assertEquals(0, BigDecimal.valueOf(50000).compareTo(fetched.getPrice()));
     }
 
     @Test
@@ -82,7 +83,7 @@ class ProductServiceIntegrationTest {
         CatalogItemDTO request = CatalogItemDTO.builder()
                 .name("Producto para stock")
                 .description("Descripción")
-                .price(30000)
+                .price(BigDecimal.valueOf(30000))
                 .taxCategory(TaxCategory.STANDARD)
                 .sellable(true)
                 .category(CatalogCategory.GENERAL)
@@ -104,7 +105,7 @@ class ProductServiceIntegrationTest {
         CatalogItemDTO request = CatalogItemDTO.builder()
                 .name("Producto para concurrencia " + UUID.randomUUID())
                 .description("Descripcion")
-                .price(10000)
+                .price(BigDecimal.valueOf(10000))
                 .taxCategory(TaxCategory.STANDARD)
                 .sellable(true)
                 .category(CatalogCategory.GENERAL)

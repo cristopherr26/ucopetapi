@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.service.product;
 
+import java.math.BigDecimal;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
@@ -64,7 +65,7 @@ class CatalogConcurrencyAuditTest {
         return CatalogItemDTO.builder()
                 .name(name)
                 .description("auditoria")
-                .price(1000)
+                .price(BigDecimal.valueOf(1000))
                 .taxCategory(TaxCategory.STANDARD)
                 .sellable(true)
                 .category(CatalogCategory.GENERAL)

@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.service.product;
 
+import java.math.BigDecimal;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -48,7 +49,7 @@ class CatalogRulesAuditTest {
         return CatalogItemDTO.builder()
                 .name(name)
                 .description(AUDITORIA)
-                .price(price)
+                .price(price == null ? null : BigDecimal.valueOf(price))
                 .taxCategory(TaxCategory.STANDARD)
                 .sellable(sellable)
                 .category(CatalogCategory.GENERAL)
@@ -71,7 +72,7 @@ class CatalogRulesAuditTest {
         return CatalogItemDTO.builder()
                 .name(name)
                 .description(AUDITORIA)
-                .price(15000)
+                .price(BigDecimal.valueOf(15000))
                 .taxCategory(TaxCategory.STANDARD)
                 .sellable(true)
                 .category(CatalogCategory.GENERAL)

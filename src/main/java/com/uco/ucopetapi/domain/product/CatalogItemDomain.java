@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.domain.product;
 
+import java.math.BigDecimal;
 import com.uco.ucopetapi.domain.product.enums.CatalogCategory;
 import com.uco.ucopetapi.domain.product.enums.CatalogItemType;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
@@ -28,7 +29,8 @@ public class CatalogItemDomain {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
-    private Integer price;
+    @Column(precision = 15, scale = 2)
+    private BigDecimal price;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tax_category", nullable = false, length = 20)
@@ -55,7 +57,7 @@ public class CatalogItemDomain {
     }
 
     public CatalogItemDomain(final UUID id, final CatalogItemType type, final String name,
-                            final String description, final String imageUrl, final Integer price,
+                            final String description, final String imageUrl, final BigDecimal price,
                             final TaxCategory taxCategory, final Boolean sellable, final Boolean active,
                             final CatalogCategory category, final Boolean purchasable) {
         this.id = id;
@@ -99,11 +101,11 @@ public class CatalogItemDomain {
         this.imageUrl = imageUrl;
     }
 
-    public Integer getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(final Integer price) {
+    public void setPrice(final BigDecimal price) {
         this.price = price;
     }
 

@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.dto.product;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -13,6 +14,7 @@ import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 import com.uco.ucopetapi.dto.product.CatalogValidationGroups.IOnCreate;
 import com.uco.ucopetapi.dto.product.CatalogValidationGroups.IOnUpdate;
 
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -39,7 +41,8 @@ public class CatalogItemDTO {
 
     private final String imageUrl;
 
-    private final Integer price;
+    @Digits(integer = 13, fraction = 2, message = "El precio admite hasta 13 enteros y 2 decimales")
+    private final BigDecimal price;
 
     @NotNull(groups = IOnCreate.class, message = "La categoría de IVA es obligatoria")
     private final TaxCategory taxCategory;
@@ -107,7 +110,7 @@ public class CatalogItemDTO {
         return imageUrl;
     }
 
-    public Integer getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
@@ -147,7 +150,7 @@ public class CatalogItemDTO {
         private String name;
         private String description;
         private String imageUrl;
-        private Integer price;
+        private BigDecimal price;
         private TaxCategory taxCategory;
         private Boolean sellable;
         private Boolean active;
@@ -186,7 +189,7 @@ public class CatalogItemDTO {
             return this;
         }
 
-        public Builder price(Integer price) {
+        public Builder price(BigDecimal price) {
             this.price = price;
             return this;
         }
