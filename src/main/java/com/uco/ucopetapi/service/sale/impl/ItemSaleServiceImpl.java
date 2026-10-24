@@ -20,6 +20,11 @@ import com.uco.ucopetapi.integration.sale.healthPlan.HealthPlanResponse;
 import com.uco.ucopetapi.repository.sale.ItemSaleRepository;
 import com.uco.ucopetapi.repository.sale.SaleOrderRepository;
 import com.uco.ucopetapi.service.sale.ItemSaleService;
+import com.uco.ucopetapi.dto.sale.ItemSaleMessageDTO;
+import com.uco.ucopetapi.dto.sale.ItemSaleDeleteMessageDTO;
+import com.uco.ucopetapi.messaging.sale.ItemSaleCreationSenderBroker;
+import com.uco.ucopetapi.messaging.sale.ItemSaleUpdateSenderBroker;
+import com.uco.ucopetapi.messaging.sale.ItemSaleDeleteSenderBroker;
 import com.uco.ucopetapi.crosscutting.helpers.UUIDHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,16 +42,27 @@ public class ItemSaleServiceImpl implements ItemSaleService {
     private final CatalogClient catalogClient;
     private final HealthPlanClient healthPlanClient;
 
+    private final ItemSaleCreationSenderBroker itemSaleCreationSenderBroker;
+    private final ItemSaleUpdateSenderBroker itemSaleUpdateSenderBroker;
+    private final ItemSaleDeleteSenderBroker itemSaleDeleteSenderBroker;
+
     public ItemSaleServiceImpl(
             ItemSaleRepository itemSaleRepository,
             SaleOrderRepository saleOrderRepository,
             CatalogClient catalogClient,
-            HealthPlanClient healthPlanClient) {
+            HealthPlanClient healthPlanClient,
+            ItemSaleCreationSenderBroker itemSaleCreationSenderBroker,
+            ItemSaleUpdateSenderBroker itemSaleUpdateSenderBroker,
+            ItemSaleDeleteSenderBroker itemSaleDeleteSenderBroker) {
 
         this.itemSaleRepository = itemSaleRepository;
         this.saleOrderRepository = saleOrderRepository;
         this.catalogClient = catalogClient;
         this.healthPlanClient = healthPlanClient;
+
+        this.itemSaleCreationSenderBroker = itemSaleCreationSenderBroker;
+        this.itemSaleUpdateSenderBroker = itemSaleUpdateSenderBroker;
+        this.itemSaleDeleteSenderBroker = itemSaleDeleteSenderBroker;
     }
 
     @Override
@@ -101,13 +117,16 @@ public class ItemSaleServiceImpl implements ItemSaleService {
                 subtotal
         );
 
-        itemSaleRepository.save(newItem);
-
+        ItemSaleDomain savedItem = itemSaleRepository.save(newItem);
         recalculateOrderTotals(order);
-
         SaleOrderDomain savedOrder = saleOrderRepository.save(order);
 
-        return savedOrder.toDTO();
+        itemSaleCreationSenderBroker.execute(
+                toMessageDTO(savedItem),
+                UUID.randomUUID().toString()
+        );
+
+        return populateItems(savedOrder.toDTO());
     }
 
     @Override
@@ -132,10 +151,6 @@ public class ItemSaleServiceImpl implements ItemSaleService {
             );
         }
 
-        /*
-         * El precio no se recibe del cliente.
-         * Se conserva el precio registrado cuando se agregó el artículo.
-         */
         BigDecimal subtotal = item.getUnitPrice()
                 .multiply(BigDecimal.valueOf(request.getQuantity()))
                 .setScale(2, RoundingMode.HALF_UP);
@@ -143,13 +158,16 @@ public class ItemSaleServiceImpl implements ItemSaleService {
         item.setQuantity(request.getQuantity());
         item.setSubtotal(subtotal);
 
-        itemSaleRepository.save(item);
-
+        ItemSaleDomain savedItem = itemSaleRepository.save(item);
         recalculateOrderTotals(order);
-
         SaleOrderDomain savedOrder = saleOrderRepository.save(order);
 
-        return savedOrder.toDTO();
+        itemSaleUpdateSenderBroker.execute(
+                toMessageDTO(savedItem),
+                UUID.randomUUID().toString()
+        );
+
+        return populateItems(savedOrder.toDTO());
     }
 
     @Override
@@ -173,12 +191,48 @@ public class ItemSaleServiceImpl implements ItemSaleService {
         }
 
         itemSaleRepository.deleteById(itemSaleId);
-
         recalculateOrderTotals(order);
-
         SaleOrderDomain savedOrder = saleOrderRepository.save(order);
 
-        return savedOrder.toDTO();
+        itemSaleDeleteSenderBroker.execute(
+                toDeleteMessageDTO(item),
+                UUID.randomUUID().toString()
+        );
+
+        return populateItems(savedOrder.toDTO());
+    }
+
+    private SaleOrderDTO populateItems(SaleOrderDTO saleOrderDTO) {
+        saleOrderDTO.setItems(
+                itemSaleRepository.findBySaleOrderId(saleOrderDTO.getId())
+                        .stream()
+                        .map(ItemSaleDomain::toDTO)
+                        .toList()
+        );
+
+        return saleOrderDTO;
+    }
+
+    private ItemSaleMessageDTO toMessageDTO(ItemSaleDomain item) {
+        return new ItemSaleMessageDTO(
+                item.getId(),
+                item.getSaleOrderId(),
+                item.getItemId(),
+                item.getItemType().name(),
+                item.getTaxCategory().name(),
+                item.getQuantity(),
+                item.getUnitPrice(),
+                item.getSubtotal()
+        );
+    }
+
+    private ItemSaleDeleteMessageDTO toDeleteMessageDTO(
+            ItemSaleDomain item) {
+
+        return new ItemSaleDeleteMessageDTO(
+                item.getId(),
+                item.getSaleOrderId()
+        );
     }
 
     @Override
@@ -186,7 +240,8 @@ public class ItemSaleServiceImpl implements ItemSaleService {
 
         findOrderOrThrow(saleOrderId);
 
-        return itemSaleRepository.findBySaleOrderId(saleOrderId)
+        return itemSaleRepository
+                .findBySaleOrderId(saleOrderId)
                 .stream()
                 .map(ItemSaleDomain::toDTO)
                 .toList();

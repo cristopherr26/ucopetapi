@@ -18,4 +18,6 @@ public interface ItemSaleService {
 
     List<ItemSaleDTO> listItemsBySaleOrder(UUID saleOrderId);
 
+
+
 }

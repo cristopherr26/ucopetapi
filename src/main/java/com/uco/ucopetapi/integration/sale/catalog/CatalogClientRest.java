@@ -9,7 +9,24 @@ import java.util.UUID;
 @Component
 public class CatalogClientRest implements CatalogClient {
 
-    private final RestClient restClient = RestClient.create();
+    private final RestClient restClient = RestClient.builder()
+            .requestInterceptor((request, body, execution) -> {
+                var attributes =
+                        org.springframework.web.context.request.RequestContextHolder
+                                .getRequestAttributes();
+
+                if (attributes instanceof org.springframework.web.context.request.ServletRequestAttributes servletAttributes) {
+                    String authorization = servletAttributes.getRequest()
+                            .getHeader("Authorization");
+
+                    if (authorization != null && !authorization.isBlank()) {
+                        request.getHeaders().set("Authorization", authorization);
+                    }
+                }
+
+                return execution.execute(request, body);
+            })
+            .build();
 
     @Value("${products.service.url:http://localhost:8080/api/v1/products}")
     private String productsServiceUrl;
