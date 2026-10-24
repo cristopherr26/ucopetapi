@@ -1,6 +1,7 @@
 package com.uco.ucopetapi.dto.notification;
 
 import com.uco.ucopetapi.model.notification.enums.NotificationType;
+import com.uco.ucopetapi.model.notification.enums.ReferenceType;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -14,7 +15,7 @@ public class NotificationDTO {
     private boolean isRead;
     private NotificationType type;
     private UUID referenceId;
-    private String referenceType;
+    private ReferenceType referenceType;
     private LocalDateTime createdAt;
 
     public NotificationDTO() { // Se usa patron builder para instanciar la clase
@@ -46,8 +47,8 @@ public class NotificationDTO {
     public UUID getReferenceId() { return referenceId; }
     public void setReferenceId(UUID referenceId) { this.referenceId = referenceId; }
 
-    public String getReferenceType() { return referenceType; }
-    public void setReferenceType(String referenceType) { this.referenceType = referenceType; }
+    public ReferenceType getReferenceType() { return referenceType; }
+    public void setReferenceType(ReferenceType referenceType) { this.referenceType = referenceType; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
@@ -90,7 +91,7 @@ public class NotificationDTO {
             return this;
         }
 
-        public Builder referenceType(String referenceType) {
+        public Builder referenceType(ReferenceType referenceType) {
             dto.referenceType = referenceType;
             return this;
         }

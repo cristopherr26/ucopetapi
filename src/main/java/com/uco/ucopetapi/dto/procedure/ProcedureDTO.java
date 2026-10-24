@@ -1,7 +1,5 @@
 package com.uco.ucopetapi.dto.procedure;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.List;
 import java.util.UUID;
 
@@ -21,7 +19,6 @@ public class ProcedureDTO {
 
     private List<ProcedureProductDTO> defaultProducts;
 
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Boolean active;
 
     public ProcedureDTO() {
