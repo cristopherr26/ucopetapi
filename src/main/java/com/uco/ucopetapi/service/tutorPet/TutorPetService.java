@@ -1,12 +1,12 @@
 package com.uco.ucopetapi.service.tutorPet;
 
-import com.uco.ucopetapi.domain.person.PersonDomain;
 import com.uco.ucopetapi.domain.tutorPet.TutorPetDomain;
 import com.uco.ucopetapi.dto.tutorPet.TutorPetDTO;
 import com.uco.ucopetapi.exception.BusinessException;
-import com.uco.ucopetapi.repository.person.PersonRepository;
+import com.uco.ucopetapi.messaging.tutorPet.TutorPetCreationSenderBroker;
+import com.uco.ucopetapi.messaging.tutorPet.TutorPetDeactivationSenderBroker;
+import com.uco.ucopetapi.messaging.tutorPet.TutorPetUpdateSenderBroker;
 import com.uco.ucopetapi.repository.tutorPet.ITutorPetRepository;
-import com.uco.ucopetapi.service.person.PersonService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,15 +16,18 @@ import java.util.UUID;
 public class TutorPetService {
 
     private final ITutorPetRepository tutorPetRepository;
-    private final PersonRepository personRepository;
-    private final PersonService personService;
+    private final TutorPetCreationSenderBroker creationSender;
+    private final TutorPetUpdateSenderBroker updateSender;
+    private final TutorPetDeactivationSenderBroker deactivationSender;
 
     public TutorPetService(ITutorPetRepository tutorPetRepository,
-                           PersonRepository personRepository,
-                           PersonService personService) {
+                           TutorPetCreationSenderBroker creationSender,
+                           TutorPetUpdateSenderBroker updateSender,
+                           TutorPetDeactivationSenderBroker deactivationSender) {
         this.tutorPetRepository = tutorPetRepository;
-        this.personRepository = personRepository;
-        this.personService = personService;
+        this.creationSender = creationSender;
+        this.updateSender = updateSender;
+        this.deactivationSender = deactivationSender;
     }
 
     public List<TutorPetDTO> findAll() {
@@ -47,27 +50,29 @@ public class TutorPetService {
     }
 
     public TutorPetDTO create(TutorPetDTO tutorPetDTO) {
-        PersonDomain person = getPersonOrThrow(tutorPetDTO.getPerson());
+        if (tutorPetDTO == null || tutorPetDTO.getPerson() == null) {
+            throw new BusinessException("La persona asociada al TutorPet es obligatoria.");
+        }
 
-        TutorPetDomain tutorPet = new TutorPetDomain();
-        tutorPet.setPerson(person);
-
-        TutorPetDomain saved = tutorPetRepository.save(tutorPet);
-        return toDTO(saved);
+        TutorPetDTO message = new TutorPetDTO(UUID.randomUUID(), tutorPetDTO.getPerson());
+        creationSender.execute(message, UUID.randomUUID().toString());
+        return message;
     }
 
     public TutorPetDTO update(UUID id, TutorPetDTO tutorPetDTO) {
-        TutorPetDomain tutorPet = getOrThrow(id);
-        PersonDomain person = getPersonOrThrow(tutorPetDTO.getPerson());
-        tutorPet.setPerson(person);
+        if (tutorPetDTO == null || tutorPetDTO.getPerson() == null) {
+            throw new BusinessException("La persona asociada al TutorPet es obligatoria.");
+        }
 
-        TutorPetDomain updated = tutorPetRepository.save(tutorPet);
-        return toDTO(updated);
+        TutorPetDTO message = new TutorPetDTO(id, tutorPetDTO.getPerson());
+        updateSender.execute(message, UUID.randomUUID().toString());
+        return message;
     }
 
     public void deactivate(UUID id) {
-        TutorPetDomain tutorPet = getOrThrow(id);
-        personService.delete(tutorPet.getPerson().getId());
+        TutorPetDTO message = new TutorPetDTO();
+        message.setId(id);
+        deactivationSender.execute(message, UUID.randomUUID().toString());
     }
 
     private TutorPetDomain getOrThrow(UUID id) {
@@ -76,16 +81,7 @@ public class TutorPetService {
                         "TutorPet no encontrado con id: " + id));
     }
 
-    private PersonDomain getPersonOrThrow(UUID personId) {
-        return personRepository.findById(personId)
-                .orElseThrow(() -> new BusinessException(
-                        "Person no encontrada con id: " + personId));
-    }
-
     private TutorPetDTO toDTO(TutorPetDomain tutorPet) {
-        TutorPetDTO dto = new TutorPetDTO();
-        dto.setId(tutorPet.getId());
-        dto.setPerson(tutorPet.getPerson().getId());
-        return dto;
+        return new TutorPetDTO(tutorPet.getId(), tutorPet.getPerson().getId());
     }
 }
