@@ -3,14 +3,12 @@ package com.uco.ucopetapi.service.healthPlanCoverage;
 import com.uco.ucopetapi.domain.healthPlan.HealthPlanDomain;
 import com.uco.ucopetapi.domain.healthPlanCoverage.HealthPlanCoverageDomain;
 import com.uco.ucopetapi.dto.healthPlanCoverage.HealthPlanCoverageDTO;
+import com.uco.ucopetapi.exception.healthPlan.*;
+import com.uco.ucopetapi.messaging.healthPlanCoverage.HealthPlanCoverageCreationSenderBroker;
+import com.uco.ucopetapi.messaging.healthPlanCoverage.HealthPlanCoverageDeactivationSenderBroker;
+import com.uco.ucopetapi.messaging.healthPlanCoverage.HealthPlanCoverageUpdateSenderBroker;
 import com.uco.ucopetapi.repository.healthPlan.IHealthPlanRepository;
 import com.uco.ucopetapi.repository.healthPlanCoverage.IHealthPlanCoverageRepository;
-import com.uco.ucopetapi.exception.healthPlan.CoverageLimitExceededException;
-import com.uco.ucopetapi.exception.healthPlan.CoverageNotFoundException;
-import com.uco.ucopetapi.exception.healthPlan.DuplicateCoverageException;
-import com.uco.ucopetapi.exception.healthPlan.HealthPlanNotFoundException;
-import com.uco.ucopetapi.exception.healthPlan.ServiceNotFoundException;
-import com.uco.ucopetapi.exception.healthPlan.ServiceServiceException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,19 +21,27 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@Transactional
 public class HealthPlanCoverageService {
 
     private final IHealthPlanCoverageRepository coverageRepository;
     private final IHealthPlanRepository healthPlanRepository;
+    private final HealthPlanCoverageCreationSenderBroker creationSenderBroker;
+    private final HealthPlanCoverageUpdateSenderBroker updateSenderBroker;
+    private final HealthPlanCoverageDeactivationSenderBroker deactivationSenderBroker;
     private final RestClient restClient;
 
     public HealthPlanCoverageService(
             IHealthPlanCoverageRepository coverageRepository,
-            IHealthPlanRepository healthPlanRepository) {
-
+            IHealthPlanRepository healthPlanRepository,
+            HealthPlanCoverageCreationSenderBroker creationSenderBroker,
+            HealthPlanCoverageUpdateSenderBroker updateSenderBroker,
+            HealthPlanCoverageDeactivationSenderBroker deactivationSenderBroker
+    ) {
         this.coverageRepository = coverageRepository;
         this.healthPlanRepository = healthPlanRepository;
+        this.creationSenderBroker = creationSenderBroker;
+        this.updateSenderBroker = updateSenderBroker;
+        this.deactivationSenderBroker = deactivationSenderBroker;
         this.restClient = RestClient.builder()
                 .baseUrl("http://localhost:8080")
                 .build();
@@ -43,7 +49,6 @@ public class HealthPlanCoverageService {
 
     @Transactional(readOnly = true)
     public List<HealthPlanCoverageDTO> findByHealthPlanId(UUID healthPlanId) {
-
         validateHealthPlan(healthPlanId);
 
         return coverageRepository
@@ -55,7 +60,6 @@ public class HealthPlanCoverageService {
 
     @Transactional(readOnly = true)
     public HealthPlanCoverageDTO findById(UUID healthPlanId, UUID coverageId) {
-
         validateHealthPlan(healthPlanId);
 
         HealthPlanCoverageDomain healthPlanCoverage = findCoverageOrThrow(healthPlanId, coverageId);
@@ -63,61 +67,58 @@ public class HealthPlanCoverageService {
         return toDTO(healthPlanCoverage);
     }
 
-    public HealthPlanCoverageDTO save( UUID healthPlanId, HealthPlanCoverageDTO dto) {
-
-        HealthPlanDomain healthPlan =
-                validateHealthPlan(healthPlanId);
+    @Transactional
+    public HealthPlanCoverageDTO save(UUID healthPlanId, HealthPlanCoverageDTO dto) {
+        HealthPlanDomain healthPlan = validateHealthPlan(healthPlanId);
 
         validatePercentage(dto.getCoveragePercentage());
         validateService(dto.getServiceId());
 
-        boolean duplicated =
-                coverageRepository
-                        .existsByHealthPlanIdAndServiceIdAndDeletedFalse(
-                                healthPlanId,
-                                dto.getServiceId()
-                        );
+        boolean duplicated = coverageRepository
+                .existsByHealthPlanIdAndServiceIdAndDeletedFalse(healthPlanId, dto.getServiceId());
 
         if (duplicated) {
             throw new DuplicateCoverageException();
         }
 
         validateCoverageLimit(healthPlanId);
-        HealthPlanCoverageDomain healthPlanCoverage =
-                new HealthPlanCoverageDomain();
 
+        HealthPlanCoverageDomain healthPlanCoverage = new HealthPlanCoverageDomain();
+        healthPlanCoverage.setId(UUID.randomUUID());
         healthPlanCoverage.setHealthPlan(healthPlan);
         healthPlanCoverage.setServiceId(dto.getServiceId());
+        healthPlanCoverage.setProcedureId(dto.getProcedureId()); // <-- ¡Asignado aquí!
         healthPlanCoverage.setCoveragePercentage(dto.getCoveragePercentage());
         healthPlanCoverage.setCoverageLimit(dto.getCoverageLimit());
         healthPlanCoverage.setDeleted(false);
 
-        HealthPlanCoverageDomain saved = coverageRepository.save(healthPlanCoverage);
+        String idMessage = UUID.randomUUID().toString();
+        creationSenderBroker.execute(healthPlanCoverage, idMessage);
 
-        return toDTO(saved);
+        return toDTO(healthPlanCoverage);
     }
 
+    @Transactional
     public HealthPlanCoverageDTO update(UUID healthPlanId, UUID coverageId, HealthPlanCoverageDTO dto) {
+        validateHealthPlan(healthPlanId);
 
-            validateHealthPlan(healthPlanId);
+        HealthPlanCoverageDomain healthPlanCoverage = findCoverageOrThrow(healthPlanId, coverageId);
 
-            HealthPlanCoverageDomain healthPlanCoverage = findCoverageOrThrow(healthPlanId, coverageId);
+        validatePercentage(dto.getCoveragePercentage());
+        applyServiceChangeIfNeeded(healthPlanId, coverageId, dto, healthPlanCoverage);
 
-            validatePercentage(dto.getCoveragePercentage());
+        healthPlanCoverage.setCoveragePercentage(dto.getCoveragePercentage());
+        healthPlanCoverage.setCoverageLimit(dto.getCoverageLimit());
+        healthPlanCoverage.setProcedureId(dto.getProcedureId()); // <-- ¡Asignado aquí también!
 
-            applyServiceChangeIfNeeded(healthPlanId, coverageId, dto, healthPlanCoverage);
+        String idMessage = UUID.randomUUID().toString();
+        updateSenderBroker.execute(healthPlanCoverage, idMessage);
 
-            healthPlanCoverage.setCoveragePercentage(dto.getCoveragePercentage());
-            healthPlanCoverage.setCoverageLimit(dto.getCoverageLimit());
+        return toDTO(healthPlanCoverage);
+    }
 
-            HealthPlanCoverageDomain updated = coverageRepository.save(healthPlanCoverage);
-
-            return toDTO(updated);
-        }
-
-
+    @Transactional
     public HealthPlanCoverageDTO patch(UUID healthPlanId, UUID coverageId, HealthPlanCoverageDTO dto) {
-
         validateHealthPlan(healthPlanId);
 
         HealthPlanCoverageDomain healthPlanCoverage = findCoverageOrThrow(healthPlanId, coverageId);
@@ -133,20 +134,26 @@ public class HealthPlanCoverageService {
             healthPlanCoverage.setCoverageLimit(dto.getCoverageLimit());
         }
 
-        HealthPlanCoverageDomain updated = coverageRepository.save(healthPlanCoverage);
+        if (dto.getProcedureId() != null) { // <-- ¡Agregado para patch!
+            healthPlanCoverage.setProcedureId(dto.getProcedureId());
+        }
 
-        return toDTO(updated);
+        String idMessage = UUID.randomUUID().toString();
+        updateSenderBroker.execute(healthPlanCoverage, idMessage);
+
+        return toDTO(healthPlanCoverage);
     }
 
+    @Transactional
     public void delete(UUID healthPlanId, UUID coverageId) {
-
         validateHealthPlan(healthPlanId);
 
         HealthPlanCoverageDomain healthPlanCoverage = findCoverageOrThrow(healthPlanId, coverageId);
 
         healthPlanCoverage.setDeleted(true);
 
-        coverageRepository.save(healthPlanCoverage);
+        String idMessage = UUID.randomUUID().toString();
+        deactivationSenderBroker.execute(healthPlanCoverage, idMessage);
     }
 
     private HealthPlanCoverageDomain findCoverageOrThrow(UUID healthPlanId, UUID coverageId) {
@@ -161,20 +168,14 @@ public class HealthPlanCoverageService {
             HealthPlanCoverageDTO dto,
             HealthPlanCoverageDomain healthPlanCoverage
     ) {
-
-        if (dto.getServiceId() == null ||
-                dto.getServiceId().equals(healthPlanCoverage.getServiceId())) {
+        if (dto.getServiceId() == null || dto.getServiceId().equals(healthPlanCoverage.getServiceId())) {
             return;
         }
 
         validateService(dto.getServiceId());
 
         boolean duplicated = coverageRepository
-                .existsByHealthPlanIdAndServiceIdAndIdNotAndDeletedFalse(
-                        healthPlanId,
-                        dto.getServiceId(),
-                        coverageId
-                );
+                .existsByHealthPlanIdAndServiceIdAndIdNotAndDeletedFalse(healthPlanId, dto.getServiceId(), coverageId);
 
         if (duplicated) {
             throw new DuplicateCoverageException();
@@ -184,58 +185,42 @@ public class HealthPlanCoverageService {
     }
 
     private HealthPlanDomain validateHealthPlan(UUID healthPlanId) {
-
         return healthPlanRepository
                 .findByIdAndDeletedFalse(healthPlanId)
                 .orElseThrow(HealthPlanNotFoundException::new);
     }
 
     private void validatePercentage(Integer percentage) {
-
         if (percentage == null || percentage < 0 || percentage > 100) {
-            throw new IllegalArgumentException(
-                    "Coverage percentage must be between 0 and 100"
-            );
+            throw new IllegalArgumentException("Coverage percentage must be between 0 and 100");
         }
     }
 
     private void validateService(UUID serviceId) {
-
         if (serviceId == null) {
             throw new ServiceNotFoundException();
         }
 
         try {
-
             Boolean active = restClient
                     .get()
-                    .uri(
-                            "/api/v1/services/{id}/active",
-                            serviceId
-                    )
-                    .header(
-                            HttpHeaders.AUTHORIZATION,
-                            currentAuthorizationHeader()
-                    )
+                    .uri("/api/v1/services/{id}/active", serviceId)
+                    .header(HttpHeaders.AUTHORIZATION, currentAuthorizationHeader())
                     .retrieve()
                     .body(Boolean.class);
 
             if (!Boolean.TRUE.equals(active)) {
                 throw new ServiceNotFoundException();
             }
-
         } catch (RestClientException ex) {
-
             throw new ServiceServiceException(
-                    "Could not validate service: " +
-                            "the services service is unavailable",
+                    "Could not validate service: the services service is unavailable",
                     ex
             );
         }
     }
 
     private void validateCoverageLimit(UUID healthPlanId) {
-
         long currentCoverages = coverageRepository
                 .findByHealthPlanIdAndDeletedFalse(healthPlanId)
                 .size();
@@ -247,33 +232,25 @@ public class HealthPlanCoverageService {
         }
     }
 
-    private long getActiveServicesCount(){
+    private long getActiveServicesCount() {
         try {
-
             Long count = restClient
                     .get()
                     .uri("/api/v1/services/count-active")
-                    .header(
-                            HttpHeaders.AUTHORIZATION,
-                            currentAuthorizationHeader()
-                    )
+                    .header(HttpHeaders.AUTHORIZATION, currentAuthorizationHeader())
                     .retrieve()
                     .body(Long.class);
 
             return count == null ? 0L : count;
-
         } catch (RestClientException ex) {
-
             throw new ServiceServiceException(
-                    "Could not obtain active services count: " +
-                            "the services service is unavailable",
+                    "Could not obtain active services count: the services service is unavailable",
                     ex
             );
         }
     }
 
     private String currentAuthorizationHeader() {
-
         ServletRequestAttributes attrs =
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
 
@@ -287,11 +264,11 @@ public class HealthPlanCoverageService {
     }
 
     private HealthPlanCoverageDTO toDTO(HealthPlanCoverageDomain healthPlanCoverage) {
-
         return new HealthPlanCoverageDTO(
                 healthPlanCoverage.getId(),
-                healthPlanCoverage.getHealthPlan().getId(),
+                healthPlanCoverage.getHealthPlan() != null ? healthPlanCoverage.getHealthPlan().getId() : null,
                 healthPlanCoverage.getServiceId(),
+                healthPlanCoverage.getProcedureId(),
                 healthPlanCoverage.getCoveragePercentage(),
                 healthPlanCoverage.getCoverageLimit()
         );

@@ -43,7 +43,6 @@ public class ReceiptDomain {
     private ReceiptStatus state;
 
     protected ReceiptDomain() {
-        // required by JPA/Hibernate
     }
 
     private ReceiptDomain(final Builder builder) {

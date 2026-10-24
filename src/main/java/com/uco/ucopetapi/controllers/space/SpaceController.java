@@ -74,7 +74,8 @@ public class SpaceController {
         SpaceDomain domainIn = new SpaceDomain(null, spaceDTO.getCode(), spaceDTO.getType(), spaceDTO.getDescription(), spaceDTO.isActive());
         SpaceDomain domainOut = spaceService.createSpace(domainIn);
         SpaceDTO dtoOut = new SpaceDTO(domainOut.getId(), domainOut.getCode(), domainOut.getType(), domainOut.getDescription(), domainOut.getActive());
-        return ResponseEntity.status(HttpStatus.CREATED).body(dtoOut);
+        // 202 Accepted: el mensaje quedo en Rabbit; el procesador lo guarda de forma asincrona.
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(dtoOut);
     }
 
     // 3. PUT: Actualizar Descripción
@@ -88,7 +89,8 @@ public class SpaceController {
         }
 
         SpaceDomain updated = domainOut.get();
-        return ResponseEntity.ok(new SpaceDTO(updated.getId(), updated.getCode(), updated.getType(), updated.getDescription(), updated.getActive()));
+        // 202 Accepted: el cambio quedo en Rabbit; el DTO muestra como va a quedar el espacio.
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(new SpaceDTO(updated.getId(), updated.getCode(), updated.getType(), updated.getDescription(), updated.getActive()));
     }
 
     // 4. PATCH: Actualización clave/valor
@@ -102,6 +104,7 @@ public class SpaceController {
         }
 
         SpaceDomain updated = domainOut.get();
-        return ResponseEntity.ok(new SpaceDTO(updated.getId(), updated.getCode(), updated.getType(), updated.getDescription(), updated.getActive()));
+        // 202 Accepted: el cambio quedo en Rabbit; el DTO muestra como va a quedar el espacio.
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(new SpaceDTO(updated.getId(), updated.getCode(), updated.getType(), updated.getDescription(), updated.getActive()));
     }
 }

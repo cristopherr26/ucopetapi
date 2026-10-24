@@ -1,0 +1,38 @@
+meta {
+  name: Crear la misma otra vez → 409
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/persons
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "{{rabbitDoc}}",
+    "firstName": "Prueba",
+    "lastName": "Rabbit",
+    "email": "{{rabbitCorreo}}",
+    "admin": false,
+    "active": true
+  }
+}
+
+script:post-response {
+  test("409: el API valida duplicados antes de publicar", () =>
+      expect(res.getStatus()).to.equal(409));
+  test("el mensaje dice cual es el problema", () =>
+      expect(res.getBody().message).to.include("Ya hay una persona"));
+}
+
+settings {
+  encodeUrl: true
+}
