@@ -62,11 +62,7 @@ public class HeadquarterService {
 
     public HeadquarterDTO updateHeadquarter(UUID id, HeadquarterDTO dto) {
         HeadquarterDomain existing = headquarterRepository.findById(id)
-<<<<<<< HEAD
                 .orElseThrow(() -> new BusinessException(HEADQUARTER_NOT_FOUND_MSG + id));
-=======
-                .orElseThrow(() -> new BusinessException(HEADQUARTER_NOT_FOUND_MSG + 1));
->>>>>>> 92fb42821c3d51bd53abd2ff215393a6805d2a71
 
         Boolean isActive = dto.getIsActive() == null ? existing.getIsActive() : dto.getIsActive();
 
@@ -75,19 +71,10 @@ public class HeadquarterService {
                 dto.getName(),
                 dto.getAddress(),
                 isActive,
-<<<<<<< HEAD
                 Instant.now()));
 
         dto.setId(id);
         dto.setIsActive(isActive);
-=======
-                Instant.now()
-        ));
-
-        dto.setId(id);
-        dto.setIsActive(isActive);
-
->>>>>>> 92fb42821c3d51bd53abd2ff215393a6805d2a71
         return dto;
     }
 
