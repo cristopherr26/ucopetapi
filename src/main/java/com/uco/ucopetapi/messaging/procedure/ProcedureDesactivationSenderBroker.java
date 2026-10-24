@@ -32,6 +32,7 @@ public class ProcedureDesactivationSenderBroker implements MessageSender<Procedu
                         "No fue posible serializar el mensaje del procedimiento"));
         rabbitTemplate.convertAndSend(exchangeName, routingKey, json, rabbitMessage -> {
             rabbitMessage.getMessageProperties().setMessageId(idMessage);
+            rabbitMessage.getMessageProperties().setHeader("idMensaje", idMessage);
             return rabbitMessage;
         });
     }
