@@ -6,7 +6,9 @@ import com.uco.ucopetapi.util.MessageSender;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.core.MessageDeliveryMode;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.stereotype.Component;
 
+@Component
 public class HeadquarterSenderBroker implements MessageSender<HeadquarterCommand> {
 
     private static final String PUBLISH_ERROR_MSG = "No se pudo registrar la operacion sobre la sede. Intente nuevamente.";
