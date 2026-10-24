@@ -88,29 +88,29 @@ class PersonServiceTest {
     class Update {
 
         @Test
-        @DisplayName("si el JSON no trae 'active', viaja en null y la respuesta la muestra activa")
-        void missingActiveTravelsAsNull() {
+        @DisplayName("si el JSON no trae 'active', se publica el que ya tenia (activa)")
+        void missingActiveKeepsCurrentValue() {
             PersonDomain ana = person(false, true, null);
             when(personRepository.findById(ana.getId())).thenReturn(Optional.of(ana));
 
             PersonDTO result = service.update(ana.getId(), dto(ana, null, null), true);
 
-            assertThat(sentUpdate().active()).isNull();
+            assertThat(sentUpdate().active()).isTrue();
             assertThat(result.active()).isTrue();
             verify(personRepository, never()).save(any(PersonDomain.class));
         }
 
         @Test
-        @DisplayName("quien no es ADMIN manda admin y active en null: no se asciende ni se da de baja")
-        void nonAdminSendsNullFlags() {
+        @DisplayName("si quien edita no es ADMIN, se publican los valores que ya tenia: no se asciende ni se da de baja")
+        void nonAdminKeepsCurrentFlags() {
             PersonDomain ana = person(false, true, null);
             when(personRepository.findById(ana.getId())).thenReturn(Optional.of(ana));
 
             PersonDTO result = service.update(ana.getId(), dto(ana, true, false), false);
 
             PersonMessageDTO message = sentUpdate();
-            assertThat(message.admin()).isNull();
-            assertThat(message.active()).isNull();
+            assertThat(message.admin()).isFalse();
+            assertThat(message.active()).isTrue();
             assertThat(result.admin()).isFalse();
             assertThat(result.active()).isTrue();
         }
