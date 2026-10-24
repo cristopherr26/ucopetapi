@@ -97,7 +97,7 @@ public class PurchaseServiceImpl implements PurchaseService {
     public PurchaseResponseDTO receivePurchase(UUID id) {
         Purchase purchase = findPurchaseOrThrow(id);
         purchase.setStatus(PurchaseStatus.RECEIVED);
-        purchase.setUpdatedAt(LocalDateTime.now(ZoneId.of("America/Bogota")));
+        purchase.setUpdatedAt(LocalDateTime.now(ZoneId.of(PurchaseConstants.BOGOTA_ZONE_ID)));
         purchase.setUpdatedByPersonId(currentPersonId());
         Purchase saved = purchaseRepository.save(purchase);
         return toResponseDTO(saved);
@@ -107,7 +107,7 @@ public class PurchaseServiceImpl implements PurchaseService {
     public PurchaseResponseDTO cancelPurchase(UUID id) {
         Purchase purchase = findPurchaseOrThrow(id);
         purchase.setStatus(PurchaseStatus.CANCELLED);
-        purchase.setUpdatedAt(LocalDateTime.now(ZoneId.of("America/Bogota")));
+        purchase.setUpdatedAt(LocalDateTime.now(ZoneId.of(PurchaseConstants.BOGOTA_ZONE_ID)));
         purchase.setUpdatedByPersonId(currentPersonId());
         Purchase saved = purchaseRepository.save(purchase);
         return toResponseDTO(saved);
@@ -118,7 +118,7 @@ public class PurchaseServiceImpl implements PurchaseService {
         Purchase purchase = findPurchaseOrThrow(id);
         purchase.setExpenseId(request.expenseId());
         purchase.setStatus(PurchaseStatus.LINKED);
-        purchase.setUpdatedAt(LocalDateTime.now(ZoneId.of("America/Bogota")));
+        purchase.setUpdatedAt(LocalDateTime.now(ZoneId.of(PurchaseConstants.BOGOTA_ZONE_ID)));
         purchase.setUpdatedByPersonId(currentPersonId());
         Purchase saved = purchaseRepository.save(purchase);
         return toResponseDTO(saved);
@@ -173,10 +173,10 @@ public class PurchaseServiceImpl implements PurchaseService {
                 .purchaseNumber(request.purchaseNumber())
                 .headquarterId(request.headquarterId())
                 .hasDiscount(request.hasDiscount() == null ? false : request.hasDiscount())
-                .purchaseDate(LocalDateTime.now(ZoneId.of("America/Bogota")))
+                .purchaseDate(LocalDateTime.now(ZoneId.of(PurchaseConstants.BOGOTA_ZONE_ID)))
                 .status(PurchaseStatus.PENDING)
-                .createdAt(LocalDateTime.now(ZoneId.of("America/Bogota")))
-                .updatedAt(LocalDateTime.now(ZoneId.of("America/Bogota")))
+                .createdAt(LocalDateTime.now(ZoneId.of(PurchaseConstants.BOGOTA_ZONE_ID)))
+                .updatedAt(LocalDateTime.now(ZoneId.of(PurchaseConstants.BOGOTA_ZONE_ID)))
                 .createdByPersonId(currentPersonId)
                 .updatedByPersonId(currentPersonId)
                 .subtotal(subtotal)

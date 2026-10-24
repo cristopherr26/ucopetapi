@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.controllers.purchases.exception;
 
+import com.uco.ucopetapi.service.purchases.PurchaseConstants;
 import com.uco.ucopetapi.service.purchases.exception.DuplicatePurchaseNumberException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseNotFoundException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseNumberNotFoundException;
@@ -60,7 +61,7 @@ public class PurchaseExceptionHandler {
 
     private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, String message) {
         Map<String, Object> response = new HashMap<>();
-        response.put("timestamp", LocalDateTime.now(ZoneId.of("America/Bogota")));
+        response.put("timestamp", LocalDateTime.now(ZoneId.of(PurchaseConstants.BOGOTA_ZONE_ID)));
         response.put("status", status.value());
         response.put("error", status.getReasonPhrase());
         response.put("message", message);
