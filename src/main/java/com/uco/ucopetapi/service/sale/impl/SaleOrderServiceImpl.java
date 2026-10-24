@@ -11,6 +11,13 @@ import com.uco.ucopetapi.integration.sale.healthPlan.HealthPlanClient;
 import com.uco.ucopetapi.integration.sale.healthPlan.HealthPlanResponse;
 import com.uco.ucopetapi.repository.sale.SaleOrderRepository;
 import com.uco.ucopetapi.service.sale.SaleOrderService;
+import com.uco.ucopetapi.service.sale.ItemSaleService;
+import com.uco.ucopetapi.dto.sale.SaleOrderMessageDTO;
+import com.uco.ucopetapi.dto.sale.SaleDeactivateMessageDTO;
+import com.uco.ucopetapi.messaging.sale.SaleCreationSenderBroker;
+import com.uco.ucopetapi.messaging.sale.SaleUpdateSenderBroker;
+import com.uco.ucopetapi.messaging.sale.SaleDeactivateSenderBroker;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,15 +35,28 @@ public class SaleOrderServiceImpl implements SaleOrderService {
     private static final int ORDER_NUMBER_DIGITS = 5;
     private static final int COMMENT_MAX_LENGTH = 255;
 
+    private final ItemSaleService itemSaleService;
     private final SaleOrderRepository saleOrderRepository;
     private final HealthPlanClient healthPlanClient;
 
+    private final SaleCreationSenderBroker saleCreationSenderBroker;
+    private final SaleUpdateSenderBroker saleUpdateSenderBroker;
+    private final SaleDeactivateSenderBroker saleDeactivateSenderBroker;
+
     public SaleOrderServiceImpl(
             SaleOrderRepository saleOrderRepository,
-            HealthPlanClient healthPlanClient) {
+            HealthPlanClient healthPlanClient,
+            ItemSaleService itemSaleService,
+            SaleCreationSenderBroker saleCreationSenderBroker,
+            SaleUpdateSenderBroker saleUpdateSenderBroker,
+            SaleDeactivateSenderBroker saleDeactivateSenderBroker) {
 
         this.saleOrderRepository = saleOrderRepository;
         this.healthPlanClient = healthPlanClient;
+        this.itemSaleService = itemSaleService;
+        this.saleCreationSenderBroker = saleCreationSenderBroker;
+        this.saleUpdateSenderBroker = saleUpdateSenderBroker;
+        this.saleDeactivateSenderBroker = saleDeactivateSenderBroker;
     }
 
     @Override
@@ -77,7 +97,14 @@ public class SaleOrderServiceImpl implements SaleOrderService {
         SaleOrderDomain saved =
                 saleOrderRepository.save(toPersist.toDomain());
 
-        return saved.toDTO();
+        SaleOrderDTO response = populateItems(saved.toDTO());
+
+        saleCreationSenderBroker.execute(
+                toMessageDTO(response),
+                UUID.randomUUID().toString()
+        );
+
+        return response;
     }
 
     @Override
@@ -109,21 +136,16 @@ public class SaleOrderServiceImpl implements SaleOrderService {
         existing.setHealthPlanId(saleOrderDTO.getHealthPlanId());
         existing.setComment(saleOrderDTO.getComment());
 
-        /*
-         * No modificar aquí:
-         * - subtotal
-         * - totalDiscount
-         * - totalTaxes
-         * - total
-         * - state
-         *
-         * Los totales se calculan desde los artículos.
-         * La facturación no se realiza desde Ventas.
-         */
-
         SaleOrderDomain saved = saleOrderRepository.save(existing);
 
-        return saved.toDTO();
+        SaleOrderDTO response = populateItems(saved.toDTO());
+
+        saleUpdateSenderBroker.execute(
+                toMessageDTO(response),
+                UUID.randomUUID().toString()
+        );
+
+        return response;
     }
 
     @Override
@@ -155,7 +177,41 @@ public class SaleOrderServiceImpl implements SaleOrderService {
 
         SaleOrderDomain saved = saleOrderRepository.save(existing);
 
-        return saved.toDTO();
+        SaleOrderDTO response = populateItems(saved.toDTO());
+
+        saleDeactivateSenderBroker.execute(
+                new SaleDeactivateMessageDTO(response.getId()),
+                UUID.randomUUID().toString()
+        );
+
+        return response;
+    }
+
+    private SaleOrderDTO populateItems(SaleOrderDTO saleOrderDTO) {
+        saleOrderDTO.setItems(
+                itemSaleService.listItemsBySaleOrder(saleOrderDTO.getId())
+        );
+
+        return saleOrderDTO;
+    }
+
+    private SaleOrderMessageDTO toMessageDTO(SaleOrderDTO saleOrderDTO) {
+        return new SaleOrderMessageDTO(
+                saleOrderDTO.getId(),
+                saleOrderDTO.getHeadquarterId(),
+                saleOrderDTO.getOrderNumber(),
+                saleOrderDTO.getSaleDate(),
+                saleOrderDTO.getClientID(),
+                saleOrderDTO.getPetId(),
+                saleOrderDTO.getHealthPlanId(),
+                saleOrderDTO.getSubtotal(),
+                saleOrderDTO.getTotalDiscount(),
+                saleOrderDTO.getTotalTaxes(),
+                saleOrderDTO.getTotal(),
+                saleOrderDTO.getComment(),
+                saleOrderDTO.getState(),
+                saleOrderDTO.getItems()
+        );
     }
 
     @Override
@@ -183,6 +239,7 @@ public class SaleOrderServiceImpl implements SaleOrderService {
                 .findByFilter(filter, dateFrom, dateTo)
                 .stream()
                 .map(SaleOrderDomain::toDTO)
+                .map(this::populateItems)
                 .toList();
     }
 
@@ -193,6 +250,7 @@ public class SaleOrderServiceImpl implements SaleOrderService {
         return saleOrderRepository.findAll()
                 .stream()
                 .map(SaleOrderDomain::toDTO)
+                .map(this::populateItems)
                 .toList();
     }
 

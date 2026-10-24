@@ -15,7 +15,7 @@ public final class ItemSaleDTO {
     private final ItemType itemType;
     private final TaxCategory taxCategory;
     private final Integer quantity;
-    private final BigDecimal unitPrice;
+    private BigDecimal unitPrice;
     private final BigDecimal subtotal;
 
     public ItemSaleDTO(UUID id, UUID saleOrderId, UUID itemId, ItemType itemType,
@@ -37,6 +37,7 @@ public final class ItemSaleDTO {
     public TaxCategory getTaxCategory() { return taxCategory; }
     public Integer getQuantity() { return quantity; }
     public BigDecimal getUnitPrice() { return unitPrice; }
+    public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice;}
     public BigDecimal getSubtotal() { return subtotal; }
 
     public ItemSaleDomain toDomain() {
