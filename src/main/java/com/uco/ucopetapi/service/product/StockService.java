@@ -2,18 +2,16 @@ package com.uco.ucopetapi.service.product;
 
 import com.uco.ucopetapi.domain.product.StockDomain;
 import com.uco.ucopetapi.domain.product.enums.CatalogItemType;
+import com.uco.ucopetapi.dto.product.AdjustStockRequestDTO;
 import com.uco.ucopetapi.dto.product.StockDTO;
-import com.uco.ucopetapi.messaging.inventory.InventoryCommand;
-import com.uco.ucopetapi.util.MessageSender;
+import com.uco.ucopetapi.messaging.product.StockAdjustSenderBroker;
 import com.uco.ucopetapi.repository.headquarter.HeadquarterRepository;
 import com.uco.ucopetapi.repository.product.ICatalogItemRepository;
 import com.uco.ucopetapi.repository.product.IStockRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -23,15 +21,15 @@ public class StockService {
     private final IStockRepository stockRepository;
     private final ICatalogItemRepository itemRepository;
     private final HeadquarterRepository headquarterRepository;
-    private final MessageSender<InventoryCommand> messageSender;
+    private final StockAdjustSenderBroker stockAdjustSender;
 
     public StockService(IStockRepository stockRepository, ICatalogItemRepository itemRepository,
                             HeadquarterRepository headquarterRepository,
-                            MessageSender<InventoryCommand> messageSender) {
+                            StockAdjustSenderBroker stockAdjustSender) {
         this.stockRepository = stockRepository;
         this.itemRepository = itemRepository;
         this.headquarterRepository = headquarterRepository;
-        this.messageSender = messageSender;
+        this.stockAdjustSender = stockAdjustSender;
     }
 
     @Transactional
@@ -60,11 +58,11 @@ public class StockService {
 
     public void submitAdjust(UUID productId, UUID headquarterId, Integer quantity) {
         prepareAdjust(productId, headquarterId, quantity);
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("productId", productId);
-        data.put("headquarterId", headquarterId);
-        data.put("quantity", quantity);
-        messageSender.execute(new InventoryCommand("stock-adjust", data), UUID.randomUUID().toString());
+        AdjustStockRequestDTO message = new AdjustStockRequestDTO();
+        message.setProductId(productId);
+        message.setHeadquarterId(headquarterId);
+        message.setQuantity(quantity);
+        stockAdjustSender.execute(message, UUID.randomUUID().toString());
     }
 
     private void validateAdjust(UUID productId, UUID headquarterId, Integer quantity) {

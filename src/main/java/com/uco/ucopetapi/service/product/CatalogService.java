@@ -1,7 +1,6 @@
 package com.uco.ucopetapi.service.product;
 
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -21,8 +20,10 @@ import com.uco.ucopetapi.domain.product.enums.CatalogCategory;
 import com.uco.ucopetapi.domain.product.enums.CatalogItemType;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 import com.uco.ucopetapi.dto.product.CatalogItemDTO;
-import com.uco.ucopetapi.messaging.inventory.InventoryCommand;
-import com.uco.ucopetapi.util.MessageSender;
+import com.uco.ucopetapi.messaging.product.ProductDeactivationSenderBroker;
+import com.uco.ucopetapi.messaging.product.ProductSaveSenderBroker;
+import com.uco.ucopetapi.messaging.product.ServiceDeactivationSenderBroker;
+import com.uco.ucopetapi.messaging.product.ServiceSaveSenderBroker;
 import com.uco.ucopetapi.repository.headquarter.HeadquarterRepository;
 import com.uco.ucopetapi.repository.product.ICatalogItemHeadquarterRepository;
 import com.uco.ucopetapi.repository.product.ICatalogItemRepository;
@@ -35,18 +36,27 @@ public class CatalogService {
     private final ICatalogItemHeadquarterRepository itemHeadquarterRepository;
     private final IStockRepository stockRepository;
     private final HeadquarterRepository headquarterRepository;
-    private final MessageSender<InventoryCommand> messageSender;
+    private final ProductSaveSenderBroker productSaveSender;
+    private final ProductDeactivationSenderBroker productDeactivationSender;
+    private final ServiceSaveSenderBroker serviceSaveSender;
+    private final ServiceDeactivationSenderBroker serviceDeactivationSender;
 
     public CatalogService(ICatalogItemRepository itemRepository,
                           ICatalogItemHeadquarterRepository itemHeadquarterRepository,
                           IStockRepository stockRepository,
                           HeadquarterRepository headquarterRepository,
-                          MessageSender<InventoryCommand> messageSender) {
+                          ProductSaveSenderBroker productSaveSender,
+                          ProductDeactivationSenderBroker productDeactivationSender,
+                          ServiceSaveSenderBroker serviceSaveSender,
+                          ServiceDeactivationSenderBroker serviceDeactivationSender) {
         this.itemRepository = itemRepository;
         this.itemHeadquarterRepository = itemHeadquarterRepository;
         this.stockRepository = stockRepository;
         this.headquarterRepository = headquarterRepository;
-        this.messageSender = messageSender;
+        this.productSaveSender = productSaveSender;
+        this.productDeactivationSender = productDeactivationSender;
+        this.serviceSaveSender = serviceSaveSender;
+        this.serviceDeactivationSender = serviceDeactivationSender;
     }
 
     @Transactional(readOnly = true)
@@ -169,36 +179,24 @@ public class CatalogService {
 
     public CatalogItemDTO submitCreate(CatalogItemType type, CatalogItemDTO request) {
         CatalogItemDTO prepared = prepareCreate(type, request);
-        UUID id = UUID.randomUUID();
-        messageSender.execute(new InventoryCommand(command(type, "create"), itemCommand(id, type, prepared)),
-                UUID.randomUUID().toString());
-        return CatalogItemDTO.builder()
-                .id(id)
-                .type(type)
-                .name(prepared.getName())
-                .description(prepared.getDescription())
-                .imageUrl(prepared.getImageUrl())
-                .price(prepared.getPrice())
-                .taxCategory(prepared.getTaxCategory())
-                .sellable(prepared.getSellable())
-                .active(true)
-                .category(prepared.getCategory())
-                .purchasable(type == CatalogItemType.SERVICE ? prepared.getPurchasable() : null)
-                .headquarterIds(type == CatalogItemType.SERVICE ? prepared.getHeadquarterIds() : null)
-                .build();
+        CatalogItemDTO item = toMessage(UUID.randomUUID(), type, prepared, true);
+        publishSave(type, item);
+        return item;
     }
 
     public void submitUpdate(CatalogItemType type, UUID id, CatalogItemDTO request) {
         prepareUpdate(type, id, request);
-        messageSender.execute(new InventoryCommand(command(type, "update"), itemCommand(id, type, request)),
-                UUID.randomUUID().toString());
+        publishSave(type, toMessage(id, type, request, null));
     }
 
     public void submitDeactivate(CatalogItemType type, UUID id) {
         prepareDeactivate(type, id);
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("id", id);
-        messageSender.execute(new InventoryCommand(command(type, "deactivate"), data), UUID.randomUUID().toString());
+        CatalogItemDTO item = CatalogItemDTO.builder().id(id).type(type).active(false).build();
+        if (type == CatalogItemType.SERVICE) {
+            serviceDeactivationSender.execute(item, UUID.randomUUID().toString());
+        } else {
+            productDeactivationSender.execute(item, UUID.randomUUID().toString());
+        }
     }
 
     @Transactional(readOnly = true)
@@ -249,25 +247,29 @@ public class CatalogService {
         }
     }
 
-    private static String command(CatalogItemType type, String action) {
-        return (type == CatalogItemType.SERVICE ? "service" : "product") + "-" + action;
+    private void publishSave(CatalogItemType type, CatalogItemDTO item) {
+        if (type == CatalogItemType.SERVICE) {
+            serviceSaveSender.execute(item, UUID.randomUUID().toString());
+        } else {
+            productSaveSender.execute(item, UUID.randomUUID().toString());
+        }
     }
 
-    private static Map<String, Object> itemCommand(UUID id, CatalogItemType type, CatalogItemDTO request) {
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("id", id);
-        data.put("name", request.getName());
-        data.put("description", request.getDescription());
-        data.put("imageUrl", request.getImageUrl());
-        data.put("price", request.getPrice());
-        data.put("taxCategory", request.getTaxCategory());
-        data.put("sellable", request.getSellable());
-        data.put("category", request.getCategory());
-        if (type == CatalogItemType.SERVICE) {
-            data.put("purchasable", request.getPurchasable());
-            data.put("headquarterIds", request.getHeadquarterIds());
-        }
-        return data;
+    private static CatalogItemDTO toMessage(UUID id, CatalogItemType type, CatalogItemDTO request, Boolean active) {
+        return CatalogItemDTO.builder()
+                .id(id)
+                .type(type)
+                .name(request.getName())
+                .description(request.getDescription())
+                .imageUrl(request.getImageUrl())
+                .price(request.getPrice())
+                .taxCategory(request.getTaxCategory())
+                .sellable(request.getSellable())
+                .active(active)
+                .category(request.getCategory())
+                .purchasable(type == CatalogItemType.SERVICE ? request.getPurchasable() : null)
+                .headquarterIds(type == CatalogItemType.SERVICE ? request.getHeadquarterIds() : null)
+                .build();
     }
 
     private void saveHeadquarters(CatalogItemDomain item, List<UUID> headquarterIds) {

@@ -1,55 +1,46 @@
 package com.uco.ucopetapi.config;
 
-import java.util.NoSuchElementException;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.amqp.core.Binding;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
-@DisplayName("Propiedades del bus de inventario")
+@DisplayName("Colas del bus de inventario")
 class InventoryQueueConfigTest {
 
     @Autowired
-    private InventoryQueueProperties queues;
+    private ApplicationContext context;
 
     @Autowired
     private InventoryQueueConfig queueConfig;
 
     @Test
-    @DisplayName("inventory.properties carga las cinco colas con el patron save y deactivate")
-    void loadsTheFiveQueues() {
-        assertThat(queues.product().save().exchangeName()).isEqualTo("ucopet.inventory.product.save.ex");
-        assertThat(queues.product().save().queueName()).isEqualTo("ucopet.inventory.product.save.qu");
-        assertThat(queues.product().save().routingKeyName()).isEqualTo("ucopet.inventory.product.save.rk");
-        assertThat(queues.product().deactivate().queueName()).isEqualTo("ucopet.inventory.product.deactivate.qu");
-        assertThat(queues.service().save().queueName()).isEqualTo("ucopet.inventory.service.save.qu");
-        assertThat(queues.service().deactivate().queueName()).isEqualTo("ucopet.inventory.service.deactivate.qu");
-        assertThat(queues.stock().adjust().queueName()).isEqualTo("ucopet.inventory.stock.adjust.qu");
-    }
+    @DisplayName("la API declara las cinco colas, cada una unida a su exchange con su routing key")
+    void declaresTheFiveQueues() {
+        Map<String, Binding> bindings = context.getBeansOfType(Binding.class).values().stream()
+                .filter(binding -> binding.getDestination().startsWith("ucopet.inventory."))
+                .collect(Collectors.toMap(Binding::getDestination, binding -> binding));
 
-    @Test
-    @DisplayName("crear y editar van por save, dar de baja por deactivate, y el stock por adjust")
-    void mapsTheSevenCommandsToTheirQueue() {
-        assertThat(queues.forCommand("product-create")).isEqualTo(queues.product().save());
-        assertThat(queues.forCommand("product-update")).isEqualTo(queues.product().save());
-        assertThat(queues.forCommand("product-deactivate")).isEqualTo(queues.product().deactivate());
-        assertThat(queues.forCommand("service-create")).isEqualTo(queues.service().save());
-        assertThat(queues.forCommand("service-update")).isEqualTo(queues.service().save());
-        assertThat(queues.forCommand("service-deactivate")).isEqualTo(queues.service().deactivate());
-        assertThat(queues.forCommand("stock-adjust")).isEqualTo(queues.stock().adjust());
-    }
-
-    @Test
-    @DisplayName("un comando sin cola falla diciendo cual")
-    void unknownCommandFailsLoudly() {
-        assertThatThrownBy(() -> queues.forCommand("product-inventado"))
-                .isInstanceOf(NoSuchElementException.class)
-                .hasMessageContaining("product-inventado");
+        assertThat(bindings).containsOnlyKeys(
+                "ucopet.inventory.product.save.qu",
+                "ucopet.inventory.product.deactivate.qu",
+                "ucopet.inventory.service.save.qu",
+                "ucopet.inventory.service.deactivate.qu",
+                "ucopet.inventory.stock.adjust.qu");
+        assertThat(bindings.get("ucopet.inventory.product.save.qu").getExchange())
+                .isEqualTo("ucopet.inventory.product.save.ex");
+        assertThat(bindings.get("ucopet.inventory.product.save.qu").getRoutingKey())
+                .isEqualTo("ucopet.inventory.product.save.rk");
+        assertThat(bindings.get("ucopet.inventory.stock.adjust.qu").getExchange())
+                .isEqualTo("ucopet.inventory.stock.adjust.ex");
     }
 
     @Test
