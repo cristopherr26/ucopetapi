@@ -1,20 +1,26 @@
 package com.uco.ucopetapi.service.procedure;
 
+import com.uco.ucopetapi.domain.procedure.ProcedureDomain;
 import com.uco.ucopetapi.domain.procedure.mapper.ProcedureMapper;
 import com.uco.ucopetapi.dto.procedure.ProcedureDTO;
 import com.uco.ucopetapi.dto.procedure.ProcedureProductDTO;
+import com.uco.ucopetapi.dto.product.ProductDTO;
 import com.uco.ucopetapi.dto.space.SpaceDTO;
 import com.uco.ucopetapi.messaging.procedure.ProcedureCreationSenderBroker;
 import com.uco.ucopetapi.messaging.procedure.ProcedureDesactivationSenderBroker;
 import com.uco.ucopetapi.repository.procedure.IProcedureRepository;
 import com.uco.ucopetapi.service.procedure.exception.InvalidProcedureRequestException;
+import com.uco.ucopetapi.service.procedure.exception.ProcedureConflictException;
 import com.uco.ucopetapi.service.procedure.exception.ProcedureNotFoundException;
+import com.uco.ucopetapi.service.product.ProductService;
 import com.uco.ucopetapi.service.space.SpaceService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -32,19 +38,23 @@ public class ProcedureService implements IProcedureService {
     private final IProcedureRepository procedureRepository;
     private final SpaceService spaceService;
     private final ProcedureMapper procedureMapper;
+    private final ProductService productService;
     private final ProcedureCreationSenderBroker creationSender;
     private final ProcedureDesactivationSenderBroker desactivationSender;
 
     public ProcedureService(final IProcedureRepository procedureRepository, final SpaceService spaceService,
-                            final ProcedureMapper procedureMapper,
+                            final ProcedureMapper procedureMapper, final ProductService productService,
                             final ProcedureCreationSenderBroker creationSender,
                             final ProcedureDesactivationSenderBroker desactivationSender) {
         this.procedureRepository = procedureRepository;
         this.spaceService = spaceService;
         this.procedureMapper = procedureMapper;
+        this.productService = productService;
         this.creationSender = creationSender;
         this.desactivationSender = desactivationSender;
     }
+
+    // ---------- Consultas (se quedan en la API) ----------
 
     @Override
     public List<ProcedureDTO> findAll() {
@@ -71,9 +81,7 @@ public class ProcedureService implements IProcedureService {
 
     @Override
     public ProcedureDTO findById(final UUID id) {
-        return procedureMapper.toDTO(procedureRepository.findById(id)
-                .orElseThrow(() -> new ProcedureNotFoundException(
-                        "No se encontró el procedimiento solicitado")));
+        return procedureMapper.toDTO(findEntityById(id));
     }
 
     @Override
@@ -89,7 +97,8 @@ public class ProcedureService implements IProcedureService {
     @Override
     public String create(final ProcedureDTO request) {
         validateRequest(request);
-        request.setId(null);
+        validateReferences(request, null);
+        request.setId(UUID.randomUUID());
         request.setActive(null);
         return publishCreation(request);
     }
@@ -99,6 +108,7 @@ public class ProcedureService implements IProcedureService {
         validateId(id);
         validateRequest(request);
         validateProcedureExists(id);
+        validateReferences(request, id);
         request.setId(id);
         request.setActive(null);
         return publishCreation(request);
@@ -131,6 +141,12 @@ public class ProcedureService implements IProcedureService {
         return idMessage;
     }
 
+    private ProcedureDomain findEntityById(final UUID id) {
+        return procedureRepository.findById(id)
+                .orElseThrow(() -> new ProcedureNotFoundException(
+                        "No se encontró el procedimiento solicitado"));
+    }
+
     private void validateProcedureExists(final UUID id) {
         if (!procedureRepository.existsById(id)) {
             throw new ProcedureNotFoundException("No se encontró el procedimiento solicitado");
@@ -152,6 +168,45 @@ public class ProcedureService implements IProcedureService {
         validateDuration(request.getDurationMinutes());
         validateIdValue(request.getSpaceId(), "El espacio es obligatorio");
         validateProducts(request.getDefaultProducts());
+    }
+
+    private void validateReferences(final ProcedureDTO request, final UUID currentId) {
+        validateSpaceIsActive(request.getSpaceId());
+        request.getDefaultProducts().forEach(item -> validateProductExists(item.getProductId()));
+        validateCodeIsAvailable(normalizeCode(request.getCode()), currentId);
+    }
+
+    private void validateSpaceIsActive(final UUID spaceId) {
+        final boolean existsActiveSpace = spaceService.getSpacesByStatus(true).stream()
+                .anyMatch(space -> Objects.equals(space.getId(), spaceId));
+        if (!existsActiveSpace) {
+            throw new InvalidProcedureRequestException(
+                    "El espacio seleccionado no existe o no se encuentra activo");
+        }
+    }
+
+    private void validateProductExists(final UUID productId) {
+        final ProductDTO product;
+        try {
+            product = productService.getById(productId, null);
+        } catch (NoSuchElementException _) {
+            throw new InvalidProcedureRequestException("El producto con id " + productId + " no existe");
+        }
+        if (!Boolean.TRUE.equals(product.getActive())) {
+            throw new InvalidProcedureRequestException(
+                    "El producto con id " + productId + " no se encuentra activo");
+        }
+    }
+
+    private void validateCodeIsAvailable(final String code, final UUID currentId) {
+        if (code == null) {
+            return;
+        }
+        procedureRepository.findByCode(code)
+                .filter(procedure -> !procedure.getId().equals(currentId))
+                .ifPresent(procedure -> {
+                    throw new ProcedureConflictException("Ya existe un procedimiento con el código indicado");
+                });
     }
 
     private void validateCodeFormat(final String code) {
