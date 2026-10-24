@@ -8,6 +8,8 @@ import com.uco.ucopetapi.messaging.tutorPet.TutorPetDeactivationSenderBroker;
 import com.uco.ucopetapi.messaging.tutorPet.TutorPetUpdateSenderBroker;
 import com.uco.ucopetapi.repository.tutorPet.ITutorPetRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -51,7 +53,8 @@ public class TutorPetService {
 
     public TutorPetDTO create(TutorPetDTO tutorPetDTO) {
         if (tutorPetDTO == null || tutorPetDTO.getPerson() == null) {
-            throw new BusinessException("La persona asociada al TutorPet es obligatoria.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La persona asociada al TutorPet es obligatoria.");
         }
 
         TutorPetDTO message = new TutorPetDTO(UUID.randomUUID(), tutorPetDTO.getPerson());
@@ -60,8 +63,13 @@ public class TutorPetService {
     }
 
     public TutorPetDTO update(UUID id, TutorPetDTO tutorPetDTO) {
+        if (id == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El identificador de TutorPet es obligatorio.");
+        }
         if (tutorPetDTO == null || tutorPetDTO.getPerson() == null) {
-            throw new BusinessException("La persona asociada al TutorPet es obligatoria.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La persona asociada al TutorPet es obligatoria.");
         }
 
         TutorPetDTO message = new TutorPetDTO(id, tutorPetDTO.getPerson());
@@ -70,6 +78,10 @@ public class TutorPetService {
     }
 
     public void deactivate(UUID id) {
+        if (id == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El identificador de TutorPet es obligatorio.");
+        }
         TutorPetDTO message = new TutorPetDTO();
         message.setId(id);
         deactivationSender.execute(message, UUID.randomUUID().toString());
