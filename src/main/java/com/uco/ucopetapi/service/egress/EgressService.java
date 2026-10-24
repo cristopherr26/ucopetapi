@@ -2,6 +2,8 @@ package com.uco.ucopetapi.service.egress;
 
 import com.uco.ucopetapi.domain.egress.EgressDomain;
 import com.uco.ucopetapi.dto.egress.EgressDTO;
+import com.uco.ucopetapi.messaging.egress.EgressDeleteSenderBroker;
+import com.uco.ucopetapi.messaging.egress.EgressSaveSenderBroker;
 import com.uco.ucopetapi.repository.egress.EgressRepository;
 import org.springframework.stereotype.Service;
 
@@ -14,9 +16,15 @@ import java.util.UUID;
 public class EgressService {
 
     private final EgressRepository egressRepository;
+    private final EgressSaveSenderBroker egressSaveSender;
+    private final EgressDeleteSenderBroker egressDeleteSender;
 
-    public EgressService(EgressRepository egressRepository) {
+    public EgressService(EgressRepository egressRepository,
+                         EgressSaveSenderBroker egressSaveSender,
+                         EgressDeleteSenderBroker egressDeleteSender) {
         this.egressRepository = egressRepository;
+        this.egressSaveSender = egressSaveSender;
+        this.egressDeleteSender = egressDeleteSender;
     }
 
     public List<EgressDTO> getAll() {
@@ -28,31 +36,6 @@ public class EgressService {
 
     public EgressDTO getById(UUID id) {
         return toDTO(getEntityById(id));
-    }
-
-    public EgressDTO saveEgress(EgressDomain egress) {
-        validateEgress(egress);
-        return toDTO(egressRepository.save(egress));
-    }
-
-    public EgressDTO updateEgress(UUID id, EgressDomain updatedEgress) {
-        EgressDomain existentEgress = getEntityById(id);
-        validateEgress(updatedEgress);
-        existentEgress.setDate(updatedEgress.getDate());
-        existentEgress.setProvider(updatedEgress.getProvider());
-        existentEgress.setPayMethod(updatedEgress.getPayMethod());
-        existentEgress.setPurchaseOrder(updatedEgress.getPurchaseOrder());
-        existentEgress.setConcept(updatedEgress.getConcept());
-        existentEgress.setTotal(updatedEgress.getTotal());
-
-        return toDTO(egressRepository.save(existentEgress));
-    }
-
-    public void deleteEgress(UUID id) {
-        if (!egressRepository.existsById(id)) {
-            throw new IllegalArgumentException("Egreso no encontrado con id: " + id);
-        }
-        egressRepository.deleteById(id);
     }
 
     public List<EgressDTO> getByConcept(String concept) {
@@ -96,6 +79,43 @@ public class EgressService {
                 .stream()
                 .map(this::toDTO)
                 .toList();
+    }
+
+    public EgressDTO saveEgress(EgressDomain egress) {
+        validateEgress(egress);
+        egress.setId(UUID.randomUUID());
+
+        EgressDTO message = toDTO(egress);
+        egressSaveSender.execute(message, newMessageId());
+        return message;
+    }
+
+    public EgressDTO updateEgress(UUID id, EgressDomain updatedEgress) {
+        validateEgress(updatedEgress);
+        validateEgressExists(id);
+        updatedEgress.setId(id);
+
+        EgressDTO message = toDTO(updatedEgress);
+        egressSaveSender.execute(message, newMessageId());
+        return message;
+    }
+
+    public void deleteEgress(UUID id) {
+        validateEgressExists(id);
+        egressDeleteSender.execute(id, newMessageId());
+    }
+
+    private String newMessageId() {
+        return UUID.randomUUID().toString();
+    }
+
+    private void validateEgressExists(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("El id del egreso es obligatorio");
+        }
+        if (!egressRepository.existsById(id)) {
+            throw new IllegalArgumentException("Egreso no encontrado con id: " + id);
+        }
     }
 
     private EgressDomain getEntityById(UUID id) {

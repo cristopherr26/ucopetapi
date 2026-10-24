@@ -3,6 +3,7 @@ package com.uco.ucopetapi.service.person;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -32,8 +34,12 @@ import com.uco.ucopetapi.dto.person.DocumentType;
 import com.uco.ucopetapi.dto.person.LoginRequestDTO;
 import com.uco.ucopetapi.dto.person.LoginResponseDTO;
 import com.uco.ucopetapi.dto.person.PersonDTO;
+import com.uco.ucopetapi.dto.person.PersonMessageDTO;
 import com.uco.ucopetapi.dto.person.Role;
 import com.uco.ucopetapi.event.LoginSuccededEvent;
+import com.uco.ucopetapi.messaging.person.PersonCreationSenderBroker;
+import com.uco.ucopetapi.messaging.person.PersonDeactivationSenderBroker;
+import com.uco.ucopetapi.messaging.person.PersonUpdateSenderBroker;
 import com.uco.ucopetapi.repository.doctor.IDoctorRepository;
 import com.uco.ucopetapi.repository.person.PersonRepository;
 import com.uco.ucopetapi.security.JwtService;
@@ -55,6 +61,15 @@ class PersonServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private PersonCreationSenderBroker creationSender;
+
+    @Mock
+    private PersonUpdateSenderBroker updateSender;
+
+    @Mock
+    private PersonDeactivationSenderBroker deactivationSender;
+
     // BCrypt real pero con fuerza 4 (el minimo) para que los tests sean rapidos.
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(4);
 
@@ -64,54 +79,56 @@ class PersonServiceTest {
     void setUp() {
         JwtService jwtService = new JwtService("clave-de-pruebas-de-al-menos-32-caracteres", 60);
         service = new PersonService(personRepository, passwordEncoder, jwtService,
-                new UnknownEmailAttempts(), doctorRepository, eventPublisher);
+                new UnknownEmailAttempts(), doctorRepository, eventPublisher,
+                creationSender, updateSender, deactivationSender);
     }
 
     @Nested
-    @DisplayName("Editar una persona")
+    @DisplayName("Editar una persona (publica en la cola, no guarda)")
     class Update {
 
         @Test
-        @DisplayName("si el JSON no trae 'active', la persona sigue activa")
-        void missingActiveDoesNotDeactivate() {
+        @DisplayName("si el JSON no trae 'active', viaja en null y la respuesta la muestra activa")
+        void missingActiveTravelsAsNull() {
             PersonDomain ana = person(false, true, null);
             when(personRepository.findById(ana.getId())).thenReturn(Optional.of(ana));
-            saveReturnsArgument();
 
             PersonDTO result = service.update(ana.getId(), dto(ana, null, null), true);
 
+            assertThat(sentUpdate().active()).isNull();
             assertThat(result.active()).isTrue();
-            assertThat(ana.getDeactivatedAt()).isNull();
+            verify(personRepository, never()).save(any(PersonDomain.class));
         }
 
         @Test
-        @DisplayName("quien no es ADMIN no se asciende ni se da de baja editando su ficha")
-        void nonAdminCannotChangeRoleOrState() {
+        @DisplayName("quien no es ADMIN manda admin y active en null: no se asciende ni se da de baja")
+        void nonAdminSendsNullFlags() {
             PersonDomain ana = person(false, true, null);
             when(personRepository.findById(ana.getId())).thenReturn(Optional.of(ana));
-            saveReturnsArgument();
 
             PersonDTO result = service.update(ana.getId(), dto(ana, true, false), false);
 
+            PersonMessageDTO message = sentUpdate();
+            assertThat(message.admin()).isNull();
+            assertThat(message.active()).isNull();
             assertThat(result.admin()).isFalse();
             assertThat(result.active()).isTrue();
         }
 
         @Test
-        @DisplayName("el ADMIN puede dar el rol ADMIN, y eso invalida los tokens de esa persona")
+        @DisplayName("el ADMIN si puede mandar el cambio de rol")
         void adminCanGrantAdminRole() {
             PersonDomain ana = person(false, true, null);
             when(personRepository.findById(ana.getId())).thenReturn(Optional.of(ana));
-            saveReturnsArgument();
 
             PersonDTO result = service.update(ana.getId(), dto(ana, true, true), true);
 
+            assertThat(sentUpdate().admin()).isTrue();
             assertThat(result.admin()).isTrue();
-            assertThat(ana.getTokenVersion()).isEqualTo(1);
         }
 
         @Test
-        @DisplayName("no se le puede quitar el rol al unico ADMIN activo")
+        @DisplayName("quitarle el rol al unico ADMIN activo da 409 y no se publica nada")
         void cannotRevokeLastAdmin() {
             PersonDomain admin = person(true, true, null);
             when(personRepository.findById(admin.getId())).thenReturn(Optional.of(admin));
@@ -119,20 +136,32 @@ class PersonServiceTest {
 
             assertStatus(() -> service.update(admin.getId(), dto(admin, false, true), true),
                     HttpStatus.CONFLICT);
-            verify(personRepository, never()).saveAndFlush(any(PersonDomain.class));
+            verify(updateSender, never()).execute(any(PersonMessageDTO.class), anyString());
         }
 
         @Test
-        @DisplayName("el ADMIN puede dar de baja por PUT y deactivatedAt se llena solo")
-        void adminCanDeactivate() {
+        @DisplayName("una persona que no existe da 404 y no se publica nada")
+        void unknownPersonIs404() {
+            UUID id = UUID.randomUUID();
+            when(personRepository.findById(id)).thenReturn(Optional.empty());
+
+            assertStatus(() -> service.update(id, dto(person(false, true, null), null, null), true),
+                    HttpStatus.NOT_FOUND);
+            verify(updateSender, never()).execute(any(PersonMessageDTO.class), anyString());
+        }
+
+        @Test
+        @DisplayName("dar de baja publica un mensaje solo con el id")
+        void deactivate() {
             PersonDomain ana = person(false, true, null);
             when(personRepository.findById(ana.getId())).thenReturn(Optional.of(ana));
-            saveReturnsArgument();
 
-            PersonDTO result = service.update(ana.getId(), dto(ana, null, false), true);
+            service.delete(ana.getId());
 
-            assertThat(result.active()).isFalse();
-            assertThat(result.deactivatedAt()).isNotNull();
+            ArgumentCaptor<PersonMessageDTO> captor = ArgumentCaptor.forClass(PersonMessageDTO.class);
+            verify(deactivationSender).execute(captor.capture(), anyString());
+            assertThat(captor.getValue().id()).isEqualTo(ana.getId());
+            assertThat(captor.getValue().documentNumber()).isNull();
         }
     }
 
@@ -141,20 +170,23 @@ class PersonServiceTest {
     class Email {
 
         @Test
-        @DisplayName("se guarda en minusculas y sin espacios")
+        @DisplayName("se publica en minusculas y sin espacios, con un id nuevo y activa")
         void isNormalized() {
-            saveReturnsArgument();
-
             PersonDTO result = service.create(newPerson("  Ana@UCOPET.com "));
 
-            assertThat(result.email()).isEqualTo(EMAIL);
+            ArgumentCaptor<PersonMessageDTO> captor = ArgumentCaptor.forClass(PersonMessageDTO.class);
+            verify(creationSender).execute(captor.capture(), anyString());
+            PersonMessageDTO message = captor.getValue();
+            assertThat(message.email()).isEqualTo(EMAIL);
+            assertThat(message.id()).isNotNull();
+            assertThat(message.active()).isTrue();
+            assertThat(result.id()).isEqualTo(message.id());
+            verify(personRepository, never()).save(any(PersonDomain.class));
         }
 
         @Test
-        @DisplayName("uno vacio se guarda como null (y no se busca como duplicado)")
+        @DisplayName("uno vacio viaja como null (y no se busca como duplicado)")
         void blankBecomesNull() {
-            saveReturnsArgument();
-
             PersonDTO result = service.create(newPerson(""));
 
             assertThat(result.email()).isNull();
@@ -168,6 +200,7 @@ class PersonServiceTest {
             when(personRepository.findByEmailIgnoreCase(EMAIL)).thenReturn(Optional.of(other));
 
             assertStatus(() -> service.create(newPerson("ANA@ucopet.com")), HttpStatus.CONFLICT);
+            verify(creationSender, never()).execute(any(PersonMessageDTO.class), anyString());
         }
 
         @Test
@@ -298,9 +331,10 @@ class PersonServiceTest {
                 null, null, false, true, null);
     }
 
-    private void saveReturnsArgument() {
-        when(personRepository.saveAndFlush(any(PersonDomain.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+    private PersonMessageDTO sentUpdate() {
+        ArgumentCaptor<PersonMessageDTO> captor = ArgumentCaptor.forClass(PersonMessageDTO.class);
+        verify(updateSender).execute(captor.capture(), anyString());
+        return captor.getValue();
     }
 
     private static void assertStatus(ThrowingCallable call, HttpStatus expected) {
