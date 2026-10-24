@@ -2,8 +2,8 @@ package com.uco.ucopetapi.order;
 
 import com.uco.ucopetapi.domain.order.OrderDomain;
 import com.uco.ucopetapi.domain.order.OrderState;
-import com.uco.ucopetapi.domain.pet.PetDomain;
-import com.uco.ucopetapi.domain.procedure.ProcedureDomain;
+import com.uco.ucopetapi.messaging.order.OrderCreationSenderBroker;
+import com.uco.ucopetapi.service.notification.NotificationService;
 import com.uco.ucopetapi.service.order.IOrderService;
 import com.uco.ucopetapi.service.order.exception.InvalidOrderRequestException;
 import com.uco.ucopetapi.service.order.exception.InvalidOrderStateException;
@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
@@ -24,12 +25,14 @@ import static org.junit.jupiter.api.Assertions.*;
 @Rollback
 class OrderIntegrationTest {
 
-    private static final UUID EXISTING_PET_ID = UUID.fromString("293454c3-3088-4b7d-aef5-2437649165cd");
-
-    private static final UUID EXISTING_PROCEDURE_ID = UUID.fromString("740280a8-cb34-438f-ae8f-57f7d36c4308");
-
     @Autowired
     private IOrderService orderService;
+
+    @MockitoBean
+    private NotificationService notificationService;
+
+    @MockitoBean
+    private OrderCreationSenderBroker orderCreationSenderBroker;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -37,6 +40,9 @@ class OrderIntegrationTest {
     @Test
     void shouldCreateAnOrderSuccessfully() {
         OrderDomain newOrder = buildBaseOrder();
+        UUID petId = newOrder.getPetId();
+        UUID procedureId = newOrder.getProcedureId();
+        UUID tutorId = newOrder.getTutorId();
 
         OrderDomain savedOrder = orderService.save(newOrder);
         entityManager.flush();
@@ -45,8 +51,9 @@ class OrderIntegrationTest {
         assertNotNull(savedOrder.getIdOrder());
         assertEquals(OrderState.PENDING, savedOrder.getState());
         assertFalse(savedOrder.getIsAuthorized());
-        assertEquals(EXISTING_PET_ID, savedOrder.getPetId());
-        assertEquals(EXISTING_PROCEDURE_ID, savedOrder.getProcedureId());
+        assertEquals(petId, savedOrder.getPetId());
+        assertEquals(procedureId, savedOrder.getProcedureId());
+        assertEquals(tutorId, savedOrder.getTutorId());
     }
 
     @Test
@@ -65,9 +72,8 @@ class OrderIntegrationTest {
 
     @Test
     void shouldNotCreateAnOrderWithoutAPet() {
-        OrderDomain orderWithoutPet = new OrderDomain();
-        orderWithoutPet.setProcedure(
-                entityManager.getReference(ProcedureDomain.class, EXISTING_PROCEDURE_ID));
+        OrderDomain orderWithoutPet = buildBaseOrder();
+        orderWithoutPet.setPetId(null);
 
         assertThrows(InvalidOrderRequestException.class,
                 () -> orderService.save(orderWithoutPet));
@@ -75,9 +81,8 @@ class OrderIntegrationTest {
 
     @Test
     void shouldNotCreateAnOrderWithoutAProcedure() {
-        OrderDomain orderWithoutProcedure = new OrderDomain();
-        orderWithoutProcedure.setPet(
-                entityManager.getReference(PetDomain.class, EXISTING_PET_ID));
+        OrderDomain orderWithoutProcedure = buildBaseOrder();
+        orderWithoutProcedure.setProcedureId(null);
 
         assertThrows(InvalidOrderRequestException.class,
                 () -> orderService.save(orderWithoutProcedure));
@@ -85,8 +90,9 @@ class OrderIntegrationTest {
 
     private OrderDomain buildBaseOrder() {
         OrderDomain order = new OrderDomain();
-        order.setPet(entityManager.getReference(PetDomain.class, EXISTING_PET_ID));
-        order.setProcedure(entityManager.getReference(ProcedureDomain.class, EXISTING_PROCEDURE_ID));
+        order.setPetId(UUID.randomUUID());
+        order.setProcedureId(UUID.randomUUID());
+        order.setTutorId(UUID.randomUUID());
         return order;
     }
 }
