@@ -1,22 +1,14 @@
 package com.uco.ucopetapi.controllers.product;
 
-import com.uco.ucopetapi.config.InventoryQueueConfig;
-import com.uco.ucopetapi.domain.product.enums.CatalogCategory;
-import com.uco.ucopetapi.domain.product.enums.CatalogItemType;
+import com.uco.ucopetapi.domain.product.enums.ServiceCategory;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
-import com.uco.ucopetapi.dto.product.CatalogValidationGroups.IOnCreate;
-import com.uco.ucopetapi.dto.product.CatalogValidationGroups.IOnUpdate;
-import com.uco.ucopetapi.dto.product.CatalogItemDTO;
-import com.uco.ucopetapi.service.product.CatalogService;
+import com.uco.ucopetapi.dto.product.ServiceDTO;
+import com.uco.ucopetapi.service.product.ServiceService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-
-
-import jakarta.validation.groups.Default;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,91 +16,50 @@ import java.util.UUID;
 @RequestMapping("/api/v1/services")
 public class ServiceController {
 
-    private static final String BY_ID = "/{id}";
+    private final ServiceService serviceService;
 
-    private final CatalogService catalogService;
-    private final InventoryQueueConfig queueConfig;
-
-    public ServiceController(CatalogService catalogService, InventoryQueueConfig queueConfig) {
-        this.catalogService = catalogService;
-        this.queueConfig = queueConfig;
+    public ServiceController(ServiceService serviceService) {
+        this.serviceService = serviceService;
     }
 
     @GetMapping
-    public ResponseEntity<List<CatalogItemDTO>> list(
-            @RequestParam(required = false) CatalogCategory category,
-            @RequestParam(required = false) Boolean active,
-            @RequestParam(required = false) Boolean purchasable,
-            @RequestParam(required = false) Boolean sellable,
-            @RequestParam(required = false) TaxCategory taxCategory,
-            @RequestParam(required = false) UUID headquarterId
-    ) {
-        return ResponseEntity.ok(catalogService.list(CatalogItemType.SERVICE, category, onlyActiveByDefault(active), purchasable,
-                sellable, taxCategory, headquarterId));
-    }
-
-    private static Boolean onlyActiveByDefault(Boolean active) {
-        return active == null ? Boolean.TRUE : active;
+    public List<ServiceDTO> list(@RequestParam(required = false) ServiceCategory category,
+                                 @RequestParam(required = false) Boolean active,
+                                 @RequestParam(required = false) Boolean purchasable,
+                                 @RequestParam(required = false) Boolean sellable,
+                                 @RequestParam(required = false) TaxCategory taxCategory,
+                                 @RequestParam(required = false) UUID headquarterId) {
+        return serviceService.list(category, active, purchasable, sellable, taxCategory, headquarterId);
     }
 
     @GetMapping("/count-active")
-    public ResponseEntity<Long> countActiveServices() {
-        return ResponseEntity.ok(
-                catalogService.countActiveServices()
-        );
+    public long countActiveServices() {
+        return serviceService.countActiveServices();
     }
 
     @GetMapping("/{id}/active")
-    public ResponseEntity<Boolean> isActive(
-            @PathVariable UUID id) {
-
-        return ResponseEntity.ok(
-                catalogService.isActive(id)
-        );
+    public boolean isActive(@PathVariable UUID id) {
+        return serviceService.isActive(id);
     }
 
-    @GetMapping(BY_ID)
-    public ResponseEntity<CatalogItemDTO> getById(@PathVariable UUID id) {
-        return ResponseEntity.ok(catalogService.getById(CatalogItemType.SERVICE, id, null));
+    @GetMapping("/{id}")
+    public ServiceDTO getById(@PathVariable UUID id) {
+        return serviceService.getById(id);
     }
 
     @PostMapping
-    public ResponseEntity<CatalogItemDTO> create(
-            @Validated({IOnCreate.class, Default.class}) @RequestBody CatalogItemDTO request) {
-        if (queueConfig.isAsyncWrites()) {
-            CatalogItemDTO accepted = catalogService.submitCreate(CatalogItemType.SERVICE, request);
-            return ResponseEntity.accepted().location(locationOf(accepted.getId())).body(accepted);
-        }
-        CatalogItemDTO created = catalogService.create(CatalogItemType.SERVICE, request);
-        return ResponseEntity.created(locationOf(created.getId())).body(created);
+    public ResponseEntity<ServiceDTO> create(@Valid @RequestBody ServiceDTO service) {
+        return new ResponseEntity<>(serviceService.create(service), HttpStatus.CREATED);
     }
 
-    @PutMapping(BY_ID)
-    public ResponseEntity<CatalogItemDTO> update(@PathVariable UUID id,
-            @Validated({IOnUpdate.class, Default.class}) @RequestBody CatalogItemDTO request) {
-        if (queueConfig.isAsyncWrites()) {
-            catalogService.submitUpdate(CatalogItemType.SERVICE, id, request);
-            return ResponseEntity.accepted().build();
-        }
-        return ResponseEntity.ok(catalogService.update(CatalogItemType.SERVICE, id, request));
+    @PutMapping("/{id}")
+    public ResponseEntity<ServiceDTO> update(@PathVariable UUID id, @Valid @RequestBody ServiceDTO service) {
+        return new ResponseEntity<>(serviceService.update(id, service), HttpStatus.OK);
     }
 
-    @DeleteMapping(BY_ID)
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivate(@PathVariable UUID id) {
-        if (queueConfig.isAsyncWrites()) {
-            catalogService.submitDeactivate(CatalogItemType.SERVICE, id);
-            return ResponseEntity.accepted().build();
-        }
-        catalogService.deactivate(CatalogItemType.SERVICE, id);
-        return ResponseEntity.noContent().build();
+        serviceService.deactivate(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
-
-    private static URI locationOf(UUID id) {
-        return ServletUriComponentsBuilder.fromCurrentRequest()
-                .path(BY_ID)
-                .buildAndExpand(id)
-                .toUri();
-    }
-
-
 }

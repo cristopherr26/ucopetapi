@@ -1,21 +1,16 @@
 package com.uco.ucopetapi.domain.product;
 
-import java.math.BigDecimal;
-import com.uco.ucopetapi.domain.product.enums.CatalogCategory;
-import com.uco.ucopetapi.domain.product.enums.CatalogItemType;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 import jakarta.persistence.Column;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.MappedSuperclass;
 
 import java.util.UUID;
 
-@Entity
-@Table(name = "products")
-public class CatalogItemDomain {
+@MappedSuperclass
+public abstract class CatalogItemDomain {
 
     @Id
     @Column(nullable = false, updatable = false)
@@ -24,13 +19,13 @@ public class CatalogItemDomain {
     @Column(nullable = false, length = 100)
     private String name;
 
+    @Column(length = 255)
     private String description;
 
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
-    @Column(precision = 15, scale = 2)
-    private BigDecimal price;
+    private Integer price;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tax_category", nullable = false, length = 20)
@@ -42,26 +37,13 @@ public class CatalogItemDomain {
     @Column(nullable = false)
     private Boolean active;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, length = 20)
-    private CatalogItemType type;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "category", length = 30)
-    private CatalogCategory category;
-
-    @Column(name = "purchasable")
-    private Boolean purchasable;
-
     protected CatalogItemDomain() {
     }
 
-    public CatalogItemDomain(final UUID id, final CatalogItemType type, final String name,
-                            final String description, final String imageUrl, final BigDecimal price,
-                            final TaxCategory taxCategory, final Boolean sellable, final Boolean active,
-                            final CatalogCategory category, final Boolean purchasable) {
+    protected CatalogItemDomain(final UUID id, final String name, final String description, final String imageUrl,
+                                final Integer price, final TaxCategory taxCategory, final Boolean sellable,
+                                final Boolean active) {
         this.id = id;
-        this.type = type;
         this.name = name;
         this.description = description;
         this.imageUrl = imageUrl;
@@ -69,8 +51,6 @@ public class CatalogItemDomain {
         this.taxCategory = taxCategory;
         this.sellable = sellable;
         this.active = active;
-        this.category = category;
-        this.purchasable = purchasable;
     }
 
     public UUID getId() {
@@ -101,11 +81,11 @@ public class CatalogItemDomain {
         this.imageUrl = imageUrl;
     }
 
-    public BigDecimal getPrice() {
+    public Integer getPrice() {
         return price;
     }
 
-    public void setPrice(final BigDecimal price) {
+    public void setPrice(final Integer price) {
         this.price = price;
     }
 
@@ -131,25 +111,5 @@ public class CatalogItemDomain {
 
     public void setActive(final Boolean active) {
         this.active = active;
-    }
-
-    public CatalogItemType getType() {
-        return type;
-    }
-
-    public CatalogCategory getCategory() {
-        return category;
-    }
-
-    public void setCategory(final CatalogCategory category) {
-        this.category = category;
-    }
-
-    public Boolean getPurchasable() {
-        return purchasable;
-    }
-
-    public void setPurchasable(final Boolean purchasable) {
-        this.purchasable = purchasable;
     }
 }

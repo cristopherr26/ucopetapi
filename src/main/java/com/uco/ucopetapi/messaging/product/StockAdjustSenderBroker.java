@@ -1,38 +1,57 @@
 package com.uco.ucopetapi.messaging.product;
 
-import com.uco.ucopetapi.dto.product.AdjustStockRequestDTO;
-import com.uco.ucopetapi.util.MessageSender;
+import com.uco.ucopetapi.config.product.StockAdjustQueueConfig;
+import com.uco.ucopetapi.dto.product.ProcessorReplyDTO;
+import com.uco.ucopetapi.dto.product.StockMovementDTO;
 import com.uco.ucopetapi.util.gson.MapperJsonObject;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageBuilder;
+import org.springframework.amqp.core.MessageProperties;
+import org.springframework.amqp.core.MessagePropertiesBuilder;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
+
 @Component
-public class StockAdjustSenderBroker implements MessageSender<AdjustStockRequestDTO> {
+public class StockAdjustSenderBroker {
 
     private final RabbitTemplate rabbitTemplate;
     private final MapperJsonObject mapperJsonObject;
+    private final StockAdjustQueueConfig stockAdjustQueueConfig;
 
-    @Value("${inventory.stock.adjust.exchange-name}")
-    private String exchangeName;
-
-    @Value("${inventory.stock.adjust.routing-key-name}")
-    private String routingKey;
-
-    public StockAdjustSenderBroker(final RabbitTemplate rabbitTemplate, final MapperJsonObject mapperJsonObject) {
+    public StockAdjustSenderBroker(RabbitTemplate rabbitTemplate, MapperJsonObject mapperJsonObject,
+                             StockAdjustQueueConfig stockAdjustQueueConfig) {
         this.rabbitTemplate = rabbitTemplate;
         this.mapperJsonObject = mapperJsonObject;
+        this.stockAdjustQueueConfig = stockAdjustQueueConfig;
     }
 
-    @Override
-    public void execute(final AdjustStockRequestDTO message, final String idMessage) {
-        final String json = mapperJsonObject.execute(message)
+    public Optional<ProcessorReplyDTO> executeAndWait(StockMovementDTO message, String idMessage) {
+        MessageProperties messageProperties = generateMessageProperties(idMessage);
+        SenderBrokerReply.setDeadline(messageProperties);
+        Message messageBody = getMessageBody(message, messageProperties)
                 .orElseThrow(() -> new IllegalStateException(
-                        "No fue posible serializar el mensaje para ajustar el stock"));
-        rabbitTemplate.convertAndSend(exchangeName, routingKey, json, rabbitMessage -> {
-            rabbitMessage.getMessageProperties().setMessageId(idMessage);
-            rabbitMessage.getMessageProperties().setHeader("idMensaje", idMessage);
-            return rabbitMessage;
-        });
+                        "No se pudo convertir a JSON el mensaje para ajustar el stock del producto "
+                                + message.getProductId()));
+        Message reply = rabbitTemplate.sendAndReceive(stockAdjustQueueConfig.getExchangeName(),
+                stockAdjustQueueConfig.getRoutingKeyName(), messageBody);
+        return Optional.ofNullable(reply).map(SenderBrokerReply::toReply);
+    }
+
+    private MessageProperties generateMessageProperties(String idMessageSender) {
+        return MessagePropertiesBuilder.newInstance()
+                .setContentType(MessageProperties.CONTENT_TYPE_JSON)
+                .setHeader("idMensaje", idMessageSender)
+                .build();
+    }
+
+    private Optional<Message> getMessageBody(Object message, MessageProperties messageProperties) {
+        Optional<String> messageText = mapperJsonObject.execute(message);
+        return messageText.map(msg -> MessageBuilder
+                .withBody(msg.getBytes(StandardCharsets.UTF_8))
+                .andProperties(messageProperties)
+                .build());
     }
 }

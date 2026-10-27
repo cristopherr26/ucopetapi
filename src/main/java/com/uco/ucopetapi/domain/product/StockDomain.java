@@ -1,6 +1,5 @@
 package com.uco.ucopetapi.domain.product;
 
-import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
 import jakarta.persistence.*;
 
 import java.util.UUID;
@@ -15,11 +14,10 @@ public class StockDomain {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_id", nullable = false, updatable = false)
-    private CatalogItemDomain item;
+    private ProductDomain product;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "headquarter_id", nullable = false, updatable = false)
-    private HeadquarterDomain headquarter;
+    @Column(name = "headquarter_id", nullable = false, updatable = false)
+    private UUID headquarterId;
 
     @Column(nullable = false)
     private Integer quantity;
@@ -27,11 +25,10 @@ public class StockDomain {
     protected StockDomain() {
     }
 
-    public StockDomain(final UUID id, final CatalogItemDomain item, final HeadquarterDomain headquarter,
-                       final Integer quantity) {
+    public StockDomain(final UUID id, final ProductDomain product, final UUID headquarterId, final Integer quantity) {
         this.id = id;
-        this.item = item;
-        this.headquarter = headquarter;
+        this.product = product;
+        this.headquarterId = headquarterId;
         this.quantity = quantity;
     }
 
@@ -39,12 +36,12 @@ public class StockDomain {
         return id;
     }
 
-    public CatalogItemDomain getItem() {
-        return item;
+    public ProductDomain getProduct() {
+        return product;
     }
 
-    public HeadquarterDomain getHeadquarter() {
-        return headquarter;
+    public UUID getHeadquarterId() {
+        return headquarterId;
     }
 
     public Integer getQuantity() {

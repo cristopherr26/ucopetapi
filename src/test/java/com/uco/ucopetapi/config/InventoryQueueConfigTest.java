@@ -19,9 +19,6 @@ class InventoryQueueConfigTest {
     @Autowired
     private ApplicationContext context;
 
-    @Autowired
-    private InventoryQueueConfig queueConfig;
-
     @Test
     @DisplayName("la API declara las cinco colas, cada una unida a su exchange con su routing key")
     void declaresTheFiveQueues() {
@@ -41,11 +38,5 @@ class InventoryQueueConfigTest {
                 .isEqualTo("ucopet.inventory.product.save.rk");
         assertThat(bindings.get("ucopet.inventory.stock.adjust.qu").getExchange())
                 .isEqualTo("ucopet.inventory.stock.adjust.ex");
-    }
-
-    @Test
-    @DisplayName("la escritura por el bus sigue apagada por defecto")
-    void asyncWritesIsOffByDefault() {
-        assertThat(queueConfig.isAsyncWrites()).isFalse();
     }
 }

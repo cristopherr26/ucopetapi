@@ -5,23 +5,19 @@ import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
 @Configuration
+@ConfigurationProperties(prefix = "inventory.service.save")
 @PropertySource("classpath:inventory.properties")
 public class ServiceSaveQueueConfig {
 
-    @Value("${inventory.service.save.exchange-name}")
     private String exchangeName;
-
-    @Value("${inventory.service.save.queue-name}")
+    private String routingKeyName;
     private String queueName;
-
-    @Value("${inventory.service.save.routing-key-name}")
-    private String routingKey;
 
     @Bean
     public DirectExchange serviceSaveExchange() {
@@ -35,8 +31,30 @@ public class ServiceSaveQueueConfig {
 
     @Bean
     public Binding serviceSaveBinding() {
-        return BindingBuilder.bind(serviceSaveQueue())
-                .to(serviceSaveExchange())
-                .with(routingKey);
+        return BindingBuilder.bind(serviceSaveQueue()).to(serviceSaveExchange()).with(routingKeyName);
+    }
+
+    public String getExchangeName() {
+        return exchangeName;
+    }
+
+    public void setExchangeName(String exchangeName) {
+        this.exchangeName = exchangeName;
+    }
+
+    public String getRoutingKeyName() {
+        return routingKeyName;
+    }
+
+    public void setRoutingKeyName(String routingKeyName) {
+        this.routingKeyName = routingKeyName;
+    }
+
+    public String getQueueName() {
+        return queueName;
+    }
+
+    public void setQueueName(String queueName) {
+        this.queueName = queueName;
     }
 }

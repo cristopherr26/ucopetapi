@@ -5,23 +5,19 @@ import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
 @Configuration
+@ConfigurationProperties(prefix = "inventory.product.deactivate")
 @PropertySource("classpath:inventory.properties")
 public class ProductDeactivationQueueConfig {
 
-    @Value("${inventory.product.deactivate.exchange-name}")
     private String exchangeName;
-
-    @Value("${inventory.product.deactivate.queue-name}")
+    private String routingKeyName;
     private String queueName;
-
-    @Value("${inventory.product.deactivate.routing-key-name}")
-    private String routingKey;
 
     @Bean
     public DirectExchange productDeactivationExchange() {
@@ -35,8 +31,30 @@ public class ProductDeactivationQueueConfig {
 
     @Bean
     public Binding productDeactivationBinding() {
-        return BindingBuilder.bind(productDeactivationQueue())
-                .to(productDeactivationExchange())
-                .with(routingKey);
+        return BindingBuilder.bind(productDeactivationQueue()).to(productDeactivationExchange()).with(routingKeyName);
+    }
+
+    public String getExchangeName() {
+        return exchangeName;
+    }
+
+    public void setExchangeName(String exchangeName) {
+        this.exchangeName = exchangeName;
+    }
+
+    public String getRoutingKeyName() {
+        return routingKeyName;
+    }
+
+    public void setRoutingKeyName(String routingKeyName) {
+        this.routingKeyName = routingKeyName;
+    }
+
+    public String getQueueName() {
+        return queueName;
+    }
+
+    public void setQueueName(String queueName) {
+        this.queueName = queueName;
     }
 }
