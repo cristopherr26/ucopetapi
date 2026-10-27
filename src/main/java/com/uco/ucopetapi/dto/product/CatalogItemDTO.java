@@ -3,6 +3,7 @@ package com.uco.ucopetapi.dto.product;
 import com.uco.ucopetapi.domain.product.enums.CatalogItemType;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,7 +13,7 @@ public record CatalogItemDTO(
         String name,
         String description,
         String imageUrl,
-        Integer price,
+        BigDecimal price,
         TaxCategory taxCategory,
         Boolean sellable,
         Boolean active,

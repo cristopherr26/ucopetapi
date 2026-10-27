@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -51,7 +52,7 @@ class ProductServiceIntegrationTest {
         waitUntil(() -> productRepository.existsById(created.getId()), "el producto " + created.getId());
         ProductDTO fetched = productService.getById(created.getId(), null);
         assertEquals(created.getName(), fetched.getName());
-        assertEquals(50000, fetched.getPrice());
+        assertEquals(0, new BigDecimal("50000").compareTo(fetched.getPrice()));
     }
 
     @Test

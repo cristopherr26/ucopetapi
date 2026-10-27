@@ -4,6 +4,7 @@ import com.uco.ucopetapi.dto.product.ProcessorReplyDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -14,8 +15,8 @@ public final class CatalogValidationUtils {
     private CatalogValidationUtils() {
     }
 
-    public static void validatePrice(Boolean sellable, Integer price, String item) {
-        if (Boolean.TRUE.equals(sellable) && (price == null || price <= 0)) {
+    public static void validatePrice(Boolean sellable, BigDecimal price, String item) {
+        if (Boolean.TRUE.equals(sellable) && (price == null || price.signum() <= 0)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Un " + item + " vendible necesita un precio mayor a cero");
         }

@@ -3,11 +3,13 @@ package com.uco.ucopetapi.dto.product;
 import com.uco.ucopetapi.domain.product.enums.ServiceCategory;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,7 +28,8 @@ public class ServiceDTO {
     private String imageUrl;
 
     @Positive(message = "Necesita un precio mayor a cero")
-    private Integer price;
+    @Digits(integer = 13, fraction = 2, message = "El precio admite hasta 13 enteros y 2 decimales")
+    private BigDecimal price;
 
     @NotNull(message = "La categoría de IVA es obligatoria")
     private TaxCategory taxCategory;
@@ -46,7 +49,7 @@ public class ServiceDTO {
     private List<UUID> headquarterIds;
 
     public ServiceDTO(final UUID id, final String name, final String description, final String imageUrl,
-                      final Integer price, final TaxCategory taxCategory, final Boolean sellable,
+                      final BigDecimal price, final TaxCategory taxCategory, final Boolean sellable,
                       final Boolean active, final ServiceCategory category, final Boolean purchasable,
                       final List<Object> providers, final List<UUID> headquarterIds) {
         this.id = id;
@@ -91,11 +94,11 @@ public class ServiceDTO {
         this.imageUrl = imageUrl;
     }
 
-    public Integer getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(Integer price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
 
