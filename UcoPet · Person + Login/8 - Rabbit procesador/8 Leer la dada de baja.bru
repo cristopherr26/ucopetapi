@@ -1,0 +1,26 @@
+meta {
+  name: Leerla → inactiva y con deactivatedAt
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/persons/{{rabbitId}}
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  await bru.sleep(1000);
+}
+
+script:post-response {
+  test("200", () => expect(res.getStatus()).to.equal(200));
+  test("quedo inactiva", () => expect(res.getBody().active).to.be.false);
+  test("deactivatedAt se lleno solo", () =>
+      expect(res.getBody().deactivatedAt).to.not.be.null);
+}
+
+settings {
+  encodeUrl: true
+}

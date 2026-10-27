@@ -1,0 +1,38 @@
+meta {
+  name: Entrar como admin
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{adminEmail}}",
+    "password": "{{adminPassword}}"
+  }
+}
+
+script:pre-request {
+  const n = Date.now().toString().slice(-7);
+  bru.setVar('rabbitDoc', '88' + n);
+  bru.setVar('rabbitCorreo', 'Prueba.Rabbit' + n + '@UCOPET.com');
+}
+
+script:post-response {
+  test("200", () => expect(res.getStatus()).to.equal(200));
+  bru.setVar("token", res.getBody().token);
+  bru.setVar("adminId", res.getBody().personId);
+}
+
+settings {
+  encodeUrl: true
+}

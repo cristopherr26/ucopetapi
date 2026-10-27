@@ -1,10 +1,14 @@
 package com.uco.ucopetapi.dto.tutorPet;
 
+import jakarta.validation.constraints.NotNull;
+
 import java.util.UUID;
 
 public class TutorPetDTO {
 
     private UUID id;
+
+    @NotNull(message = "La persona asociada al TutorPet es obligatoria.")
     private UUID idPerson;
 
     public TutorPetDTO() {
