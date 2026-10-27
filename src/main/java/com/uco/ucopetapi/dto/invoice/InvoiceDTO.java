@@ -1,13 +1,13 @@
 package com.uco.ucopetapi.dto.invoice;
 
 import com.uco.ucopetapi.crosscutting.helpers.DateTimeHelper;
-import com.uco.ucopetapi.crosscutting.helpers.IntHelper;
 import com.uco.ucopetapi.crosscutting.helpers.ObjectHelper;
 import com.uco.ucopetapi.crosscutting.helpers.TextHelper;
 import com.uco.ucopetapi.crosscutting.helpers.UUIDHelper;
 import com.uco.ucopetapi.domain.invoice.InvoiceDomain;
 import com.uco.ucopetapi.dto.invoice.enums.InvoiceState;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -19,15 +19,14 @@ public final class InvoiceDTO {
     private UUID clientID;
     private UUID petId;
     private LocalDateTime issueDate;
-    private Integer total;
-    private Integer paidAmount;
-    private Integer balance;
+    private BigDecimal total;
+    private BigDecimal paidAmount;
+    private BigDecimal balance;
     private String observations;
     private InvoiceState state;
-    private static InvoiceDTO DEFAULT = new InvoiceDTO();
 
     public static InvoiceDTO getDefaultObject() {
-        return DEFAULT;
+        return new InvoiceDTO();
     }
 
     public InvoiceDTO() {
@@ -38,9 +37,9 @@ public final class InvoiceDTO {
         this.clientID = UUIDHelper.getUUIDHelper().getDefault();
         this.petId = UUIDHelper.getUUIDHelper().getDefault();
         this.issueDate = DateTimeHelper.getDefault();
-        this.total = IntHelper.getDefault();
-        this.paidAmount = IntHelper.getDefault();
-        this.balance = IntHelper.getDefault();
+        this.total = BigDecimal.ZERO;
+        this.paidAmount = BigDecimal.ZERO;
+        this.balance = BigDecimal.ZERO;
         this.observations = TextHelper.getDefault();
         this.state = InvoiceState.SIN_ESTADO;
     }
@@ -51,8 +50,8 @@ public final class InvoiceDTO {
     }
 
     public InvoiceDTO(UUID id, UUID saleOrderId, String invoiceNumber, UUID headquarterId, UUID clientID,
-                       UUID petId, LocalDateTime issueDate, Integer total, Integer paidAmount, Integer balance,
-                       String observations, InvoiceState state) {
+                      UUID petId, LocalDateTime issueDate, BigDecimal total, BigDecimal paidAmount, BigDecimal balance,
+                      String observations, InvoiceState state) {
         this.id = UUIDHelper.getUUIDHelper().getDefault(id);
         setSaleOrderId(saleOrderId);
         setInvoiceNumber(invoiceNumber);
@@ -74,9 +73,9 @@ public final class InvoiceDTO {
     public UUID getClientID() { return clientID; }
     public UUID getPetId() { return petId; }
     public LocalDateTime getIssueDate() { return issueDate; }
-    public Integer getTotal() { return total; }
-    public Integer getPaidAmount() { return paidAmount; }
-    public Integer getBalance() { return balance; }
+    public BigDecimal getTotal() { return total; }
+    public BigDecimal getPaidAmount() { return paidAmount; }
+    public BigDecimal getBalance() { return balance; }
     public String getObservations() { return observations; }
     public InvoiceState getState() { return state; }
 
@@ -101,14 +100,14 @@ public final class InvoiceDTO {
     public void setIssueDate(LocalDateTime issueDate) {
         this.issueDate = DateTimeHelper.getDefault(issueDate);
     }
-    public void setTotal(Integer total) {
-        this.total = IntHelper.getDefault(total);
+    public void setTotal(BigDecimal total) {
+        this.total = ObjectHelper.getDefault(total, BigDecimal.ZERO);
     }
-    public void setPaidAmount(Integer paidAmount) {
-        this.paidAmount = IntHelper.getDefault(paidAmount);
+    public void setPaidAmount(BigDecimal paidAmount) {
+        this.paidAmount = ObjectHelper.getDefault(paidAmount, BigDecimal.ZERO);
     }
-    public void setBalance(Integer balance) {
-        this.balance = IntHelper.getDefault(balance);
+    public void setBalance(BigDecimal balance) {
+        this.balance = ObjectHelper.getDefault(balance, BigDecimal.ZERO);
     }
     public void setObservations(String observations) {
         this.observations = TextHelper.getDefault(observations);

@@ -1,6 +1,7 @@
 package com.uco.ucopetapi.service.invoice;
 
 import com.uco.ucopetapi.dto.invoice.CreateInvoiceRequestDTO;
+import com.uco.ucopetapi.dto.invoice.InvoiceAcceptedDTO;
 import com.uco.ucopetapi.dto.invoice.InvoiceDTO;
 import com.uco.ucopetapi.dto.invoice.RegisterPaymentRequestDTO;
 
@@ -10,12 +11,14 @@ import java.util.UUID;
 
 public interface InvoiceService {
 
-    InvoiceDTO registerNewInvoice(CreateInvoiceRequestDTO request);
+    // Escrituras: se validan y se publican en RabbitMQ (las procesa ucopet-payment-processor).
+    InvoiceAcceptedDTO registerNewInvoice(CreateInvoiceRequestDTO request);
 
-    InvoiceDTO registerPayment(UUID id, RegisterPaymentRequestDTO payment);
+    InvoiceAcceptedDTO registerPayment(UUID id, RegisterPaymentRequestDTO payment);
 
-    InvoiceDTO cancelInvoice(UUID id);
+    InvoiceAcceptedDTO cancelInvoice(UUID id);
 
+    // Consultas: van directo al repositorio, como antes.
     InvoiceDTO findById(UUID id);
 
     List<InvoiceDTO> findInvoiceByFilter(InvoiceDTO filter, LocalDate dateFrom, LocalDate dateTo);
