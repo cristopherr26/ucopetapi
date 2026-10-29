@@ -2,7 +2,7 @@ package com.uco.ucopetapi.service.invoice.impl;
 
 import com.uco.ucopetapi.crosscutting.helpers.UUIDHelper;
 import com.uco.ucopetapi.domain.invoice.InvoiceDomain;
-import com.uco.ucopetapi.domain.sale.SaleOrderDomain;
+import com.uco.ucopetapi.domain.sale.sale.SaleOrderDomain;
 import com.uco.ucopetapi.dto.invoice.CreateInvoiceRequestDTO;
 import com.uco.ucopetapi.dto.invoice.InvoiceAcceptedDTO;
 import com.uco.ucopetapi.dto.invoice.InvoiceCancelMessageDTO;
@@ -16,7 +16,7 @@ import com.uco.ucopetapi.messaging.invoice.InvoiceCancelSenderBroker;
 import com.uco.ucopetapi.messaging.invoice.InvoiceCreationSenderBroker;
 import com.uco.ucopetapi.messaging.invoice.InvoicePaymentSenderBroker;
 import com.uco.ucopetapi.repository.invoice.InvoiceRepository;
-import com.uco.ucopetapi.repository.sale.SaleOrderRepository;
+import com.uco.ucopetapi.repository.sale.sale.SaleOrderRepository;
 import com.uco.ucopetapi.service.invoice.InvoiceService;
 import com.uco.ucopetapi.service.invoice.exception.InvoiceNotFoundException;
 import com.uco.ucopetapi.service.invoice.exception.InvoiceStateConflictException;

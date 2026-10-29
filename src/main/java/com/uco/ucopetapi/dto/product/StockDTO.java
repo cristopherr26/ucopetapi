@@ -1,10 +1,11 @@
 package com.uco.ucopetapi.dto.product;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.UUID;
 
 public class StockDTO {
 
-    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private final UUID id;
     private final UUID productId;
     private final UUID headquarterId;
