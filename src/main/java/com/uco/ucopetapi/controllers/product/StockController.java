@@ -1,9 +1,9 @@
 package com.uco.ucopetapi.controllers.product;
 
-import com.uco.ucopetapi.dto.product.AdjustStockRequestDTO;
 import com.uco.ucopetapi.dto.product.StockDTO;
+import com.uco.ucopetapi.dto.product.StockMovementDTO;
 import com.uco.ucopetapi.service.product.StockService;
-import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,20 +20,24 @@ public class StockController {
     }
 
     @GetMapping
-    public ResponseEntity<StockDTO> getByProductAndHeadquarter(
-            @RequestParam UUID productId,
-            @RequestParam UUID headquarterId
-    ) {
-        return ResponseEntity.ok(stockService.findByProductAndHeadquarter(productId, headquarterId));
+    public StockDTO getByProductAndHeadquarter(@RequestParam UUID productId, @RequestParam UUID headquarterId) {
+        return stockService.findByProductAndHeadquarter(productId, headquarterId);
     }
 
     @GetMapping("/{productId}")
-    public ResponseEntity<List<StockDTO>> listByProduct(@PathVariable UUID productId) {
-        return ResponseEntity.ok(stockService.findByProduct(productId));
+    public List<StockDTO> listByProduct(@PathVariable UUID productId) {
+        return stockService.findByProduct(productId);
+    }
+
+    @GetMapping("/{productId}/movements")
+    public List<StockMovementDTO> listMovements(@PathVariable UUID productId,
+                                                @RequestParam(required = false) UUID headquarterId) {
+        return stockService.findMovements(productId, headquarterId);
     }
 
     @PostMapping("/adjust")
-    public ResponseEntity<StockDTO> adjust(@RequestBody AdjustStockRequestDTO request) {
-        return ResponseEntity.ok(stockService.adjustStock(request.getProductId(), request.getHeadquarterId(), request.getQuantity()));
+    public StockDTO adjust(@Valid @RequestBody StockMovementDTO request) {
+        return stockService.adjustStock(request.getProductId(), request.getHeadquarterId(), request.getQuantity(),
+                request.getReason(), request.getNote());
     }
 }

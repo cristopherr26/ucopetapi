@@ -1,29 +1,56 @@
 package com.uco.ucopetapi.dto.product;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.uco.ucopetapi.domain.product.enums.ProductCategory;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
 public class ProductDTO {
 
     private final UUID id;
+
+    @NotBlank(message = "El nombre es obligatorio")
+    @Size(max = 100, message = "El nombre no puede superar los 100 caracteres")
     private String name;
+
+    @Size(max = 255, message = "La descripción no puede superar los 255 caracteres")
     private String description;
+
+    @Size(max = 500, message = "La URL de la imagen no puede superar los 500 caracteres")
     private String imageUrl;
-    private Integer price;
+
+    @Positive(message = "Necesita un precio mayor a cero")
+    @Digits(integer = 13, fraction = 2, message = "El precio admite hasta 13 enteros y 2 decimales")
+    private BigDecimal price;
+
+    @NotNull(message = "La categoría de IVA es obligatoria")
     private TaxCategory taxCategory;
+
+    @NotNull(message = "Es obligatorio indicar si el producto se vende al público")
     private Boolean sellable;
+
     private Boolean active;
+
+    @NotNull(message = "La categoría es obligatoria")
     private ProductCategory category;
-    private List<AssociatedSupplierDTO> providers;
+
+    private List<Object> providers;
     private Integer stockAtLocation;
 
+    @JsonCreator
     public ProductDTO(final UUID id, final String name, final String description, final String imageUrl,
-                      final Integer price, final TaxCategory taxCategory, final Boolean sellable,
+                      final BigDecimal price, final TaxCategory taxCategory, final Boolean sellable,
                       final Boolean active, final ProductCategory category,
-                      final List<AssociatedSupplierDTO> providers, final Integer stockAtLocation) {
+                      final List<Object> providers, final Integer stockAtLocation) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -35,6 +62,14 @@ public class ProductDTO {
         this.category = category;
         this.providers = providers;
         this.stockAtLocation = stockAtLocation;
+    }
+
+    public ProductDTO(final UUID id, final String name, final String description, final String imageUrl,
+                      final Integer price, final TaxCategory taxCategory, final Boolean sellable,
+                      final Boolean active, final ProductCategory category,
+                      final List<Object> providers, final Integer stockAtLocation) {
+        this(id, name, description, imageUrl, price != null ? BigDecimal.valueOf(price) : null, taxCategory,
+                sellable, active, category, providers, stockAtLocation);
     }
 
     public UUID getId() {
@@ -65,11 +100,11 @@ public class ProductDTO {
         this.imageUrl = imageUrl;
     }
 
-    public Integer getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(Integer price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
 
@@ -105,11 +140,11 @@ public class ProductDTO {
         this.category = category;
     }
 
-    public List<AssociatedSupplierDTO> getProviders() {
+    public List<Object> getProviders() {
         return providers;
     }
 
-    public void setProviders(List<AssociatedSupplierDTO> providers) {
+    public void setProviders(List<Object> providers) {
         this.providers = providers;
     }
 
