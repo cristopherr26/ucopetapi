@@ -1,13 +1,13 @@
 package com.uco.ucopetapi.messaging.receipts;
 
-import com.uco.ucopetapi.dto.receipts.ReceiptMessageDTO;
+import com.uco.ucopetapi.domain.receipts.ReceiptDomain;
 import com.uco.ucopetapi.util.gson.MapperJsonObject;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ReceiptUpdateSenderBroker extends ReceiptSenderBroker<ReceiptMessageDTO> {
+public class ReceiptUpdateSenderBroker extends ReceiptSenderBroker<ReceiptDomain> {
 
     public ReceiptUpdateSenderBroker(
             final RabbitTemplate rabbitTemplate,

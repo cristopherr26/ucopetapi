@@ -1,9 +1,9 @@
 package com.uco.ucopetapi.service.receipts;
 
+
+import com.uco.ucopetapi.domain.payMethod.PayMethodDomain;
 import com.uco.ucopetapi.domain.receipts.ReceiptDomain;
 import com.uco.ucopetapi.dto.receipts.ReceiptAcceptedDTO;
-import com.uco.ucopetapi.dto.receipts.ReceiptCancelMessageDTO;
-import com.uco.ucopetapi.dto.receipts.ReceiptMessageDTO;
 import com.uco.ucopetapi.dto.receipts.ReceiptRequestDTO;
 import com.uco.ucopetapi.dto.receipts.ReceiptResponseDTO;
 import com.uco.ucopetapi.dto.receipts.ReceiptStatus;
@@ -86,80 +86,102 @@ public class ReceiptService {
         if (request.tutorId() == null) {
             throw new ReceiptValidationException("El tutor es obligatorio");
         }
-        validatePayMethodExists(request.payMethodId());
+        final PayMethodDomain payMethod = resolvePayMethod(request.payMethodId());
 
         final LocalDateTime date = request.date() != null ? request.date() : LocalDateTime.now(ZONE);
         validateDateNotInFuture(date);
 
-        final UUID receiptId = UUID.randomUUID();
+        // Instancia nueva: NUNCA se guarda, solo viaja en el mensaje.
+        final ReceiptDomain receipt = ReceiptDomain.builder()
+                .id(UUID.randomUUID())
+                .tutorId(request.tutorId())
+                .petId(request.petId())
+                .concept(request.concept())
+                .amount(request.amount())
+                .payMethod(detached(payMethod))
+                .date(date)
+                .state(ReceiptStatus.ACTIVE)
+                .build();
+
         final String idMessage = UUID.randomUUID().toString();
-
-        creationSender.execute(new ReceiptMessageDTO(
-                receiptId,
-                request.tutorId(),
-                request.petId(),
-                request.concept(),
-                request.amount(),
-                request.payMethodId(),
-                date
-        ), idMessage);
-
-        return new ReceiptAcceptedDTO(receiptId, idMessage);
+        creationSender.execute(receipt, idMessage);
+        return new ReceiptAcceptedDTO(receipt.getId(), idMessage);
     }
 
     @Transactional(readOnly = true)
     public ReceiptAcceptedDTO update(final UUID id, final ReceiptRequestDTO request) {
-        final ReceiptDomain receipt = getOrThrow(id);
+        final ReceiptDomain current = getOrThrow(id);
 
-        if (receipt.getState() == ReceiptStatus.CANCELLED) {
+        if (current.getState() == ReceiptStatus.CANCELLED) {
             throw new ReceiptValidationException("No se puede modificar un recibo anulado: " + id);
         }
 
-        final UUID tutorId = request.tutorId() != null ? request.tutorId() : receipt.getTutorId();
-
-        String concept = receipt.getConcept();
+        String concept = current.getConcept();
         if (request.concept() != null) {
             validateConcept(request.concept());
             concept = request.concept();
         }
 
-        BigDecimal amount = receipt.getAmount();
+        BigDecimal amount = current.getAmount();
         if (request.amount() != null) {
             validateAmount(request.amount());
             amount = request.amount();
         }
 
-        UUID payMethodId = receipt.getPayMethod().getId();
-        if (request.payMethodId() != null) {
-            validatePayMethodExists(request.payMethodId());
-            payMethodId = request.payMethodId();
-        }
-
-        LocalDateTime date = receipt.getDate();
+        LocalDateTime date = current.getDate();
         if (request.date() != null) {
             validateDateNotInFuture(request.date());
             date = request.date();
         }
 
-        final String idMessage = UUID.randomUUID().toString();
-        updateSender.execute(new ReceiptMessageDTO(
-                id, tutorId, request.petId(), concept, amount, payMethodId, date
-        ), idMessage);
+        final UUID payMethodId = request.payMethodId() != null
+                ? request.payMethodId()
+                : current.getPayMethod().getId();
+        final PayMethodDomain payMethod = resolvePayMethod(payMethodId);
 
+        // Instancia nueva con el estado final; la entidad cargada no se toca.
+        final ReceiptDomain receipt = ReceiptDomain.builder()
+                .id(id)
+                .tutorId(request.tutorId() != null ? request.tutorId() : current.getTutorId())
+                .petId(request.petId())
+                .concept(concept)
+                .amount(amount)
+                .payMethod(detached(payMethod))
+                .date(date)
+                .state(ReceiptStatus.ACTIVE)
+                .build();
+
+        final String idMessage = UUID.randomUUID().toString();
+        updateSender.execute(receipt, idMessage);
         return new ReceiptAcceptedDTO(id, idMessage);
     }
 
     @Transactional(readOnly = true)
     public ReceiptAcceptedDTO cancel(final UUID id) {
-        final ReceiptDomain receipt = getOrThrow(id);
+        final ReceiptDomain current = getOrThrow(id);
 
-        if (receipt.getState() == ReceiptStatus.CANCELLED) {
+        if (current.getState() == ReceiptStatus.CANCELLED) {
             throw new ReceiptValidationException("El recibo ya está anulado: " + id);
         }
 
+        final ReceiptDomain receipt = ReceiptDomain.builder()
+                .id(id)
+                .state(ReceiptStatus.CANCELLED)
+                .build();
+
         final String idMessage = UUID.randomUUID().toString();
-        cancelSender.execute(new ReceiptCancelMessageDTO(id), idMessage);
+        cancelSender.execute(receipt, idMessage);
         return new ReceiptAcceptedDTO(id, idMessage);
+    }
+
+    private PayMethodDomain resolvePayMethod(final UUID payMethodId) {
+        return payMethodRepository.findById(payMethodId)
+                .orElseThrow(() -> new ReceiptValidationException("El método de pago no existe: " + payMethodId));
+    }
+
+    // Copia suelta (sin proxy de Hibernate) para poder serializarla.
+    private PayMethodDomain detached(final PayMethodDomain payMethod) {
+        return new PayMethodDomain(payMethod.getId(), payMethod.getName());
     }
 
     public void delete(final UUID id) {

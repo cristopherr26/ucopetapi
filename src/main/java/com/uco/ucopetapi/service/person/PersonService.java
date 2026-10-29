@@ -128,16 +128,19 @@ public class PersonService {
         PersonDomain current = findOrThrow(personId);
         validateUniqueness(person, personId);
 
-        Boolean admin = requestedByAdmin ? person.admin() : null;
-        Boolean active = requestedByAdmin ? person.active() : null;
-
-        boolean finalAdmin = admin != null ? admin : current.isAdmin();
-        boolean finalActive = active != null ? active : current.isActive();
+        // Solo un ADMIN puede cambiar el rol o el estado. Si quien edita no es ADMIN, se
+        // ignora lo que mande y se publican los valores que la persona ya tenia.
+        boolean finalAdmin = requestedByAdmin && person.admin() != null ? person.admin() : current.isAdmin();
+        boolean finalActive = requestedByAdmin && person.active() != null ? person.active() : current.isActive();
+        // Esta regla se valida aca para que el cliente reciba el 409 de una vez,
+        // y el procesador la vuelve a validar antes de guardar.
         if (!finalAdmin || !finalActive) {
             validateNotLastAdmin(current);
         }
 
-        PersonMessageDTO message = toMessage(personId, person, admin, active);
+        // El procesador recibe el mensaje como PersonDomain (admin y active son boolean),
+        // por eso siempre se mandan los dos con el valor final, nunca en null.
+        PersonMessageDTO message = toMessage(personId, person, finalAdmin, finalActive);
         personUpdateSenderBroker.execute(message, UUID.randomUUID().toString());
 
         Instant deactivatedAt = finalActive ? null
@@ -244,7 +247,7 @@ public class PersonService {
         return dto;
     }
 
-    private static PersonMessageDTO toMessage(UUID id, PersonDTO person, Boolean admin, Boolean active) {
+    private static PersonMessageDTO toMessage(UUID id, PersonDTO person, boolean admin, boolean active) {
         return new PersonMessageDTO(id, person.documentType(), person.documentNumber(),
                 person.firstName(), person.lastName(), normalizeEmail(person.email()),
                 person.address(), person.phone(), admin, active);
