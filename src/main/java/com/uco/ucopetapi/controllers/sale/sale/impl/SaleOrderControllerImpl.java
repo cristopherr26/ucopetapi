@@ -1,22 +1,16 @@
 package com.uco.ucopetapi.controllers.sale.sale.impl;
 
 import com.uco.ucopetapi.controllers.sale.sale.SaleOrderController;
+import com.uco.ucopetapi.domain.sale.enums.SaleOrderState;
+import com.uco.ucopetapi.domain.sale.sale.SaleOrderDomain;
+import com.uco.ucopetapi.dto.sale.itemSale.ItemSaleDTO;
 import com.uco.ucopetapi.dto.sale.sale.SaleOrderDTO;
-import com.uco.ucopetapi.dto.sale.enums.SaleOrderState;
 import com.uco.ucopetapi.service.sale.sale.SaleOrderService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -40,10 +34,12 @@ public class SaleOrderControllerImpl implements SaleOrderController {
             @RequestParam(required = false) UUID healthPlanId,
             @RequestParam(required = false) String orderNumber,
             @RequestParam(required = false) SaleOrderState state,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo) {
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo) {
 
-        SaleOrderDTO filter = new SaleOrderDTO(
+        SaleOrderDomain filter = new SaleOrderDomain(
                 null,
                 headquarterId,
                 orderNumber,
@@ -51,36 +47,115 @@ public class SaleOrderControllerImpl implements SaleOrderController {
                 clientID,
                 petId,
                 healthPlanId,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
+                null,
+                null,
+                null,
+                null,
                 null,
                 state
         );
 
-        return ResponseEntity.ok(saleOrderService.findSaleOrderByFilter(filter, dateFrom, dateTo));
+        List<SaleOrderDTO> response = saleOrderService
+                .findSaleOrderByFilter(filter, dateFrom, dateTo)
+                .stream()
+                .map(this::toDTO)
+                .toList();
+
+        return ResponseEntity.ok(response);
     }
 
     @Override
     @PostMapping
-    public ResponseEntity<SaleOrderDTO> registerNewSaleOrder(@RequestBody SaleOrderDTO saleOrderDTO) {
-        SaleOrderDTO created = saleOrderService.registerNewSaleOrder(saleOrderDTO);
+    public ResponseEntity<SaleOrderDTO> registerNewSaleOrder(
+            @RequestBody SaleOrderDTO saleOrderDTO) {
+
+        SaleOrderDomain saleOrder = toDomain(saleOrderDTO);
+
+        SaleOrderDTO created = toDTO(
+                saleOrderService.registerNewSaleOrder(saleOrder)
+        );
+
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @Override
     @PutMapping("/{id}")
-    public ResponseEntity<SaleOrderDTO> editExistentSaleOrder(@PathVariable UUID id,
-                                                              @RequestBody SaleOrderDTO saleOrderDTO) {
-        return ResponseEntity.ok(saleOrderService.editExistentSaleOrder(id, saleOrderDTO));
+    public ResponseEntity<SaleOrderDTO> editExistentSaleOrder(
+            @PathVariable UUID id,
+            @RequestBody SaleOrderDTO saleOrderDTO) {
+
+        SaleOrderDomain saleOrder = toDomain(saleOrderDTO);
+
+        SaleOrderDTO updated = toDTO(
+                saleOrderService.editExistentSaleOrder(id, saleOrder)
+        );
+
+        return ResponseEntity.ok(updated);
     }
 
     @Override
     @PutMapping("/{id}/cancel")
-    public ResponseEntity<SaleOrderDTO> cancelSaleOrder(@PathVariable UUID id) {
-        return ResponseEntity.ok(saleOrderService.cancelSaleOrder(id));
+    public ResponseEntity<SaleOrderDTO> cancelSaleOrder(
+            @PathVariable UUID id) {
+
+        SaleOrderDTO cancelled = toDTO(
+                saleOrderService.cancelSaleOrder(id)
+        );
+
+        return ResponseEntity.ok(cancelled);
     }
 
-}
+    private SaleOrderDomain toDomain(SaleOrderDTO dto) {
+        return new SaleOrderDomain(
+                dto.getId(),
+                dto.getHeadquarterId(),
+                dto.getOrderNumber(),
+                dto.getSaleDate(),
+                dto.getClientID(),
+                dto.getPetId(),
+                dto.getHealthPlanId(),
+                dto.getSubtotal(),
+                dto.getTotalDiscount(),
+                dto.getTotalTaxes(),
+                dto.getTotal(),
+                dto.getComment(),
+                dto.getState()
+        );
+    }
 
+    private SaleOrderDTO toDTO(SaleOrderDomain domain) {
+        SaleOrderDTO dto = new SaleOrderDTO(
+                domain.getId(),
+                domain.getHeadquarterId(),
+                domain.getOrderNumber(),
+                domain.getSaleDate(),
+                domain.getClientID(),
+                domain.getPetId(),
+                domain.getHealthPlanId(),
+                domain.getSubtotal(),
+                domain.getTotalDiscount(),
+                domain.getTotalTaxes(),
+                domain.getTotal(),
+                domain.getComment(),
+                domain.getState()
+        );
+
+        List<ItemSaleDTO> items = domain.getItems()
+                .stream()
+                .map(item -> new ItemSaleDTO(
+                        item.getId(),
+                        item.getSaleOrderId(),
+                        item.getItemId(),
+                        item.getItemType(),
+                        item.getTaxCategory(),
+                        item.getQuantity(),
+                        item.getUnitPrice(),
+                        item.getSubtotal()
+                ))
+                .toList();
+
+        dto.setItems(items);
+
+        return dto;
+    }
+}

@@ -5,7 +5,7 @@ import com.uco.ucopetapi.crosscutting.helpers.ObjectHelper;
 import com.uco.ucopetapi.crosscutting.helpers.TextHelper;
 import com.uco.ucopetapi.crosscutting.helpers.UUIDHelper;
 import com.uco.ucopetapi.domain.sale.sale.SaleOrderDomain;
-import com.uco.ucopetapi.dto.sale.enums.SaleOrderState;
+import com.uco.ucopetapi.domain.sale.enums.SaleOrderState;
 import com.uco.ucopetapi.dto.sale.itemSale.ItemSaleDTO;
 
 import java.math.BigDecimal;
