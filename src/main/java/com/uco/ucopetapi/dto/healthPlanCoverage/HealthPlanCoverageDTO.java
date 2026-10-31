@@ -8,6 +8,7 @@ public class HealthPlanCoverageDTO {
     private UUID id;
     private UUID healthPlanId;
     private UUID serviceId;
+    private UUID procedureId;
     private Integer coveragePercentage;
     private BigDecimal coverageLimit;
 
@@ -18,49 +19,33 @@ public class HealthPlanCoverageDTO {
             UUID id,
             UUID healthPlanId,
             UUID serviceId,
+            UUID procedureId,
             Integer coveragePercentage,
             BigDecimal coverageLimit) {
 
         this.id = id;
         this.healthPlanId = healthPlanId;
         this.serviceId = serviceId;
+        this.procedureId = procedureId;
         this.coveragePercentage = coveragePercentage;
         this.coverageLimit = coverageLimit;
     }
 
     public UUID getId() {return id;}
-
     public void setId(UUID id) {this.id = id;}
 
-    public UUID getHealthPlanId() {
-        return healthPlanId;
-    }
+    public UUID getHealthPlanId() {return healthPlanId;}
+    public void setHealthPlanId(UUID healthPlanId) {this.healthPlanId = healthPlanId;}
 
-    public void setHealthPlanId(UUID healthPlanId) {
-        this.healthPlanId = healthPlanId;
-    }
+    public UUID getServiceId() {return serviceId;}
+    public void setServiceId(UUID serviceId) {this.serviceId = serviceId;}
 
-    public UUID getServiceId() {
-        return serviceId;
-    }
+    public UUID getProcedureId() {return procedureId;} // <-- Agregado
+    public void setProcedureId(UUID procedureId) {this.procedureId = procedureId;} // <-- Agregado
 
-    public void setServiceId(UUID serviceId) {
-        this.serviceId = serviceId;
-    }
+    public Integer getCoveragePercentage() {return coveragePercentage;}
+    public void setCoveragePercentage(Integer coveragePercentage) {this.coveragePercentage = coveragePercentage;}
 
-    public Integer getCoveragePercentage() {
-        return coveragePercentage;
-    }
-
-    public void setCoveragePercentage(Integer coveragePercentage) {
-        this.coveragePercentage = coveragePercentage;
-    }
-
-    public BigDecimal getCoverageLimit() {
-        return coverageLimit;
-    }
-
-    public void setCoverageLimit(BigDecimal coverageLimit) {
-        this.coverageLimit = coverageLimit;
-    }
+    public BigDecimal getCoverageLimit() {return coverageLimit;}
+    public void setCoverageLimit(BigDecimal coverageLimit) {this.coverageLimit = coverageLimit;}
 }

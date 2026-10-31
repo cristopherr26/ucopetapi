@@ -1,12 +1,13 @@
 package com.uco.ucopetapi;
 
-import com.uco.ucopetapi.config.ProviderQueueProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+
 
 @SpringBootApplication
-@EnableConfigurationProperties(ProviderQueueProperties.class)
+@ConfigurationPropertiesScan
 public class UcopetapiApplication {
 
 

@@ -10,6 +10,8 @@ import com.uco.ucopetapi.dto.pet.PetDTO;
 import com.uco.ucopetapi.dto.tutorPet.TutorPetDTO;
 import com.uco.ucopetapi.event.AppointmentCreatedEvent;
 import com.uco.ucopetapi.exception.BusinessException;
+import com.uco.ucopetapi.messaging.appointment.AppointmentCreationSenderBroker;
+import com.uco.ucopetapi.messaging.appointment.AppointmentDeactivationSenderBroker;
 import com.uco.ucopetapi.repository.appointment.IAppointmentRepository;
 import com.uco.ucopetapi.service.appointmentType.AppointmentTypeService;
 import com.uco.ucopetapi.service.doctor.DoctorService;
@@ -53,6 +55,8 @@ public class AppointmentService {
     private final PersonService personService;
     private final TutorPetService tutorPetService;
     private final ApplicationEventPublisher eventPublisher;
+    private final AppointmentCreationSenderBroker creationSender;
+    private final AppointmentDeactivationSenderBroker statusSender;
 
     public AppointmentService(
             IAppointmentRepository appointmentRepository,
@@ -61,7 +65,9 @@ public class AppointmentService {
             PetService petService,
             PersonService personService,
             TutorPetService tutorPetService,
-            ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher,
+            AppointmentCreationSenderBroker creationSender,
+            AppointmentDeactivationSenderBroker statusSender) {
         this.appointmentRepository = appointmentRepository;
         this.appointmentTypeService = appointmentTypeService;
         this.doctorService = doctorService;
@@ -69,6 +75,8 @@ public class AppointmentService {
         this.personService = personService;
         this.tutorPetService = tutorPetService;
         this.eventPublisher = eventPublisher;
+        this.creationSender = creationSender;
+        this.statusSender = statusSender;
     }
 
     public List<AppointmentDTO> findAll() {
@@ -93,18 +101,30 @@ public class AppointmentService {
                 .toList();
     }
 
+    /**
+     * Valida la cita y la PUBLICA en RabbitMQ; quien la guarda en la BD es el procesador de salud.
+     * El id de la cita se genera aqui y se deja en appointmentDTO para poder devolverlo al cliente.
+     *
+     * @return el idMessage con el que viaja el mensaje
+     */
     @Transactional
-    public AppointmentDTO create(AppointmentDTO appointmentDTO) {
+    public String create(AppointmentDTO appointmentDTO) {
         AppointmentDomain appointment = toDomain(appointmentDTO);
         validateAppointment(appointment, null);
         appointment.setId(UUID.randomUUID());
-        AppointmentDTO dto = toDTO(appointmentRepository.save(appointment));
-        publishAppointmentCreatedEvent(dto);
-        return dto;
+        appointmentDTO.setId(appointment.getId());
+        // Primero el evento (comparte transaccion): si publicar el mensaje falla, todo se revierte.
+        publishAppointmentCreatedEvent(appointment);
+        return publishSave(appointment);
     }
 
+    /**
+     * Valida los cambios y los PUBLICA en RabbitMQ; quien los guarda es el procesador de salud.
+     *
+     * @return el idMessage con el que viaja el mensaje, o vacio si la cita no existe
+     */
     @Transactional
-    public Optional<AppointmentDTO> update(UUID id, AppointmentDTO appointmentDTO) {
+    public Optional<String> update(UUID id, AppointmentDTO appointmentDTO) {
         if (!appointmentRepository.existsById(id)) {
             return Optional.empty();
         }
@@ -112,9 +132,40 @@ public class AppointmentService {
         AppointmentDomain appointment = toDomain(appointmentDTO);
         validateAppointment(appointment, id);
         appointment.setId(id);
-        return Optional.of(toDTO(appointmentRepository.save(appointment)));
+        return Optional.of(publishSave(appointment));
     }
 
+    /**
+     * Valida un cambio de estado y lo PUBLICA en RabbitMQ (cola de "desactivar"); el procesador de
+     * salud lo aplica. Es la version asincrona usada por el endpoint PATCH de citas.
+     *
+     * @return el idMessage con el que viaja el mensaje, o vacio si la cita no existe
+     */
+    @Transactional
+    public Optional<String> requestStatusChange(UUID id, AppointmentStatusDTO appointmentStatusDTO) {
+        if (appointmentStatusDTO == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Los datos del estado de la cita son obligatorios");
+        }
+        Optional<AppointmentDomain> current = appointmentRepository.findById(id);
+        if (current.isEmpty()) {
+            return Optional.empty();
+        }
+
+        // Se valida sobre una copia: la cita real NO se toca aqui, la modifica el procesador.
+        AppointmentDomain candidate = new AppointmentDomain();
+        candidate.setId(id);
+        updateStatusFields(candidate, appointmentStatusDTO);
+        validateStatusRules(candidate, id);
+        validateScheduleWhenReactivated(current.get(), current.get().getStatus(), candidate.getStatus());
+        return Optional.of(publishStatus(candidate));
+    }
+
+    /**
+     * Cambio de estado SINCRONO. Lo usa el flujo interno de atencion (AppointmentAttentionOrchestrator)
+     * porque necesita completar la cita dentro de su misma transaccion y leer el resultado.
+     * Los clientes HTTP usan requestStatusChange (asincrono).
+     */
     @Transactional
     public Optional<AppointmentDTO> updateStatus(UUID id, AppointmentStatusDTO appointmentStatusDTO) {
         if (appointmentStatusDTO == null) {
@@ -124,8 +175,10 @@ public class AppointmentService {
 
         return appointmentRepository.findById(id)
                 .map(appointment -> {
+                    String previousStatus = appointment.getStatus();
                     updateStatusFields(appointment, appointmentStatusDTO);
                     validateStatusRules(appointment, id);
+                    validateScheduleWhenReactivated(appointment, previousStatus, appointment.getStatus());
                     return toDTO(appointmentRepository.save(appointment));
                 });
     }
@@ -138,6 +191,23 @@ public class AppointmentService {
 
         appointmentRepository.deleteById(id);
         return true;
+    }
+
+    private String publishSave(AppointmentDomain appointment) {
+        String idMessage = UUID.randomUUID().toString();
+        creationSender.execute(appointment, idMessage);
+        return idMessage;
+    }
+
+    private String publishStatus(AppointmentDomain appointment) {
+        String idMessage = UUID.randomUUID().toString();
+        // Solo viajan id, estado y justificacion; el resto de campos queda en null
+        AppointmentDomain message = new AppointmentDomain();
+        message.setId(appointment.getId());
+        message.setStatus(appointment.getStatus());
+        message.setCancellationReason(appointment.getCancellationReason());
+        statusSender.execute(message, idMessage);
+        return idMessage;
     }
 
     private String findDoctorName(UUID doctorId) {
@@ -178,14 +248,14 @@ public class AppointmentService {
                 .orElse(null);
     }
 
-    private void publishAppointmentCreatedEvent(AppointmentDTO appointmentDTO) {
-        UUID tutorPersonId = tutorPetService.findById(appointmentDTO.getTutorId()).getPerson();
+    private void publishAppointmentCreatedEvent(AppointmentDomain appointment) {
+        UUID tutorPersonId = tutorPetService.findById(appointment.getTutorId()).getPerson();
         eventPublisher.publishEvent(new AppointmentCreatedEvent(
-                appointmentDTO.getId(),
+                appointment.getId(),
                 tutorPersonId,
-                appointmentDTO.getPetName(),
-                appointmentDTO.getAppointmentDate(),
-                appointmentDTO.getAppointmentTime()
+                findPetName(appointment.getPetId()),
+                appointment.getAppointmentDate(),
+                appointment.getAppointmentTime()
         ));
     }
 
@@ -193,7 +263,18 @@ public class AppointmentService {
         validateRequiredSchedule(appointment);
         validateStatusRules(appointment, currentAppointmentId);
         validateRelationships(appointment);
-        validateDoctorScheduleAvailability(appointment, currentAppointmentId);
+        // Una cita cancelada no ocupa el horario del medico, asi que no compite por el.
+        if (!CANCELLED_STATUS.equals(appointment.getStatus())) {
+            validateDoctorScheduleAvailability(appointment, currentAppointmentId);
+        }
+    }
+
+    // Si la cita estaba cancelada su horario pudo ser tomado por otra: al reactivarla se revisa de nuevo.
+    private void validateScheduleWhenReactivated(AppointmentDomain appointment, String previousStatus,
+                                                 String newStatus) {
+        if (CANCELLED_STATUS.equals(previousStatus) && !CANCELLED_STATUS.equals(newStatus)) {
+            validateDoctorScheduleAvailability(appointment, appointment.getId());
+        }
     }
 
     private void validateRequiredSchedule(AppointmentDomain appointment) {
@@ -304,15 +385,17 @@ public class AppointmentService {
 
     private void validateDoctorScheduleAvailability(AppointmentDomain appointment, UUID currentAppointmentId) {
         boolean scheduleTaken = currentAppointmentId == null
-                ? appointmentRepository.existsByDoctorIdAndAppointmentDateAndAppointmentTime(
-                        appointment.getDoctorId(),
-                        appointment.getAppointmentDate(),
-                        appointment.getAppointmentTime())
-                : appointmentRepository.existsByDoctorIdAndAppointmentDateAndAppointmentTimeAndIdNot(
+                ? appointmentRepository.existsByDoctorIdAndAppointmentDateAndAppointmentTimeAndStatusNot(
                         appointment.getDoctorId(),
                         appointment.getAppointmentDate(),
                         appointment.getAppointmentTime(),
-                        currentAppointmentId);
+                        CANCELLED_STATUS)
+                : appointmentRepository.existsByDoctorIdAndAppointmentDateAndAppointmentTimeAndIdNotAndStatusNot(
+                        appointment.getDoctorId(),
+                        appointment.getAppointmentDate(),
+                        appointment.getAppointmentTime(),
+                        currentAppointmentId,
+                        CANCELLED_STATUS);
 
         if (scheduleTaken) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,

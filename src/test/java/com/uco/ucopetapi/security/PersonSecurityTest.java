@@ -70,6 +70,7 @@ class PersonSecurityTest {
         noRoleEmail = "sin.rol." + doc + "@ucopet.com";
         noRoleId = field(call("POST", "/persons", personJson(doc, "sin.rol." + doc),
                 adminToken).body(), "id");
+        waitUntilSaved(noRoleId);
         call("PUT", "/persons/" + noRoleId + "/password",
                 "{\"password\":\"" + NO_ROLE_PASSWORD + "\"}", adminToken);
     }
@@ -166,6 +167,7 @@ class PersonSecurityTest {
             assertThat(alta.statusCode()).isEqualTo(201);
 
             String id = field(alta.body(), "id");
+            waitUntilSaved(id);
             assertThat(call("DELETE", "/persons/" + id, null, adminToken).statusCode())
                     .isEqualTo(204);
         }
@@ -345,6 +347,7 @@ class PersonSecurityTest {
             String email = "medica." + doc + "@ucopet.com";
             String id = field(call("POST", "/persons", personJson(doc, "medica." + doc),
                     adminToken).body(), "id");
+            waitUntilSaved(id);
             call("PUT", "/persons/" + id + "/password",
                     "{\"password\":\"" + NO_ROLE_PASSWORD + "\"}", adminToken);
 
@@ -435,6 +438,21 @@ class PersonSecurityTest {
                     "{\"password\":\"" + "a".repeat(200) + "\"}", adminToken).statusCode())
                     .isEqualTo(400);
         }
+    }
+
+    // Crear una persona ahora es asincrono: el API publica en Rabbit y el procesador de Usuarios
+    // la guarda un momento despues. Antes de usarla hay que esperar a que exista en la base.
+    // Por eso estos tests necesitan RabbitMQ y el procesador corriendo.
+    private void waitUntilSaved(String id) throws InterruptedException {
+        UUID personId = UUID.fromString(id);
+        for (int i = 0; i < 50; i++) {
+            if (personRepository.existsById(personId)) {
+                return;
+            }
+            Thread.sleep(100);
+        }
+        throw new IllegalStateException("La persona " + id + " no aparecio en la base despues de 5 s. "
+                + "Esta corriendo RabbitMQ y el procesador de Usuarios?");
     }
 
     private String tokenFor(String email, String password) throws Exception {

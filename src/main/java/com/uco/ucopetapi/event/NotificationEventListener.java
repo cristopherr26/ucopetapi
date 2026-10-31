@@ -1,6 +1,8 @@
 package com.uco.ucopetapi.event;
 
+import com.uco.ucopetapi.dto.notification.NotificationRequest;
 import com.uco.ucopetapi.model.notification.enums.NotificationType;
+import com.uco.ucopetapi.model.notification.enums.ReferenceType;
 import com.uco.ucopetapi.service.notification.NotificationService;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -15,21 +17,21 @@ public class NotificationEventListener {
 
     @EventListener
     public void onAppointmentCreated(AppointmentCreatedEvent event) {
-        notificationService.create(
+        notificationService.create(new NotificationRequest(
                 event.getDoctorId(),
                 "Cita programada",
                 "Cita para la mascota " + event.getPetName() + " ha sido registrada el " + event.getDate() +
                  " a las " + event.getTime(),
                 NotificationType.APPOINTMENT_CREATED,
                 event.getAppointmentId(),
-                "APPOINTMENT"
-        );
+                ReferenceType.APPOINTMENT
+        ));
     }
 
     @EventListener
     public void onOrderStatus(OrderStatusEvent event) {
 
-        notificationService.create(
+        notificationService.create(new NotificationRequest(
                 event.getPersonId(),
                 "Cambio estado en la orden",
                 event.isAuthorized()
@@ -37,19 +39,19 @@ public class NotificationEventListener {
                         : "Tu orden no pudo ser aprobada. Contáctanos.",
                 event.isAuthorized() ? NotificationType.ORDER_AUTHORIZED : NotificationType.ORDER_REJECTED,
                 event.getOrderId(),
-                "ORDER"
-        );
+                ReferenceType.ORDER
+        ));
     }
 
     @EventListener
     public void onLoginSucceded(LoginSuccededEvent event) {
-        notificationService.create(
+        notificationService.create(new NotificationRequest(
                 event.getPersonId(),
                 "Inicio de sesion exitoso",
                 "Ultimo inicio de sesion exitoso: " + event.getDate() + ".",
                 NotificationType.LOGIN_SUCCEDED,
                 event.getLoginId(),
-                "LOGIN"
-        );
+                ReferenceType.LOGIN
+        ));
     }
 }
