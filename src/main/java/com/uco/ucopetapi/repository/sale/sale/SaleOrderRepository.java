@@ -1,7 +1,7 @@
 package com.uco.ucopetapi.repository.sale.sale;
 
+import com.uco.ucopetapi.domain.sale.enums.SaleOrderState;
 import com.uco.ucopetapi.domain.sale.sale.SaleOrderDomain;
-import com.uco.ucopetapi.dto.sale.sale.SaleOrderDTO;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -18,7 +18,8 @@ public interface SaleOrderRepository {
 
     List<SaleOrderDomain> findAll();
 
-    List<SaleOrderDomain> findByFilter(SaleOrderDTO filter, LocalDate dateFrom, LocalDate dateTo);
+    List<SaleOrderDomain> findByFilter(SaleOrderDomain filter, LocalDate dateFrom, LocalDate dateTo
+    );
 
     Optional<SaleOrderDomain> findLastOrderNumberByHeadquarter(UUID headquarterId);
 

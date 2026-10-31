@@ -1,7 +1,8 @@
+
 package com.uco.ucopetapi.domain.sale.sale;
 
-import com.uco.ucopetapi.dto.sale.sale.SaleOrderDTO;
-import com.uco.ucopetapi.dto.sale.enums.SaleOrderState;
+import com.uco.ucopetapi.domain.sale.enums.SaleOrderState;
+import com.uco.ucopetapi.domain.sale.itemSale.ItemSaleDomain;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -15,14 +16,18 @@ import org.springframework.data.domain.Persistable;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "saleOrder",
+@Table(
+        name = "saleOrder",
         uniqueConstraints = @jakarta.persistence.UniqueConstraint(
                 name = "uk_sale_order_headquarter_order_number",
                 columnNames = {"headquarter_id", "order_number"}
-        ))
+        )
+)
 public class SaleOrderDomain implements Persistable<UUID> {
 
     @Id
@@ -69,13 +74,27 @@ public class SaleOrderDomain implements Persistable<UUID> {
     @Transient
     private boolean isNew = true;
 
-    protected SaleOrderDomain() {
+    @Transient
+    private List<ItemSaleDomain> items = new ArrayList<>();
 
+    protected SaleOrderDomain() {
     }
 
-    public SaleOrderDomain(UUID id, UUID headquarterId, String orderNumber, LocalDateTime saleDate, UUID clientID, UUID petId,
-                           UUID healthPlanId, BigDecimal subtotal, BigDecimal totalDiscount, BigDecimal totalTaxes,
-                           BigDecimal total, String comment, SaleOrderState state) {
+    public SaleOrderDomain(
+            UUID id,
+            UUID headquarterId,
+            String orderNumber,
+            LocalDateTime saleDate,
+            UUID clientID,
+            UUID petId,
+            UUID healthPlanId,
+            BigDecimal subtotal,
+            BigDecimal totalDiscount,
+            BigDecimal totalTaxes,
+            BigDecimal total,
+            String comment,
+            SaleOrderState state) {
+
         setID(id);
         setHeadquarterId(headquarterId);
         setOrderNumber(orderNumber);
@@ -90,35 +109,120 @@ public class SaleOrderDomain implements Persistable<UUID> {
         setComment(comment);
         setState(state);
         this.isNew = true;
+        this.items = new ArrayList<>();
     }
 
-    public UUID getId() { return id; }
-    public UUID getHeadquarterId() { return headquarterId; }
-    public String getOrderNumber() { return orderNumber; }
-    public LocalDateTime getSaleDate() { return saleDate; }
-    public UUID getClientID() { return clientID; }
-    public UUID getPetId() { return petId; }
-    public UUID getHealthPlanId() { return healthPlanId; }
-    public BigDecimal getSubtotal() { return subtotal; }
-    public BigDecimal getTotalDiscount() { return totalDiscount; }
-    public BigDecimal getTotalTaxes() { return totalTaxes; }
-    public BigDecimal getTotal() { return total; }
-    public String getComment() { return comment; }
-    public SaleOrderState getState() { return state; }
+    public UUID getId() {
+        return id;
+    }
 
-    public void setID(UUID id) { this.id = id; }
-    public void setHeadquarterId(UUID headquarterId) { this.headquarterId = headquarterId; }
-    public void setOrderNumber(String orderNumber) { this.orderNumber = orderNumber; }
-    public void setSaleDate(LocalDateTime saleDate) { this.saleDate = saleDate; }
-    public void setClientID(UUID clientID) { this.clientID = clientID; }
-    public void setPetId(UUID petId) { this.petId = petId; }
-    public void setHealthPlanId(UUID healthPlanId) { this.healthPlanId = healthPlanId; }
-    public void setSubtotal(BigDecimal subtotal) { this.subtotal = subtotal; }
-    public void setTotalDiscount(BigDecimal totalDiscount) { this.totalDiscount = totalDiscount; }
-    public void setTotalTaxes(BigDecimal totalTaxes) { this.totalTaxes = totalTaxes; }
-    public void setTotal(BigDecimal total) { this.total = total; }
-    public void setComment(String comment) { this.comment = comment; }
-    public void setState(SaleOrderState state) { this.state = state; }
+    public UUID getHeadquarterId() {
+        return headquarterId;
+    }
+
+    public String getOrderNumber() {
+        return orderNumber;
+    }
+
+    public LocalDateTime getSaleDate() {
+        return saleDate;
+    }
+
+    public UUID getClientID() {
+        return clientID;
+    }
+
+    public UUID getPetId() {
+        return petId;
+    }
+
+    public UUID getHealthPlanId() {
+        return healthPlanId;
+    }
+
+    public BigDecimal getSubtotal() {
+        return subtotal;
+    }
+
+    public BigDecimal getTotalDiscount() {
+        return totalDiscount;
+    }
+
+    public BigDecimal getTotalTaxes() {
+        return totalTaxes;
+    }
+
+    public BigDecimal getTotal() {
+        return total;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public SaleOrderState getState() {
+        return state;
+    }
+
+    public List<ItemSaleDomain> getItems() {
+        return items;
+    }
+
+    public void setID(UUID id) {
+        this.id = id;
+    }
+
+    public void setHeadquarterId(UUID headquarterId) {
+        this.headquarterId = headquarterId;
+    }
+
+    public void setOrderNumber(String orderNumber) {
+        this.orderNumber = orderNumber;
+    }
+
+    public void setSaleDate(LocalDateTime saleDate) {
+        this.saleDate = saleDate;
+    }
+
+    public void setClientID(UUID clientID) {
+        this.clientID = clientID;
+    }
+
+    public void setPetId(UUID petId) {
+        this.petId = petId;
+    }
+
+    public void setHealthPlanId(UUID healthPlanId) {
+        this.healthPlanId = healthPlanId;
+    }
+
+    public void setSubtotal(BigDecimal subtotal) {
+        this.subtotal = subtotal;
+    }
+
+    public void setTotalDiscount(BigDecimal totalDiscount) {
+        this.totalDiscount = totalDiscount;
+    }
+
+    public void setTotalTaxes(BigDecimal totalTaxes) {
+        this.totalTaxes = totalTaxes;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
+    public void setState(SaleOrderState state) {
+        this.state = state;
+    }
+
+    public void setItems(List<ItemSaleDomain> items) {
+        this.items = items;
+    }
 
     @Override
     public boolean isNew() {
@@ -129,23 +233,5 @@ public class SaleOrderDomain implements Persistable<UUID> {
     @PostPersist
     void markAsNotNew() {
         this.isNew = false;
-    }
-
-    public SaleOrderDTO toDTO() {
-        return new SaleOrderDTO(
-                this.id,
-                this.headquarterId,
-                this.orderNumber,
-                this.saleDate,
-                this.clientID,
-                this.petId,
-                this.healthPlanId,
-                this.subtotal,
-                this.totalDiscount,
-                this.totalTaxes,
-                this.total,
-                this.comment,
-                this.state
-        );
     }
 }

@@ -1,6 +1,6 @@
 package com.uco.ucopetapi.messaging.sale.sale;
 
-import com.uco.ucopetapi.dto.sale.sale.SaleOrderMessageDTO;
+import com.uco.ucopetapi.domain.sale.sale.SaleOrderMessageDomain;
 import com.uco.ucopetapi.util.gson.MapperJsonObject;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SaleCreationSenderBroker
-        extends SaleSenderBroker<SaleOrderMessageDTO> {
+        extends SaleSenderBroker<SaleOrderMessageDomain> {
 
     public SaleCreationSenderBroker(
             RabbitTemplate rabbitTemplate,

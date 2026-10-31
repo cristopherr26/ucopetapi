@@ -1,23 +1,21 @@
 package com.uco.ucopetapi.service.sale.sale.impl;
 
 import com.uco.ucopetapi.crosscutting.helpers.UUIDHelper;
+import com.uco.ucopetapi.domain.sale.enums.SaleOrderState;
+import com.uco.ucopetapi.domain.sale.sale.SaleDeactivateMessageDomain;
 import com.uco.ucopetapi.domain.sale.sale.SaleOrderDomain;
-import com.uco.ucopetapi.dto.sale.sale.SaleOrderDTO;
-import com.uco.ucopetapi.dto.sale.enums.SaleOrderState;
+import com.uco.ucopetapi.domain.sale.sale.SaleOrderMessageDomain;
 import com.uco.ucopetapi.exception.sale.SaleOrderNotFoundException;
 import com.uco.ucopetapi.exception.sale.SaleOrderStateConflictException;
 import com.uco.ucopetapi.exception.sale.SaleOrderValidationException;
 import com.uco.ucopetapi.integration.sale.healthPlan.HealthPlanClient;
 import com.uco.ucopetapi.integration.sale.healthPlan.HealthPlanResponse;
-import com.uco.ucopetapi.repository.sale.sale.SaleOrderRepository;
-import com.uco.ucopetapi.service.sale.sale.SaleOrderService;
-import com.uco.ucopetapi.service.sale.itemSale.ItemSaleService;
-import com.uco.ucopetapi.dto.sale.sale.SaleOrderMessageDTO;
-import com.uco.ucopetapi.dto.sale.sale.SaleDeactivateMessageDTO;
 import com.uco.ucopetapi.messaging.sale.sale.SaleCreationSenderBroker;
-import com.uco.ucopetapi.messaging.sale.sale.SaleUpdateSenderBroker;
 import com.uco.ucopetapi.messaging.sale.sale.SaleDeactivateSenderBroker;
-
+import com.uco.ucopetapi.messaging.sale.sale.SaleUpdateSenderBroker;
+import com.uco.ucopetapi.repository.sale.sale.SaleOrderRepository;
+import com.uco.ucopetapi.service.sale.itemSale.ItemSaleService;
+import com.uco.ucopetapi.service.sale.sale.SaleOrderService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,46 +59,45 @@ public class SaleOrderServiceImpl implements SaleOrderService {
 
     @Override
     @Transactional
-    public SaleOrderDTO registerNewSaleOrder(SaleOrderDTO saleOrderDTO) {
+    public SaleOrderDomain registerNewSaleOrder(SaleOrderDomain saleOrder) {
 
-        if (saleOrderDTO == null) {
+        if (saleOrder == null) {
             throw new SaleOrderValidationException(
                     "La información de la orden de venta es obligatoria."
             );
         }
 
-        validateRequiredReferences(saleOrderDTO);
-        validateComment(saleOrderDTO.getComment());
-        validateHealthPlan(saleOrderDTO.getHealthPlanId());
+        validateRequiredReferences(saleOrder);
+        validateComment(saleOrder.getComment());
+        validateHealthPlan(saleOrder.getHealthPlanId());
 
         UUID newId = generateUniqueId();
 
         String newOrderNumber =
-                generateNextOrderNumber(saleOrderDTO.getHeadquarterId());
+                generateNextOrderNumber(saleOrder.getHeadquarterId());
 
-        SaleOrderDTO toPersist = new SaleOrderDTO(
+        SaleOrderDomain toPersist = new SaleOrderDomain(
                 newId,
-                saleOrderDTO.getHeadquarterId(),
+                saleOrder.getHeadquarterId(),
                 newOrderNumber,
                 LocalDateTime.now(ZoneId.of("America/Bogota")),
-                saleOrderDTO.getClientID(),
-                saleOrderDTO.getPetId(),
-                saleOrderDTO.getHealthPlanId(),
+                saleOrder.getClientID(),
+                saleOrder.getPetId(),
+                saleOrder.getHealthPlanId(),
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
-                saleOrderDTO.getComment(),
+                saleOrder.getComment(),
                 SaleOrderState.BORRADOR
         );
 
-        SaleOrderDomain saved =
-                saleOrderRepository.save(toPersist.toDomain());
+        SaleOrderDomain saved = saleOrderRepository.save(toPersist);
 
-        SaleOrderDTO response = populateItems(saved.toDTO());
+        SaleOrderDomain response = populateItems(saved);
 
         saleCreationSenderBroker.execute(
-                toMessageDTO(response),
+                toMessageDomain(response),
                 UUID.randomUUID().toString()
         );
 
@@ -109,11 +106,11 @@ public class SaleOrderServiceImpl implements SaleOrderService {
 
     @Override
     @Transactional
-    public SaleOrderDTO editExistentSaleOrder(
+    public SaleOrderDomain editExistentSaleOrder(
             UUID id,
-            SaleOrderDTO saleOrderDTO) {
+            SaleOrderDomain saleOrder) {
 
-        if (saleOrderDTO == null) {
+        if (saleOrder == null) {
             throw new SaleOrderValidationException(
                     "La información para editar la orden es obligatoria."
             );
@@ -127,21 +124,21 @@ public class SaleOrderServiceImpl implements SaleOrderService {
             );
         }
 
-        validateRequiredReferences(saleOrderDTO);
-        validateComment(saleOrderDTO.getComment());
-        validateHealthPlan(saleOrderDTO.getHealthPlanId());
+        validateRequiredReferences(saleOrder);
+        validateComment(saleOrder.getComment());
+        validateHealthPlan(saleOrder.getHealthPlanId());
 
-        existing.setClientID(saleOrderDTO.getClientID());
-        existing.setPetId(saleOrderDTO.getPetId());
-        existing.setHealthPlanId(saleOrderDTO.getHealthPlanId());
-        existing.setComment(saleOrderDTO.getComment());
+        existing.setClientID(saleOrder.getClientID());
+        existing.setPetId(saleOrder.getPetId());
+        existing.setHealthPlanId(saleOrder.getHealthPlanId());
+        existing.setComment(saleOrder.getComment());
 
         SaleOrderDomain saved = saleOrderRepository.save(existing);
 
-        SaleOrderDTO response = populateItems(saved.toDTO());
+        SaleOrderDomain response = populateItems(saved);
 
         saleUpdateSenderBroker.execute(
-                toMessageDTO(response),
+                toMessageDomain(response),
                 UUID.randomUUID().toString()
         );
 
@@ -150,7 +147,7 @@ public class SaleOrderServiceImpl implements SaleOrderService {
 
     @Override
     @Transactional
-    public SaleOrderDTO cancelSaleOrder(UUID id) {
+    public SaleOrderDomain cancelSaleOrder(UUID id) {
 
         SaleOrderDomain existing = findExistingOrThrow(id);
 
@@ -177,47 +174,49 @@ public class SaleOrderServiceImpl implements SaleOrderService {
 
         SaleOrderDomain saved = saleOrderRepository.save(existing);
 
-        SaleOrderDTO response = populateItems(saved.toDTO());
+        SaleOrderDomain response = populateItems(saved);
 
         saleDeactivateSenderBroker.execute(
-                new SaleDeactivateMessageDTO(response.getId()),
+                new SaleDeactivateMessageDomain(response.getId()),
                 UUID.randomUUID().toString()
         );
 
         return response;
     }
 
-    private SaleOrderDTO populateItems(SaleOrderDTO saleOrderDTO) {
-        saleOrderDTO.setItems(
-                itemSaleService.listItemsBySaleOrder(saleOrderDTO.getId())
+    private SaleOrderDomain populateItems(SaleOrderDomain saleOrder) {
+
+        saleOrder.setItems(
+                itemSaleService.listItemsBySaleOrder(saleOrder.getId())
         );
 
-        return saleOrderDTO;
+        return saleOrder;
     }
 
-    private SaleOrderMessageDTO toMessageDTO(SaleOrderDTO saleOrderDTO) {
-        return new SaleOrderMessageDTO(
-                saleOrderDTO.getId(),
-                saleOrderDTO.getHeadquarterId(),
-                saleOrderDTO.getOrderNumber(),
-                saleOrderDTO.getSaleDate(),
-                saleOrderDTO.getClientID(),
-                saleOrderDTO.getPetId(),
-                saleOrderDTO.getHealthPlanId(),
-                saleOrderDTO.getSubtotal(),
-                saleOrderDTO.getTotalDiscount(),
-                saleOrderDTO.getTotalTaxes(),
-                saleOrderDTO.getTotal(),
-                saleOrderDTO.getComment(),
-                saleOrderDTO.getState(),
-                saleOrderDTO.getItems()
+    private SaleOrderMessageDomain toMessageDomain(SaleOrderDomain saleOrder) {
+
+        return new SaleOrderMessageDomain(
+                saleOrder.getId(),
+                saleOrder.getHeadquarterId(),
+                saleOrder.getOrderNumber(),
+                saleOrder.getSaleDate(),
+                saleOrder.getClientID(),
+                saleOrder.getPetId(),
+                saleOrder.getHealthPlanId(),
+                saleOrder.getSubtotal(),
+                saleOrder.getTotalDiscount(),
+                saleOrder.getTotalTaxes(),
+                saleOrder.getTotal(),
+                saleOrder.getComment(),
+                saleOrder.getState(),
+                saleOrder.getItems()
         );
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<SaleOrderDTO> findSaleOrderByFilter(
-            SaleOrderDTO filter,
+    public List<SaleOrderDomain> findSaleOrderByFilter(
+            SaleOrderDomain filter,
             LocalDate dateFrom,
             LocalDate dateTo) {
 
@@ -238,18 +237,16 @@ public class SaleOrderServiceImpl implements SaleOrderService {
         return saleOrderRepository
                 .findByFilter(filter, dateFrom, dateTo)
                 .stream()
-                .map(SaleOrderDomain::toDTO)
                 .map(this::populateItems)
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<SaleOrderDTO> findAll() {
+    public List<SaleOrderDomain> findAll() {
 
         return saleOrderRepository.findAll()
                 .stream()
-                .map(SaleOrderDomain::toDTO)
                 .map(this::populateItems)
                 .toList();
     }
@@ -262,28 +259,28 @@ public class SaleOrderServiceImpl implements SaleOrderService {
                 ));
     }
 
-    private void validateRequiredReferences(SaleOrderDTO dto) {
+    private void validateRequiredReferences(SaleOrderDomain saleOrder) {
 
         UUID defaultUUID = UUIDHelper.getUUIDHelper().getDefault();
 
-        if (dto.getHeadquarterId() == null
-                || dto.getHeadquarterId().equals(defaultUUID)) {
+        if (saleOrder.getHeadquarterId() == null
+                || saleOrder.getHeadquarterId().equals(defaultUUID)) {
 
             throw new SaleOrderValidationException(
                     "headquarterId es obligatorio."
             );
         }
 
-        if (dto.getClientID() == null
-                || dto.getClientID().equals(defaultUUID)) {
+        if (saleOrder.getClientID() == null
+                || saleOrder.getClientID().equals(defaultUUID)) {
 
             throw new SaleOrderValidationException(
                     "clientID es obligatorio."
             );
         }
 
-        if (dto.getPetId() == null
-                || dto.getPetId().equals(defaultUUID)) {
+        if (saleOrder.getPetId() == null
+                || saleOrder.getPetId().equals(defaultUUID)) {
 
             throw new SaleOrderValidationException(
                     "petId es obligatorio."
