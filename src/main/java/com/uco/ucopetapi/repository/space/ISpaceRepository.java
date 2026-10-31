@@ -19,4 +19,7 @@ public interface ISpaceRepository extends JpaRepository<SpaceDomain, UUID> {
 
     // Buscar todos los espacios activos o inactivos (true/false)
     List<SpaceDomain> findByActive(Boolean active);
+
+    // Buscar todos los espacios de una sede
+    List<SpaceDomain> findByHeadquarterId(UUID headquarterId);
 }

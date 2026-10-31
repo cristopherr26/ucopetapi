@@ -1,7 +1,7 @@
 package com.uco.ucopetapi.controllers.sale.itemSale;
 
-import com.uco.ucopetapi.dto.sale.sale.AddItemSaleRequestDTO;
-import com.uco.ucopetapi.dto.sale.sale.EditItemSaleRequestDTO;
+import com.uco.ucopetapi.domain.sale.sale.AddItemSaleRequestDomain;
+import com.uco.ucopetapi.domain.sale.sale.EditItemSaleRequestDomain;
 import com.uco.ucopetapi.dto.sale.itemSale.ItemSaleDTO;
 import com.uco.ucopetapi.dto.sale.sale.SaleOrderDTO;
 import org.springframework.http.ResponseEntity;
@@ -11,9 +11,9 @@ import java.util.UUID;
 
 public interface ItemSaleController {
 
-    ResponseEntity<SaleOrderDTO> addItem(UUID saleOrderId, AddItemSaleRequestDTO request);
+    ResponseEntity<SaleOrderDTO> addItem(UUID saleOrderId, AddItemSaleRequestDomain request);
 
-    ResponseEntity<SaleOrderDTO> editItem(UUID saleOrderId, UUID itemSaleId, EditItemSaleRequestDTO request);
+    ResponseEntity<SaleOrderDTO> editItem(UUID saleOrderId, UUID itemSaleId, EditItemSaleRequestDomain request);
 
     ResponseEntity<SaleOrderDTO> removeItem(UUID saleOrderId, UUID itemSaleId);
 

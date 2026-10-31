@@ -1,9 +1,9 @@
-package com.uco.ucopetapi.dto.sale.itemSale;
+package com.uco.ucopetapi.domain.sale.itemSale;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
-public record ItemSaleMessageDTO(
+public record ItemSaleMessageDomain(
         UUID id,
         UUID saleOrderId,
         UUID itemId,

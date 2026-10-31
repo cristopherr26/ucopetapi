@@ -1,13 +1,14 @@
 package com.uco.ucopetapi.service.sale.itemSale.impl;
 
+import com.uco.ucopetapi.crosscutting.helpers.UUIDHelper;
+import com.uco.ucopetapi.domain.sale.enums.ItemType;
+import com.uco.ucopetapi.domain.sale.enums.SaleOrderState;
+import com.uco.ucopetapi.domain.sale.itemSale.ItemSaleDeleteMessageDomain;
 import com.uco.ucopetapi.domain.sale.itemSale.ItemSaleDomain;
+import com.uco.ucopetapi.domain.sale.itemSale.ItemSaleMessageDomain;
+import com.uco.ucopetapi.domain.sale.sale.AddItemSaleRequestDomain;
+import com.uco.ucopetapi.domain.sale.sale.EditItemSaleRequestDomain;
 import com.uco.ucopetapi.domain.sale.sale.SaleOrderDomain;
-import com.uco.ucopetapi.dto.sale.sale.AddItemSaleRequestDTO;
-import com.uco.ucopetapi.dto.sale.sale.EditItemSaleRequestDTO;
-import com.uco.ucopetapi.dto.sale.itemSale.ItemSaleDTO;
-import com.uco.ucopetapi.dto.sale.sale.SaleOrderDTO;
-import com.uco.ucopetapi.dto.sale.enums.ItemType;
-import com.uco.ucopetapi.dto.sale.enums.SaleOrderState;
 import com.uco.ucopetapi.exception.sale.SaleOrderNotFoundException;
 import com.uco.ucopetapi.exception.sale.SaleOrderStateConflictException;
 import com.uco.ucopetapi.exception.sale.SaleOrderValidationException;
@@ -16,15 +17,12 @@ import com.uco.ucopetapi.integration.sale.catalog.CatalogItemResponse;
 import com.uco.ucopetapi.integration.sale.healthPlan.HealthPlanClient;
 import com.uco.ucopetapi.integration.sale.healthPlan.HealthPlanCoverageResponse;
 import com.uco.ucopetapi.integration.sale.healthPlan.HealthPlanResponse;
+import com.uco.ucopetapi.messaging.sale.itemSale.ItemSaleCreationSenderBroker;
+import com.uco.ucopetapi.messaging.sale.itemSale.ItemSaleDeleteSenderBroker;
+import com.uco.ucopetapi.messaging.sale.itemSale.ItemSaleUpdateSenderBroker;
 import com.uco.ucopetapi.repository.sale.itemSale.ItemSaleRepository;
 import com.uco.ucopetapi.repository.sale.sale.SaleOrderRepository;
 import com.uco.ucopetapi.service.sale.itemSale.ItemSaleService;
-import com.uco.ucopetapi.dto.sale.itemSale.ItemSaleMessageDTO;
-import com.uco.ucopetapi.dto.sale.itemSale.ItemSaleDeleteMessageDTO;
-import com.uco.ucopetapi.messaging.sale.itemSale.ItemSaleCreationSenderBroker;
-import com.uco.ucopetapi.messaging.sale.itemSale.ItemSaleUpdateSenderBroker;
-import com.uco.ucopetapi.messaging.sale.itemSale.ItemSaleDeleteSenderBroker;
-import com.uco.ucopetapi.crosscutting.helpers.UUIDHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,7 +56,6 @@ public class ItemSaleServiceImpl implements ItemSaleService {
         this.saleOrderRepository = saleOrderRepository;
         this.catalogClient = catalogClient;
         this.healthPlanClient = healthPlanClient;
-
         this.itemSaleCreationSenderBroker = itemSaleCreationSenderBroker;
         this.itemSaleUpdateSenderBroker = itemSaleUpdateSenderBroker;
         this.itemSaleDeleteSenderBroker = itemSaleDeleteSenderBroker;
@@ -66,9 +63,9 @@ public class ItemSaleServiceImpl implements ItemSaleService {
 
     @Override
     @Transactional
-    public SaleOrderDTO addItemToSaleOrder(
+    public SaleOrderDomain addItemToSaleOrder(
             UUID saleOrderId,
-            AddItemSaleRequestDTO request) {
+            AddItemSaleRequestDomain request) {
 
         SaleOrderDomain order = findOrderOrThrow(saleOrderId);
 
@@ -117,25 +114,28 @@ public class ItemSaleServiceImpl implements ItemSaleService {
         );
 
         ItemSaleDomain savedItem = itemSaleRepository.save(newItem);
+
         recalculateOrderTotals(order);
+
         SaleOrderDomain savedOrder = saleOrderRepository.save(order);
 
         itemSaleCreationSenderBroker.execute(
-                toMessageDTO(savedItem),
+                toMessageDomain(savedItem),
                 UUID.randomUUID().toString()
         );
 
-        return populateItems(savedOrder.toDTO());
+        return populateItems(savedOrder);
     }
 
     @Override
     @Transactional
-    public SaleOrderDTO editItemInSaleOrder(
+    public SaleOrderDomain editItemInSaleOrder(
             UUID saleOrderId,
             UUID itemSaleId,
-            EditItemSaleRequestDTO request) {
+            EditItemSaleRequestDomain request) {
 
         SaleOrderDomain order = findOrderOrThrow(saleOrderId);
+
         requireBorrador(order);
         validateEditRequest(request);
 
@@ -158,24 +158,27 @@ public class ItemSaleServiceImpl implements ItemSaleService {
         item.setSubtotal(subtotal);
 
         ItemSaleDomain savedItem = itemSaleRepository.save(item);
+
         recalculateOrderTotals(order);
+
         SaleOrderDomain savedOrder = saleOrderRepository.save(order);
 
         itemSaleUpdateSenderBroker.execute(
-                toMessageDTO(savedItem),
+                toMessageDomain(savedItem),
                 UUID.randomUUID().toString()
         );
 
-        return populateItems(savedOrder.toDTO());
+        return populateItems(savedOrder);
     }
 
     @Override
     @Transactional
-    public SaleOrderDTO removeItemFromSaleOrder(
+    public SaleOrderDomain removeItemFromSaleOrder(
             UUID saleOrderId,
             UUID itemSaleId) {
 
         SaleOrderDomain order = findOrderOrThrow(saleOrderId);
+
         requireBorrador(order);
 
         ItemSaleDomain item = itemSaleRepository.findById(itemSaleId)
@@ -190,30 +193,31 @@ public class ItemSaleServiceImpl implements ItemSaleService {
         }
 
         itemSaleRepository.deleteById(itemSaleId);
+
         recalculateOrderTotals(order);
+
         SaleOrderDomain savedOrder = saleOrderRepository.save(order);
 
         itemSaleDeleteSenderBroker.execute(
-                toDeleteMessageDTO(item),
+                toDeleteMessageDomain(item),
                 UUID.randomUUID().toString()
         );
 
-        return populateItems(savedOrder.toDTO());
+        return populateItems(savedOrder);
     }
 
-    private SaleOrderDTO populateItems(SaleOrderDTO saleOrderDTO) {
-        saleOrderDTO.setItems(
-                itemSaleRepository.findBySaleOrderId(saleOrderDTO.getId())
-                        .stream()
-                        .map(ItemSaleDomain::toDTO)
-                        .toList()
+    private SaleOrderDomain populateItems(SaleOrderDomain saleOrder) {
+
+        saleOrder.setItems(
+                itemSaleRepository.findBySaleOrderId(saleOrder.getId())
         );
 
-        return saleOrderDTO;
+        return saleOrder;
     }
 
-    private ItemSaleMessageDTO toMessageDTO(ItemSaleDomain item) {
-        return new ItemSaleMessageDTO(
+    private ItemSaleMessageDomain toMessageDomain(ItemSaleDomain item) {
+
+        return new ItemSaleMessageDomain(
                 item.getId(),
                 item.getSaleOrderId(),
                 item.getItemId(),
@@ -225,28 +229,26 @@ public class ItemSaleServiceImpl implements ItemSaleService {
         );
     }
 
-    private ItemSaleDeleteMessageDTO toDeleteMessageDTO(
+    private ItemSaleDeleteMessageDomain toDeleteMessageDomain(
             ItemSaleDomain item) {
 
-        return new ItemSaleDeleteMessageDTO(
+        return new ItemSaleDeleteMessageDomain(
                 item.getId(),
                 item.getSaleOrderId()
         );
     }
 
     @Override
-    public List<ItemSaleDTO> listItemsBySaleOrder(UUID saleOrderId) {
+    @Transactional(readOnly = true)
+    public List<ItemSaleDomain> listItemsBySaleOrder(UUID saleOrderId) {
 
         findOrderOrThrow(saleOrderId);
 
-        return itemSaleRepository
-                .findBySaleOrderId(saleOrderId)
-                .stream()
-                .map(ItemSaleDomain::toDTO)
-                .toList();
+        return itemSaleRepository.findBySaleOrderId(saleOrderId);
     }
 
     private SaleOrderDomain findOrderOrThrow(UUID saleOrderId) {
+
         return saleOrderRepository.findById(saleOrderId)
                 .orElseThrow(() -> new SaleOrderNotFoundException(
                         "No existe una orden de venta con id " + saleOrderId
@@ -254,6 +256,7 @@ public class ItemSaleServiceImpl implements ItemSaleService {
     }
 
     private void requireBorrador(SaleOrderDomain order) {
+
         if (order.getState() != SaleOrderState.BORRADOR) {
             throw new SaleOrderStateConflictException(
                     "Solo se pueden modificar artículos de una orden en estado BORRADOR."
@@ -261,7 +264,8 @@ public class ItemSaleServiceImpl implements ItemSaleService {
         }
     }
 
-    private void validateAddRequest(AddItemSaleRequestDTO request) {
+    private void validateAddRequest(AddItemSaleRequestDomain request) {
+
         if (request == null) {
             throw new SaleOrderValidationException(
                     "La solicitud para agregar el artículo es obligatoria."
@@ -285,7 +289,8 @@ public class ItemSaleServiceImpl implements ItemSaleService {
         }
     }
 
-    private void validateEditRequest(EditItemSaleRequestDTO request) {
+    private void validateEditRequest(EditItemSaleRequestDomain request) {
+
         if (request == null) {
             throw new SaleOrderValidationException(
                     "La solicitud para editar el artículo es obligatoria."

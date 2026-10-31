@@ -1,6 +1,6 @@
 package com.uco.ucopetapi.service.sale.sale;
 
-import com.uco.ucopetapi.dto.sale.sale.SaleOrderDTO;
+import com.uco.ucopetapi.domain.sale.sale.SaleOrderDomain;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -8,13 +8,17 @@ import java.util.UUID;
 
 public interface SaleOrderService {
 
-    SaleOrderDTO registerNewSaleOrder(SaleOrderDTO saleOrderDTO);
+    SaleOrderDomain registerNewSaleOrder(SaleOrderDomain saleOrder);
 
-    SaleOrderDTO editExistentSaleOrder(UUID id, SaleOrderDTO saleOrderDTO);
+    SaleOrderDomain editExistentSaleOrder(UUID id, SaleOrderDomain saleOrder);
 
-    SaleOrderDTO cancelSaleOrder(UUID id);
+    SaleOrderDomain cancelSaleOrder(UUID id);
 
-    List<SaleOrderDTO> findSaleOrderByFilter(SaleOrderDTO filter, LocalDate dateFrom, LocalDate dateTo);
+    List<SaleOrderDomain> findSaleOrderByFilter(
+            SaleOrderDomain filter,
+            LocalDate dateFrom,
+            LocalDate dateTo
+    );
 
-    List<SaleOrderDTO> findAll();
+    List<SaleOrderDomain> findAll();
 }

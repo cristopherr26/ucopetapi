@@ -9,9 +9,9 @@ import com.uco.ucopetapi.dto.attentionhealth.AttentionHealthVitalSignsDTO;
 import com.uco.ucopetapi.dto.attentionhealth.AttentionHealthProductDTO;
 import com.uco.ucopetapi.dto.order.OrderDTO;
 import com.uco.ucopetapi.dto.product.ProductDTO;
-import com.uco.ucopetapi.dto.sale.sale.AddItemSaleRequestDTO;
+import com.uco.ucopetapi.domain.sale.sale.AddItemSaleRequestDomain;
 import com.uco.ucopetapi.dto.sale.sale.SaleOrderDTO;
-import com.uco.ucopetapi.dto.sale.enums.ItemType;
+import com.uco.ucopetapi.domain.sale.enums.ItemType;
 import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.repository.attentionhealth.IAttentionHealthRepository;
 import com.uco.ucopetapi.messaging.attentionhealth.AttentionHealthCreationSenderBroker;
@@ -21,7 +21,7 @@ import com.uco.ucopetapi.service.order.IOrderService;
 import com.uco.ucopetapi.service.product.ProductService;
 import com.uco.ucopetapi.service.procedure.ProcedureService;
 import com.uco.ucopetapi.service.sale.itemSale.ItemSaleService;
-import com.uco.ucopetapi.service.sale.sale.SaleOrderService;
+import com.uco.ucopetapi.service.sale.sale.adapter.SaleOrderCompatibilityAdapter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,7 +56,7 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
     private final OrderMapper orderMapper;
     private final ProductService productService;
     private final HeadquarterService headquarterService;
-    private final SaleOrderService saleOrderService;
+    private final SaleOrderCompatibilityAdapter saleOrderCompatibilityAdapter;
     private final ItemSaleService itemSaleService;
     private final AttentionHealthCreationSenderBroker creationSender;
     private final AttentionHealthDeactivationSenderBroker deactivationSender;
@@ -67,7 +67,7 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
                                    final OrderMapper orderMapper,
                                    final ProductService productService,
                                    final HeadquarterService headquarterService,
-                                   final SaleOrderService saleOrderService,
+                                   final SaleOrderCompatibilityAdapter saleOrderCompatibilityAdapter,
                                    final ItemSaleService itemSaleService,
                                    final AttentionHealthCreationSenderBroker creationSender,
                                    final AttentionHealthDeactivationSenderBroker deactivationSender) {
@@ -77,7 +77,7 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         this.orderMapper = orderMapper;
         this.productService = productService;
         this.headquarterService = headquarterService;
-        this.saleOrderService = saleOrderService;
+        this.saleOrderCompatibilityAdapter = saleOrderCompatibilityAdapter;
         this.itemSaleService = itemSaleService;
         this.creationSender = creationSender;
         this.deactivationSender = deactivationSender;
@@ -357,12 +357,12 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         saleRequest.setClientID(attention.getTutorId());
         saleRequest.setPetId(attention.getPetId());
         saleRequest.setComment("Productos asociados a la atención " + attention.getAttentionId());
-        SaleOrderDTO sale = saleOrderService.registerNewSaleOrder(saleRequest);
+        SaleOrderDTO sale = saleOrderCompatibilityAdapter.registerNewSaleOrder(saleRequest);
 
         for (AttentionHealthProductDomain productReference : attention.getProducts()) {
             UUID productId = productReference.getProductId();
             ProductDTO product = productService.getById(productId, attention.getHeadquarterId());
-            AddItemSaleRequestDTO item = new AddItemSaleRequestDTO();
+            AddItemSaleRequestDomain item = new AddItemSaleRequestDomain();
             item.setItemId(productId);
             item.setItemType(ItemType.PRODUCTO);
             item.setQuantity(productReference.getQuantity());
