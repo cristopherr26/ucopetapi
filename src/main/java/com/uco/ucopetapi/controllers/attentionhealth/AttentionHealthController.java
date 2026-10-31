@@ -1,6 +1,7 @@
 package com.uco.ucopetapi.controllers.attentionhealth;
 
 import com.uco.ucopetapi.dto.attentionhealth.AttentionHealthDTO;
+import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.service.attentionhealth.AttentionHealthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,8 +14,10 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -82,6 +85,19 @@ public class AttentionHealthController {
     public ResponseEntity<AttentionHealthDTO> finishAttention(
             @PathVariable final Long attentionId) {
         return ResponseEntity.ok(attentionHealthService.finish(attentionId));
+    }
+
+    /**
+     * Converts rejected attention state transitions into a controlled response.
+     * For example, a completed attention cannot be cancelled or modified.
+     */
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<Map<String, Object>> handleBusinessException(
+            final BusinessException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "status", HttpStatus.CONFLICT.value(),
+                "error", HttpStatus.CONFLICT.getReasonPhrase(),
+                "message", exception.getMessage()));
     }
 }
 

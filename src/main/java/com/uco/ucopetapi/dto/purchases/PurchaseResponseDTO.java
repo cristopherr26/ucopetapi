@@ -20,7 +20,7 @@ public record PurchaseResponseDTO(
         PurchaseStatus status,
         UUID expenseId,
         RelatedEntityDTO headquarter,
-        Boolean hasDiscount,
+        boolean hasDiscount,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         RelatedEntityDTO createdBy,
