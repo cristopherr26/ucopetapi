@@ -14,6 +14,8 @@ import com.uco.ucopetapi.dto.sale.sale.SaleOrderDTO;
 import com.uco.ucopetapi.dto.sale.enums.ItemType;
 import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.repository.attentionhealth.IAttentionHealthRepository;
+import com.uco.ucopetapi.messaging.attentionhealth.AttentionHealthCreationSenderBroker;
+import com.uco.ucopetapi.messaging.attentionhealth.AttentionHealthDeactivationSenderBroker;
 import com.uco.ucopetapi.service.headquarter.HeadquarterService;
 import com.uco.ucopetapi.service.order.IOrderService;
 import com.uco.ucopetapi.service.product.ProductService;
@@ -56,6 +58,8 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
     private final HeadquarterService headquarterService;
     private final SaleOrderService saleOrderService;
     private final ItemSaleService itemSaleService;
+    private final AttentionHealthCreationSenderBroker creationSender;
+    private final AttentionHealthDeactivationSenderBroker deactivationSender;
 
     public AttentionHealthServiceImpl(final IAttentionHealthRepository attentionHealthRepository,
                                    final ProcedureService procedureService,
@@ -64,7 +68,9 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
                                    final ProductService productService,
                                    final HeadquarterService headquarterService,
                                    final SaleOrderService saleOrderService,
-                                   final ItemSaleService itemSaleService) {
+                                   final ItemSaleService itemSaleService,
+                                   final AttentionHealthCreationSenderBroker creationSender,
+                                   final AttentionHealthDeactivationSenderBroker deactivationSender) {
         this.attentionHealthRepository = attentionHealthRepository;
         this.procedureService = procedureService;
         this.orderService = orderService;
@@ -73,6 +79,8 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         this.headquarterService = headquarterService;
         this.saleOrderService = saleOrderService;
         this.itemSaleService = itemSaleService;
+        this.creationSender = creationSender;
+        this.deactivationSender = deactivationSender;
     }
 
     @Override
@@ -85,17 +93,20 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
                     .findByAppointmentId(request.getAppointmentId())
                     .orElse(null);
             if (existing != null) {
-                validateIdempotentRequest(existing, request);
-                return toDto(existing);
+                throw new BusinessException(
+                        "No se puede crear la atención: la cita ya fue utilizada en la atención "
+                                + existing.getAttentionId() + ".");
             }
         }
 
         AttentionHealthDomain attention = new AttentionHealthDomain();
+        attention.setAttentionId(attentionHealthRepository.nextAttentionId());
         if (!REGISTERED.equalsIgnoreCase(request.getStatus().trim())) {
             throw new BusinessException("Una atención nueva debe iniciar en estado REGISTERED.");
         }
         updateDomain(attention, request);
-        return toDto(attentionHealthRepository.save(attention));
+        creationSender.execute(attention, attention.getAttentionId().toString());
+        return toDto(attention);
     }
 
     @Override
@@ -131,46 +142,49 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
                         ATTENTION_NOT_FOUND + attentionId));
 
         validateImmutableReferences(attention, request);
-        requireStatus(attention, REGISTERED, IN_PROGRESS,
-                "Solo se puede actualizar una atención registrada o en curso.");
+        requireStatus(attention, "Solo se puede actualizar una atención registrada o en curso.",
+                REGISTERED, IN_PROGRESS);
         if (!attention.getStatus().equalsIgnoreCase(request.getStatus().trim())) {
             throw new BusinessException(
                     "El cambio de estado debe realizarse mediante la operación correspondiente.");
         }
         updateDomain(attention, request);
-        return toDto(attentionHealthRepository.save(attention));
+        creationSender.execute(attention, attention.getAttentionId().toString());
+        return toDto(attention);
     }
 
     @Override
     @Transactional
     public AttentionHealthDTO start(final Long attentionId) {
         AttentionHealthDomain attention = findDomain(attentionId);
-        requireStatus(attention, REGISTERED, "Solo se puede iniciar una atención registrada.");
+        requireStatus(attention, "Solo se puede iniciar una atención registrada.", REGISTERED);
         attention.setStatus(IN_PROGRESS);
-        return toDto(attentionHealthRepository.save(attention));
+        creationSender.execute(attention, attention.getAttentionId().toString());
+        return toDto(attention);
     }
 
     @Override
     @Transactional
     public AttentionHealthDTO cancel(final Long attentionId) {
         AttentionHealthDomain attention = findDomain(attentionId);
-        requireStatus(attention, REGISTERED, IN_PROGRESS,
-                "Solo se puede cancelar una atención registrada o en curso.");
+        requireStatus(attention, "Solo se puede cancelar una atención registrada o en curso.",
+                REGISTERED, IN_PROGRESS);
         attention.setStatus(CANCELLED);
-        return toDto(attentionHealthRepository.save(attention));
+        deactivationSender.execute(attention, attention.getAttentionId().toString());
+        return toDto(attention);
     }
 
     @Override
     @Transactional
     public AttentionHealthDTO finish(final Long attentionId) {
         AttentionHealthDomain attention = findDomain(attentionId);
-        requireStatus(attention, IN_PROGRESS, "Solo se puede finalizar una atención en curso.");
+        requireStatus(attention, "Solo se puede finalizar una atención en curso.", IN_PROGRESS);
         validateStoredAttentionBeforeFinish(attention);
         attention.setStatus(COMPLETED);
-        AttentionHealthDomain savedAttention = attentionHealthRepository.saveAndFlush(attention);
-        createMedicalOrders(savedAttention);
-        createProductSale(savedAttention);
-        return toDto(savedAttention);
+        createMedicalOrders(attention);
+        createProductSale(attention);
+        creationSender.execute(attention, attention.getAttentionId().toString());
+        return toDto(attention);
     }
 
     private void validateRequest(final AttentionHealthDTO request) {
@@ -235,12 +249,6 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         }
     }
 
-    private void validateIdempotentRequest(final AttentionHealthDomain existing, final AttentionHealthDTO request) {
-        if (!existing.getPetId().equals(request.getPetId())) {
-            throw new BusinessException("La cita ya está asociada a otra mascota.");
-        }
-    }
-
     private void validateStatus(final String status) {
         String normalizedStatus = status.trim().toUpperCase();
         if (!REGISTERED.equals(normalizedStatus) && !IN_PROGRESS.equals(normalizedStatus)
@@ -256,14 +264,9 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         requireDate(attention.getAttentionDate());
         requireText(attention.getAttentionType(), 80, "La atención no tiene un tipo válido.");
         validateProducts(attention.getProducts(), attention.getHeadquarterId());
-        validateStoredReferences(attention.getProcedureIds(), MAX_PROCEDURE_REFERENCES, "procedimientos");
+        validateReferences(attention.getProcedureIds(), MAX_PROCEDURE_REFERENCES, "procedimientos");
         validateProcedures(attention.getProcedureIds());
         validateStoredVitalSigns(attention);
-    }
-
-    private void validateStoredReferences(final List<UUID> references, final int maxSize,
-                                          final String name) {
-        validateReferences(references, maxSize, name);
     }
 
     private void validateProcedures(final List<UUID> procedureIds) {
@@ -368,18 +371,8 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         }
     }
 
-    private void requireStatus(final AttentionHealthDomain attention, final String expectedStatus,
-                               final String message) {
-        requireStatus(attention, new String[]{expectedStatus}, message);
-    }
-
-    private void requireStatus(final AttentionHealthDomain attention, final String firstStatus,
-                               final String secondStatus, final String message) {
-        requireStatus(attention, new String[]{firstStatus, secondStatus}, message);
-    }
-
-    private void requireStatus(final AttentionHealthDomain attention, final String[] expectedStatuses,
-                               final String message) {
+    private void requireStatus(final AttentionHealthDomain attention, final String message,
+                               final String... expectedStatuses) {
         if (attention.getStatus() == null) {
             throw new BusinessException("La atención no tiene un estado válido.");
         }

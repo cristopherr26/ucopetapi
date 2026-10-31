@@ -105,6 +105,10 @@ public class AttentionHealthDomain {
         return attentionId;
     }
 
+    public void setAttentionId(final Long attentionId) {
+        this.attentionId = attentionId;
+    }
+
     public UUID getPetId() {
         return petId;
     }
