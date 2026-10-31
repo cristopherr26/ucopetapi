@@ -1,0 +1,20 @@
+meta {
+  name: Cancelar Compra #2 → 200 CANCELLED
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/purchases/{{purchaseId2}}/cancel
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test("200 OK", () => expect(res.getStatus()).to.equal(200));
+  test("queda en CANCELLED", () => expect(res.getBody().status).to.eql('CANCELLED'));
+}
+
+settings {
+  encodeUrl: true
+}

@@ -1,0 +1,69 @@
+meta {
+  name: UcoPet · Purchases
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  baseUrl: http://localhost:8080/api/v1
+  adminEmail: admin@ucopet.com
+  adminPassword: UcopetAdmin2026*
+  token: 
+  purchaseId: 
+  purchaseId2: 
+  purchaseNumber: 
+  purchaseNumber2: 
+  purchaseNumberInvalida: 
+}
+
+script:post-response {
+  // Corre en TODAS las peticiones de la coleccion.
+  
+  test('[global] nunca un error 5xx', function () {
+      expect(res.getStatus(), 'un 5xx siempre es un bug del back').to.be.below(500);
+  });
+  
+  test('[global] si trae cuerpo, es JSON valido', function () {
+      if (res.getSize().body === 0) return;
+      expect(res.getHeader('Content-Type') || '').to.include('application/json');
+      res.getBody();
+  });
+}
+
+docs {
+  UcoPet · Purchases
+  ==================
+
+  PARA QUE FUNCIONE:
+
+    cd ucopetapi
+    docker compose up -d
+    UCOPET_ADMIN_PASSWORD='UcopetAdmin2026*' ./gradlew bootRun
+
+  COMO ESTA ARMADA
+    0 · Preparar datos                   entra como admin y guarda el token
+    1 · Compras — lo que funciona        crear, consultar, listar, recibir, cancelar, vincular egreso
+    2 · PRUEBAS — lo que NO debe funcionar   duplicados, datos faltantes, ids inexistentes, sin token
+
+  Correla completa y en orden (Collection Runner / "Run Folder" en cada carpeta en orden 0 → 1 → 2):
+  varias peticiones dependen de variables que dejan las anteriores (purchaseId, purchaseId2,
+  purchaseNumber, purchaseNumber2).
+
+  DISEÑO DEL MODULO — leer antes de asumir que algo es un bug
+  Este módulo fue desacoplado a propósito de Proveedores, Sedes, Productos y Servicios: no
+  valida que esos ids existan, no resuelve sus nombres, y el impuesto de cada línea se calcula
+  con el taxCategory que envía el cliente, no con uno consultado al catálogo. Por eso la
+  petición de "Crear Compra" en 1.1 usa ids inventados a propósito y espera 201 igual — eso es
+  el comportamiento esperado del diseño actual, documentado en ContextoModulo.md, no un hallazgo
+  de la evaluación.
+
+  Dos peticiones sí quedan marcadas con una nota en sus docs porque documentan hallazgos reales
+  de la revisión de código (no del diseño desacoplado): una en la carpeta 1.3 y otra en la 2.
+  Revisa el docs de cada una antes de asumir que un resultado inesperado es un error tuyo.
+}

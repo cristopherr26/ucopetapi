@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "UcoPet · Purchases",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

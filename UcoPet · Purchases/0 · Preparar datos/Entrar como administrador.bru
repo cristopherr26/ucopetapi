@@ -1,0 +1,35 @@
+meta {
+  name: Entrar como administrador
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/persons/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{adminEmail}}",
+    "password": "{{adminPassword}}"
+  }
+}
+
+script:post-response {
+  test("200 — si falla, revisa que exista el admin con adminEmail/adminPassword", () =>
+      expect(res.getStatus()).to.equal(200));
+  const b = res.getBody();
+  bru.setVar('token', b.token);
+  test("la respuesta trae token", () => expect(b.token).to.be.a('string'));
+  test("es ADMIN", () => expect(b.roles).to.include("ADMIN"));
+}
+
+settings {
+  encodeUrl: true
+}

@@ -1,0 +1,24 @@
+meta {
+  name: Sin token → 401 o 403
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/purchases?headquarterId=22222222-2222-2222-2222-222222222222
+  body: none
+  auth: none
+}
+
+params:query {
+  headquarterId: 22222222-2222-2222-2222-222222222222
+}
+
+script:post-response {
+  test("rechazado sin autenticacion (401 o 403)", () =>
+      expect([401, 403]).to.include(res.getStatus()));
+}
+
+settings {
+  encodeUrl: true
+}

@@ -1,0 +1,36 @@
+meta {
+  name: Listar Compras SIN headquarterId → 400 (revisar)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/purchases
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test("400 Bad Request por headquarterId obligatorio faltante", () =>
+      expect(res.getStatus()).to.equal(400));
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  HALLAZGO DE LA EVALUACION: el test dice que deberia dar 400 (headquarterId es obligatorio y
+  falta), y ese es el comportamiento correcto. Pero PurchaseExceptionHandler solo tiene
+  handlers especificos para las excepciones propias del modulo, mas un catch-all generico de
+  Exception.class — y no tiene ninguno para MissingServletRequestParameterException (el error
+  que Spring lanza cuando falta un @RequestParam obligatorio). Segun como esta el codigo hoy,
+  esa excepcion cae en el catch-all y probablemente responda 500 ("Ocurrio un error
+  inesperado...") en vez de 400.
+
+  Corran esta peticion primero para confirmar que efectivamente pasa eso contra el backend real
+  — si da 500, es la evidencia en vivo del hallazgo que discutimos sobre el catch-all mal
+  ubicado, y el arreglo es agregar un @ExceptionHandler(MissingServletRequestParameterException.class)
+  (y de paso MethodArgumentTypeMismatchException) que devuelva 400 en vez de dejar que caiga en
+  el generico.
+}

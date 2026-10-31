@@ -1,0 +1,19 @@
+meta {
+  name: Consultar Compra inexistente → 404
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/purchases/00000000-0000-0000-0000-000000000000
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test("404 Not Found", () => expect(res.getStatus()).to.equal(404));
+}
+
+settings {
+  encodeUrl: true
+}

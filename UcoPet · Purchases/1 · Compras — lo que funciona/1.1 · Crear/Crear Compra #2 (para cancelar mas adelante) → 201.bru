@@ -1,0 +1,53 @@
+meta {
+  name: Crear Compra #2 (para cancelar mas adelante) → 201
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/purchases
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:pre-request {
+  bru.setVar('purchaseNumber2', 'OC-' + (Date.now() + 1));
+}
+
+body:json {
+  {
+    "purchaseNumber": "{{purchaseNumber2}}",
+    "supplierId": "44444444-4444-4444-4444-444444444444",
+    "headquarterId": "55555555-5555-5555-5555-555555555555",
+    "hasDiscount": false,
+    "items": [
+      {
+        "productId": "66666666-6666-6666-6666-666666666666",
+        "itemType": "SERVICE",
+        "quantity": 1,
+        "unitPrice": 80000,
+        "taxCategory": "REDUCED"
+      }
+    ]
+  }
+}
+
+script:post-response {
+  test("201 creada", () => expect(res.getStatus()).to.equal(201));
+  const b = res.getBody();
+  bru.setVar('purchaseId2', b.id);
+  test("queda en PENDING", () => expect(b.status).to.eql('PENDING'));
+  test("REDUCED = 5%", () => {
+      expect(b.subtotal).to.equal(80000);
+      expect(b.totalTaxes).to.equal(4000);
+      expect(b.total).to.equal(84000);
+  });
+}
+
+settings {
+  encodeUrl: true
+}

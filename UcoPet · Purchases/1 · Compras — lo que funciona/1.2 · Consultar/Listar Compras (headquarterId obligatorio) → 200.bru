@@ -1,0 +1,37 @@
+meta {
+  name: Listar Compras (headquarterId obligatorio) → 200
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/purchases?headquarterId=22222222-2222-2222-2222-222222222222&page=0&size=10
+  body: none
+  auth: inherit
+}
+
+params:query {
+  headquarterId: 22222222-2222-2222-2222-222222222222
+  page: 0
+  size: 10
+}
+
+script:post-response {
+  test("200 OK", () => expect(res.getStatus()).to.equal(200));
+  const b = res.getBody();
+  test("devuelve estructura paginada", () => expect(b).to.have.property('content'));
+  test("incluye la compra creada en 1.1 para esa sede", () => {
+      const ids = b.content.map(p => p.id);
+      expect(ids).to.include(bru.getVar('purchaseId'));
+  });
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Usa el mismo headquarterId fijo ("22222222-...") con el que se creo la compra en 1.1, en vez
+  de un guid al azar como en la version de Postman, para poder comprobar que el listado
+  realmente devuelve esa compra y no solo que la respuesta tenga forma de pagina vacia.
+}

@@ -1,0 +1,45 @@
+meta {
+  name: Vincular Egreso sobre Compra #2 YA CANCELADA → 200 LINKED (revisar)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/purchases/{{purchaseId2}}/link-expense
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "expenseId": "77777777-7777-7777-7777-777777777777"
+  }
+}
+
+script:post-response {
+  test("200 OK", () => expect(res.getStatus()).to.equal(200));
+  const b = res.getBody();
+  test("queda en LINKED con expenseId asignado", () => {
+      expect(b.status).to.eql('LINKED');
+      expect(b.expenseId).to.not.be.null;
+  });
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  HALLAZGO DE LA EVALUACION, no del diseno desacoplado: esta peticion corre justo despues de
+  cancelar la Compra #2 en el paso anterior, y aun asi el backend deja vincularle un egreso y
+  pasarla a LINKED sin quejarse. PurchaseServiceImpl no valida el estado actual antes de
+  receivePurchase/cancelPurchase/linkExpense, asi que se puede "revivir" una compra cancelada.
+
+  Si el equipo agrega esa validacion de maquina de estados, esta peticion va a empezar a
+  responder 409/400 en vez de 200 — hay que actualizar el test a proposito en ese momento,
+  no es una regresion.
+}

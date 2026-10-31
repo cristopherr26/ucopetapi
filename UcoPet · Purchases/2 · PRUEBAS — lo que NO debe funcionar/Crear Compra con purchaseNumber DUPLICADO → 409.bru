@@ -1,0 +1,47 @@
+meta {
+  name: Crear Compra con purchaseNumber DUPLICADO → 409
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/purchases
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "purchaseNumber": "{{purchaseNumber}}",
+    "supplierId": "88888888-8888-8888-8888-888888888888",
+    "headquarterId": "99999999-9999-9999-9999-999999999999",
+    "items": [
+      {
+        "productId": "10101010-1010-1010-1010-101010101010",
+        "itemType": "PRODUCT",
+        "quantity": 1,
+        "unitPrice": 1000,
+        "taxCategory": "EXEMPT"
+      }
+    ]
+  }
+}
+
+script:post-response {
+  test("rechaza duplicado con 409", () => expect(res.getStatus()).to.equal(409));
+  test("el mensaje menciona el numero duplicado", () =>
+      expect(res.getBody().message).to.include(bru.getVar('purchaseNumber')));
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Reusa el mismo purchaseNumber que quedo guardado al crear la primera compra en 1.1 — hay
+  que correr esa peticion antes que esta para que la variable {{purchaseNumber}} este seteada.
+}

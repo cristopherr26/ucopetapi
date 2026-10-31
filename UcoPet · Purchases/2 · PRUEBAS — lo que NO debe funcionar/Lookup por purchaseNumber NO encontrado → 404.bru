@@ -1,0 +1,23 @@
+meta {
+  name: Lookup por purchaseNumber NO encontrado → 404
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/purchases/lookup?purchaseNumber=NO-EXISTE-999
+  body: none
+  auth: inherit
+}
+
+params:query {
+  purchaseNumber: NO-EXISTE-999
+}
+
+script:post-response {
+  test("404 Not Found", () => expect(res.getStatus()).to.equal(404));
+}
+
+settings {
+  encodeUrl: true
+}
