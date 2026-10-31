@@ -6,23 +6,23 @@ import jakarta.persistence.Embeddable;
 import java.util.UUID;
 
 @Embeddable
-public class ProcedureProductDomain {
+public class ProcedureItemDomain {
 
-    @Column(name = "product_id", nullable = false)
-    private UUID productId;
+    @Column(name = "item_id", nullable = false)
+    private UUID itemId;
 
     @Column(nullable = false)
     private Integer quantity;
 
-    protected ProcedureProductDomain() {
+    protected ProcedureItemDomain() {
         // Required by JPA.
     }
 
-    public ProcedureProductDomain(final UUID productId, final Integer quantity) {
-        this.productId = productId;
+    public ProcedureItemDomain(final UUID itemId, final Integer quantity) {
+        this.itemId = itemId;
         this.quantity = quantity;
     }
 
-    public UUID getProductId() { return productId; }
+    public UUID getItemId() { return itemId; }
     public Integer getQuantity() { return quantity; }
 }

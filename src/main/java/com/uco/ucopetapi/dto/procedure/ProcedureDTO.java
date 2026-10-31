@@ -17,7 +17,7 @@ public class ProcedureDTO {
 
     private UUID spaceId;
 
-    private List<ProcedureProductDTO> defaultProducts;
+    private List<ProcedureItemDTO> defaultItems;
 
     private Boolean active;
 
@@ -26,14 +26,14 @@ public class ProcedureDTO {
 
     public ProcedureDTO(final UUID id, final String code, final String type, final String description,
                         final Integer durationMinutes, final UUID spaceId,
-                        final List<ProcedureProductDTO> defaultProducts, final Boolean active) {
+                        final List<ProcedureItemDTO> defaultItems, final Boolean active) {
         setId(id);
         setCode(code);
         setType(type);
         setDescription(description);
         setDurationMinutes(durationMinutes);
         setSpaceId(spaceId);
-        setDefaultProducts(defaultProducts);
+        setDefaultItems(defaultItems);
         setActive(active);
     }
 
@@ -85,12 +85,12 @@ public class ProcedureDTO {
         this.spaceId = spaceId;
     }
 
-    public List<ProcedureProductDTO> getDefaultProducts() {
-        return defaultProducts;
+    public List<ProcedureItemDTO> getDefaultItems() {
+        return defaultItems;
     }
 
-    public void setDefaultProducts(final List<ProcedureProductDTO> defaultProducts) {
-        this.defaultProducts = defaultProducts;
+    public void setDefaultItems(final List<ProcedureItemDTO> defaultItems) {
+        this.defaultItems = defaultItems;
     }
 
     public Boolean getActive() {
