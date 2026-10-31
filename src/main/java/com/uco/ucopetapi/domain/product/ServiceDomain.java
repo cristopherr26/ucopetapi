@@ -1,11 +1,7 @@
 package com.uco.ucopetapi.domain.product;
 
 import com.uco.ucopetapi.domain.product.enums.ServiceCategory;
-import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 import jakarta.persistence.*;
-
-import java.math.BigDecimal;
-import java.util.UUID;
 
 @Entity
 @Table(name = "services")
@@ -18,16 +14,8 @@ public class ServiceDomain extends CatalogItemDomain {
     @Column(nullable = false)
     private Boolean purchasable;
 
-    protected ServiceDomain() {
+    public ServiceDomain() {
         super();
-    }
-
-    public ServiceDomain(final UUID id, final String name, final String description, final String imageUrl,
-                         final BigDecimal price, final TaxCategory taxCategory, final Boolean sellable,
-                         final Boolean active, final ServiceCategory category, final Boolean purchasable) {
-        super(id, name, description, imageUrl, price, taxCategory, sellable, active);
-        this.category = category;
-        this.purchasable = purchasable;
     }
 
     public ServiceCategory getCategory() {

@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.config;
 
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -16,14 +17,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Colas del bus de inventario")
 class InventoryQueueConfigTest {
 
+    private static final List<String> CATALOG_PREFIXES = List.of(
+            "ucopet.inventory.product.", "ucopet.inventory.service.", "ucopet.inventory.stock.");
+
     @Autowired
     private ApplicationContext context;
 
     @Test
-    @DisplayName("la API declara las cinco colas, cada una unida a su exchange con su routing key")
-    void declaresTheFiveQueues() {
+    @DisplayName("la API declara las cinco colas del catálogo, cada una unida a su exchange con su routing key")
+    void declaresTheFiveCatalogQueues() {
         Map<String, Binding> bindings = context.getBeansOfType(Binding.class).values().stream()
-                .filter(binding -> binding.getDestination().startsWith("ucopet.inventory."))
+                .filter(binding -> CATALOG_PREFIXES.stream().anyMatch(binding.getDestination()::startsWith))
                 .collect(Collectors.toMap(Binding::getDestination, binding -> binding));
 
         assertThat(bindings).containsOnlyKeys(

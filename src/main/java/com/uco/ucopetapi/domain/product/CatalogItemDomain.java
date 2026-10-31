@@ -42,21 +42,12 @@ public abstract class CatalogItemDomain {
     protected CatalogItemDomain() {
     }
 
-    protected CatalogItemDomain(final UUID id, final String name, final String description, final String imageUrl,
-                                final BigDecimal price, final TaxCategory taxCategory, final Boolean sellable,
-                                final Boolean active) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-        this.imageUrl = imageUrl;
-        this.price = price;
-        this.taxCategory = taxCategory;
-        this.sellable = sellable;
-        this.active = active;
-    }
-
     public UUID getId() {
         return id;
+    }
+
+    public void setId(final UUID id) {
+        this.id = id;
     }
 
     public String getName() {
