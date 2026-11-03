@@ -74,18 +74,10 @@ public class SpecialtieDoctorService {
     }
 
     public void deactivateSpecialtieDoctor(UUID id) {
-        // Esta entidad no tiene un campo "active": "desactivar" una especialidad
-        // de un doctor equivale a eliminar esa relacion. Esa eliminacion la hace
-        // el listener al recibir el mensaje, no el service.
+
         SpecialtieDoctorDomain specialtieDoctor = findById(id);
 
-        // findById trae el doctor como proxy LAZY de Hibernate (no la entidad
-        // real), y Gson no lo serializa bien (trae referencias internas al
-        // session/interceptor), lo que hacia que executeGson fallara en
-        // silencio y el mensaje nunca se publicara. Se reemplaza por un
-        // DoctorDomain plano con solo el id, que es lo unico que el
-        // procesador necesita para este caso (borra por el id del
-        // specialtieDoctor, no por el del doctor).
+
         DoctorDomain plainDoctor = new DoctorDomain();
         plainDoctor.setId(specialtieDoctor.getDoctor().getId());
         specialtieDoctor.setDoctor(plainDoctor);
