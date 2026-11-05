@@ -25,7 +25,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -37,6 +40,7 @@ import java.util.UUID;
 public class AppointmentService {
 
     private static final ZoneId APPLICATION_ZONE_ID = ZoneId.systemDefault();
+    private static final int CANCELLATION_REASON_MAX_LENGTH = 255;
     private static final String PENDING_STATUS = "PENDING";
     private static final String CONFIRMED_STATUS = "CONFIRMED";
     private static final String CANCELLED_STATUS = "CANCELLED";
@@ -110,7 +114,7 @@ public class AppointmentService {
     @Transactional
     public String create(AppointmentDTO appointmentDTO) {
         AppointmentDomain appointment = toDomain(appointmentDTO);
-        validateAppointment(appointment, null);
+        validateAppointment(appointment, null, null);
         appointment.setId(UUID.randomUUID());
         appointmentDTO.setId(appointment.getId());
         // Primero el evento (comparte transaccion): si publicar el mensaje falla, todo se revierte.
@@ -125,12 +129,13 @@ public class AppointmentService {
      */
     @Transactional
     public Optional<String> update(UUID id, AppointmentDTO appointmentDTO) {
-        if (!appointmentRepository.existsById(id)) {
+        Optional<AppointmentDomain> stored = appointmentRepository.findById(id);
+        if (stored.isEmpty()) {
             return Optional.empty();
         }
 
         AppointmentDomain appointment = toDomain(appointmentDTO);
-        validateAppointment(appointment, id);
+        validateAppointment(appointment, id, stored.get());
         appointment.setId(id);
         return Optional.of(publishSave(appointment));
     }
@@ -259,8 +264,10 @@ public class AppointmentService {
         ));
     }
 
-    private void validateAppointment(AppointmentDomain appointment, UUID currentAppointmentId) {
-        validateRequiredSchedule(appointment);
+    // "stored" es la cita tal como esta guardada (null al crear): solo se usa para saber si cambio el horario.
+    private void validateAppointment(AppointmentDomain appointment, UUID currentAppointmentId,
+                                     AppointmentDomain stored) {
+        validateRequiredSchedule(appointment, stored);
         validateStatusRules(appointment, currentAppointmentId);
         validateRelationships(appointment);
         // Una cita cancelada no ocupa el horario del medico, asi que no compite por el.
@@ -277,19 +284,41 @@ public class AppointmentService {
         }
     }
 
-    private void validateRequiredSchedule(AppointmentDomain appointment) {
+    // La fecha y la hora son obligatorias. La regla "no puede estar en el pasado" se aplica al crear y
+    // cuando una edicion cambia la fecha o la hora; si el horario queda igual no se vuelve a exigir, asi se
+    // puede corregir otro dato de una cita de hoy cuya hora ya paso. Se compara al minuto: la hora de este
+    // mismo minuto todavia se acepta.
+    private void validateRequiredSchedule(AppointmentDomain appointment, AppointmentDomain stored) {
         if (appointment.getAppointmentDate() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "La fecha de la cita es obligatoria");
-        }
-        if (appointment.getAppointmentDate().isBefore(LocalDate.now(APPLICATION_ZONE_ID))) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "La fecha de la cita no puede estar en el pasado");
         }
         if (appointment.getAppointmentTime() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "La hora de la cita es obligatoria");
         }
+        if (stored != null && hasSameSchedule(appointment, stored)) {
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now(APPLICATION_ZONE_ID).truncatedTo(ChronoUnit.MINUTES);
+        if (appointment.getAppointmentDate().isBefore(now.toLocalDate())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La fecha de la cita no puede estar en el pasado");
+        }
+        if (LocalDateTime.of(appointment.getAppointmentDate(), appointment.getAppointmentTime()).isBefore(now)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La hora de la cita no puede estar en el pasado");
+        }
+    }
+
+    private boolean hasSameSchedule(AppointmentDomain appointment, AppointmentDomain stored) {
+        LocalTime requestedTime = appointment.getAppointmentTime().truncatedTo(ChronoUnit.MINUTES);
+        LocalTime storedTime = stored.getAppointmentTime() == null
+                ? null
+                : stored.getAppointmentTime().truncatedTo(ChronoUnit.MINUTES);
+        return appointment.getAppointmentDate().equals(stored.getAppointmentDate())
+                && requestedTime.equals(storedTime);
     }
 
     private void validateStatusRules(AppointmentDomain appointment, UUID currentAppointmentId) {
@@ -308,6 +337,13 @@ public class AppointmentService {
         if (CANCELLED_STATUS.equals(status) && isBlank(appointment.getCancellationReason())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "La justificacion de cancelacion es obligatoria cuando la cita se cancela");
+        }
+
+        if (!isBlank(appointment.getCancellationReason())
+                && appointment.getCancellationReason().trim().length() > CANCELLATION_REASON_MAX_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La justificacion de cancelacion no puede superar " + CANCELLATION_REASON_MAX_LENGTH
+                            + " caracteres");
         }
 
         if (!CANCELLED_STATUS.equals(status) && !isBlank(appointment.getCancellationReason())) {
@@ -353,11 +389,18 @@ public class AppointmentService {
                     "El petId es obligatorio para crear una cita");
         }
 
-        TutorPetDTO tutor = tutorPetService.findById(tutorId);
+        // TutorPetService y PetService lanzan BusinessException cuando no encuentran el registro
+        TutorPetDTO tutor;
+        try {
+            tutor = tutorPetService.findById(tutorId);
+        } catch (BusinessException | NoSuchElementException _) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "No existe un tutor con el id indicado");
+        }
         PetDTO pet;
         try {
             pet = petService.getById(petId);
-        } catch (NoSuchElementException _) {
+        } catch (BusinessException | NoSuchElementException _) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "No existe una mascota con el id indicado");
         }

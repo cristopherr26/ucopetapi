@@ -9,4 +9,9 @@ import java.util.UUID;
 public interface IAppointmentTypeRepository extends JpaRepository<AppointmentTypeDomain, UUID> {
 
     List<AppointmentTypeDomain> findByIsActiveTrue();
+
+    // Para no repetir el nombre de un tipo de cita (sin distinguir mayusculas).
+    boolean existsByNameIgnoreCase(String name);
+
+    boolean existsByNameIgnoreCaseAndIdNot(String name, UUID id);
 }
