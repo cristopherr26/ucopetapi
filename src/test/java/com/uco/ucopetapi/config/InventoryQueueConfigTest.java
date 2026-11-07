@@ -31,7 +31,10 @@ class InventoryQueueConfigTest {
                 "ucopet.inventory.product.deactivate.qu",
                 "ucopet.inventory.service.save.qu",
                 "ucopet.inventory.service.deactivate.qu",
-                "ucopet.inventory.stock.adjust.qu");
+                "ucopet.inventory.stock.adjust.qu",
+                "ucopet.inventory.transfer.save.qu",
+                "ucopet.inventory.transfer.status.qu",
+                "ucopet.inventory.transfer.cancel.qu");
         assertThat(bindings.get("ucopet.inventory.product.save.qu").getExchange())
                 .isEqualTo("ucopet.inventory.product.save.ex");
         assertThat(bindings.get("ucopet.inventory.product.save.qu").getRoutingKey())
