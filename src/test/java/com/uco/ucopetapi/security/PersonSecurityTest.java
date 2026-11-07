@@ -412,6 +412,51 @@ class PersonSecurityTest {
     }
 
     @Nested
+    @DisplayName("La cookie del navegador")
+    class BrowserCookie {
+
+        @Test
+        @DisplayName("el login la manda HttpOnly, SameSite=Strict y solo para /api")
+        void loginLaManda() throws Exception {
+            HttpResponse<String> response = call("POST", "/persons/login",
+                    "{\"email\":\"" + ADMIN + "\",\"password\":\"" + ADMIN_PASSWORD + "\"}", null);
+            assertThat(response.statusCode()).isEqualTo(200);
+            assertThat(authCookieOf(response))
+                    .startsWith(AuthCookie.NAME + "=" + field(response.body(), "token") + ";")
+                    .contains("HttpOnly")
+                    .contains("SameSite=Strict")
+                    .contains("Path=/api");
+        }
+
+        @Test
+        @DisplayName("sola, sin encabezado Authorization, sirve para entrar")
+        void sirveSinEncabezado() throws Exception {
+            String token = tokenFor(ADMIN, ADMIN_PASSWORD);
+            assertThat(callWithCookie("GET", "/persons/me", token).statusCode()).isEqualTo(200);
+        }
+
+        @Test
+        @DisplayName("una cookie adulterada no sirve")
+        void adulterada() throws Exception {
+            assertThat(callWithCookie("GET", "/persons/me", "no.es.token").statusCode()).isEqualTo(401);
+        }
+
+        @Test
+        @DisplayName("cerrar sesion la borra y el token deja de servir")
+        void logoutLaBorra() throws Exception {
+            String token = tokenFor(ADMIN, ADMIN_PASSWORD);
+            HttpResponse<String> response = callWithCookie("POST", "/persons/logout", token);
+            assertThat(response.statusCode()).isEqualTo(204);
+            assertThat(authCookieOf(response))
+                    .startsWith(AuthCookie.NAME + "=;")
+                    .contains("Max-Age=0");
+            assertThat(callWithCookie("GET", "/persons/me", token).statusCode()).isEqualTo(401);
+
+            adminToken = tokenFor(ADMIN, ADMIN_PASSWORD);
+        }
+    }
+
+    @Nested
     @DisplayName("Validacion de entrada")
     class InputValidation {
 
@@ -477,6 +522,23 @@ class PersonSecurityTest {
         return http.send(request.build(), HttpResponse.BodyHandlers.ofString());
     }
 
+    private HttpResponse<String> callWithCookie(String method, String path, String token)
+            throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:" + port + "/api/v1" + path))
+                .method(method, HttpRequest.BodyPublishers.noBody())
+                .header("Cookie", AuthCookie.NAME + "=" + token)
+                .build();
+        return http.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static String authCookieOf(HttpResponse<String> response) {
+        return response.headers().allValues("Set-Cookie").stream()
+                .filter(value -> value.startsWith(AuthCookie.NAME + "="))
+                .findFirst()
+                .orElse("");
+    }
+
     private static String passwordChange(String current, String updated, String confirmation) {
         return """
                 {"currentPassword":"%s","newPassword":"%s","confirmPassword":"%s"}
@@ -494,4 +556,4 @@ class PersonSecurityTest {
         int from = json.indexOf("\"" + name + "\":\"") + name.length() + 4;
         return json.substring(from, json.indexOf('"', from));
     }
-}
+}

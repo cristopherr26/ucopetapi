@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,6 +27,7 @@ import com.uco.ucopetapi.dto.person.LoginResponseDTO;
 import com.uco.ucopetapi.dto.person.PersonDTO;
 import com.uco.ucopetapi.dto.person.Role;
 import com.uco.ucopetapi.dto.person.SetPasswordRequestDTO;
+import com.uco.ucopetapi.security.AuthCookie;
 import com.uco.ucopetapi.service.person.PersonService;
 
 import jakarta.validation.Valid;
@@ -34,9 +36,11 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/v1/persons")
 public class PersonController {
     private final PersonService personService;
+    private final AuthCookie authCookie;
 
-    public PersonController(PersonService personService) {
+    public PersonController(PersonService personService, AuthCookie authCookie) {
         this.personService = personService;
+        this.authCookie = authCookie;
     }
 
     @GetMapping
@@ -111,11 +115,16 @@ public class PersonController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(Authentication authentication) {
         personService.logout(UUID.fromString(authentication.getName()));
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, authCookie.clear())
+                .build();
     }
 
     @PostMapping("/login")
-    public LoginResponseDTO login(@Valid @RequestBody LoginRequestDTO request) {
-        return personService.login(request);
+    public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO request) {
+        LoginResponseDTO response = personService.login(request);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, authCookie.create(response.token()))
+                .body(response);
     }
-}
+}
