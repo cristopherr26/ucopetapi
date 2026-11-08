@@ -4,6 +4,7 @@ import com.uco.ucopetapi.domain.product.enums.ProductCategory;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
@@ -19,7 +20,7 @@ public class ProductDomain extends CatalogItemDomain {
     }
 
     public ProductDomain(final UUID id, final String name, final String description, final String imageUrl,
-                         final Integer price, final TaxCategory taxCategory, final Boolean sellable,
+                         final BigDecimal price, final TaxCategory taxCategory, final Boolean sellable,
                          final Boolean active, final ProductCategory category) {
         super(id, name, description, imageUrl, price, taxCategory, sellable, active);
         this.category = category;

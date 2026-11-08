@@ -141,6 +141,7 @@ public class DoctorService {
         if (doctor.getIdPerson() == null) {
             throw new BusinessException("El id de la persona es obligatorio.");
         }
+        validateUUID(doctor.getIdPerson().toString());
         String licenseNumber = doctor.getLicenseNumber();
         if (licenseNumber == null || licenseNumber.trim().isEmpty()) {
             throw new BusinessException("El numero de licencia es obligatorio.");
@@ -151,6 +152,18 @@ public class DoctorService {
         }
         if (!licenseTrimmed.matches(LICENSE_NUMBER_REGEX)) {
             throw new BusinessException("El numero de licencia solo puede contener letras, numeros y guiones.");
+        }
+    }
+
+    public UUID validateUUID(String uuid) {
+        if (uuid == null || uuid.trim().isEmpty()) {
+            throw new BusinessException("El ID proporcionado no puede ser nulo o estar vacio.");
+        }
+
+        try {
+            return UUID.fromString(uuid);
+        } catch (IllegalArgumentException _) {
+            throw new BusinessException("El tipo de dato proporcionado no es un UUID valido: " + uuid);
         }
     }
 }

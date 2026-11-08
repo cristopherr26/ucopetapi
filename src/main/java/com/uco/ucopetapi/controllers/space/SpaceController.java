@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.controllers.space;
 
+
 import com.uco.ucopetapi.domain.space.SpaceDomain;
 import com.uco.ucopetapi.dto.space.SpaceDTO;
 import com.uco.ucopetapi.service.space.SpaceService;
@@ -27,7 +28,7 @@ public class SpaceController {
     public ResponseEntity<List<SpaceDTO>> getAllSpaces() {
         List<SpaceDomain> domains = spaceService.getAllSpaces();
         List<SpaceDTO> dtos = domains.stream()
-                .map(d -> new SpaceDTO(d.getId(), d.getCode(), d.getType(), d.getDescription(), d.getActive()))
+                .map(d -> new SpaceDTO(d.getId(), d.getCode(), d.getType(), d.getDescription(), d.getActive(), d.getHeadquarterId()))
                 .toList();
         return ResponseEntity.ok(dtos);
     }
@@ -42,7 +43,7 @@ public class SpaceController {
         }
 
         SpaceDomain d = domainOut.get();
-        return ResponseEntity.ok(new SpaceDTO(d.getId(), d.getCode(), d.getType(), d.getDescription(), d.getActive()));
+        return ResponseEntity.ok(new SpaceDTO(d.getId(), d.getCode(), d.getType(), d.getDescription(), d.getActive(), d.getHeadquarterId()));
     }
 
     // Buscar por Tipo (Ej: Laboratorio)
@@ -50,7 +51,7 @@ public class SpaceController {
     public ResponseEntity<List<SpaceDTO>> getSpacesByType(@PathVariable String type) {
         List<SpaceDomain> domains = spaceService.getSpacesByType(type);
         List<SpaceDTO> dtos = domains.stream()
-                .map(d -> new SpaceDTO(d.getId(), d.getCode(), d.getType(), d.getDescription(), d.getActive()))
+                .map(d -> new SpaceDTO(d.getId(), d.getCode(), d.getType(), d.getDescription(), d.getActive(), d.getHeadquarterId()))
                 .toList();
 //Por qué: .toList() devuelve una lista inmutable más segura
 //para una respuesta de API que nadie debería poder modificar después) y es menos verboso.
@@ -62,7 +63,22 @@ public class SpaceController {
     public ResponseEntity<List<SpaceDTO>> getSpacesByStatus(@PathVariable Boolean active) {
         List<SpaceDomain> domains = spaceService.getSpacesByStatus(active);
         List<SpaceDTO> dtos = domains.stream()
-                .map(d -> new SpaceDTO(d.getId(), d.getCode(), d.getType(), d.getDescription(), d.getActive()))
+                .map(d -> new SpaceDTO(d.getId(), d.getCode(), d.getType(), d.getDescription(), d.getActive(), d.getHeadquarterId()))
+                .toList();
+
+        return ResponseEntity.ok(dtos);
+    }
+
+    // Buscar por Sede: 404 si la sede no existe; lista vacía si existe pero no tiene espacios
+    @GetMapping("/headquarter/{headquarterId}")
+    public ResponseEntity<List<SpaceDTO>> getSpacesByHeadquarter(@PathVariable UUID headquarterId) {
+        if (!spaceService.headquarterExists(headquarterId)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        List<SpaceDomain> domains = spaceService.getSpacesByHeadquarter(headquarterId);
+        List<SpaceDTO> dtos = domains.stream()
+                .map(d -> new SpaceDTO(d.getId(), d.getCode(), d.getType(), d.getDescription(), d.getActive(), d.getHeadquarterId()))
                 .toList();
 
         return ResponseEntity.ok(dtos);
@@ -71,9 +87,9 @@ public class SpaceController {
     // 2. POST: Crear
     @PostMapping
     public ResponseEntity<SpaceDTO> createSpace(@RequestBody SpaceDTO spaceDTO) {
-        SpaceDomain domainIn = new SpaceDomain(null, spaceDTO.getCode(), spaceDTO.getType(), spaceDTO.getDescription(), spaceDTO.isActive());
+        SpaceDomain domainIn = new SpaceDomain(null, spaceDTO.getCode(), spaceDTO.getType(), spaceDTO.getDescription(), spaceDTO.isActive(), spaceDTO.getHeadquarterId());
         SpaceDomain domainOut = spaceService.createSpace(domainIn);
-        SpaceDTO dtoOut = new SpaceDTO(domainOut.getId(), domainOut.getCode(), domainOut.getType(), domainOut.getDescription(), domainOut.getActive());
+        SpaceDTO dtoOut = new SpaceDTO(domainOut.getId(), domainOut.getCode(), domainOut.getType(), domainOut.getDescription(), domainOut.getActive(), domainOut.getHeadquarterId());
         // 202 Accepted: el mensaje quedo en Rabbit; el procesador lo guarda de forma asincrona.
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(dtoOut);
     }
@@ -90,7 +106,7 @@ public class SpaceController {
 
         SpaceDomain updated = domainOut.get();
         // 202 Accepted: el cambio quedo en Rabbit; el DTO muestra como va a quedar el espacio.
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(new SpaceDTO(updated.getId(), updated.getCode(), updated.getType(), updated.getDescription(), updated.getActive()));
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(new SpaceDTO(updated.getId(), updated.getCode(), updated.getType(), updated.getDescription(), updated.getActive(), updated.getHeadquarterId()));
     }
 
     // 4. PATCH: Actualización clave/valor
@@ -105,6 +121,6 @@ public class SpaceController {
 
         SpaceDomain updated = domainOut.get();
         // 202 Accepted: el cambio quedo en Rabbit; el DTO muestra como va a quedar el espacio.
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(new SpaceDTO(updated.getId(), updated.getCode(), updated.getType(), updated.getDescription(), updated.getActive()));
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(new SpaceDTO(updated.getId(), updated.getCode(), updated.getType(), updated.getDescription(), updated.getActive(), updated.getHeadquarterId()));
     }
 }

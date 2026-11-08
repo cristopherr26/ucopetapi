@@ -3,21 +3,22 @@ package com.uco.ucopetapi.service.purchases;
 import com.uco.ucopetapi.domain.purchases.Purchase;
 import com.uco.ucopetapi.domain.purchases.PurchaseItem;
 import com.uco.ucopetapi.domain.purchases.PurchaseStatus;
-import com.uco.ucopetapi.domain.purchases.TaxCategory;
 import com.uco.ucopetapi.dto.person.PersonDTO;
 import com.uco.ucopetapi.dto.purchases.LinkExpenseRequestDTO;
-import com.uco.ucopetapi.dto.purchases.PurchaseIdResponseDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseItemRequestDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseRequestDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseResponseDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseResponseDTO.Item;
 import com.uco.ucopetapi.dto.purchases.PurchaseResponseDTO.RelatedEntityDTO;
+import com.uco.ucopetapi.messaging.purchases.PurchaseCreationSenderBroker;
+import com.uco.ucopetapi.messaging.purchases.PurchaseDeactivationSenderBroker;
 import com.uco.ucopetapi.repository.purchases.PurchaseItemRepository;
 import com.uco.ucopetapi.repository.purchases.PurchaseRepository;
 import com.uco.ucopetapi.service.person.PersonService;
 import com.uco.ucopetapi.service.purchases.exception.DuplicatePurchaseNumberException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseNotFoundException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseNumberNotFoundException;
+import com.uco.ucopetapi.service.purchases.exception.PurchaseStateConflictException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -37,13 +38,19 @@ public class PurchaseServiceImpl implements PurchaseService {
     private final PurchaseRepository purchaseRepository;
     private final PurchaseItemRepository purchaseItemRepository;
     private final PersonService personService;
+    private final PurchaseCreationSenderBroker purchaseCreationSenderBroker;
+    private final PurchaseDeactivationSenderBroker purchaseDeactivationSenderBroker;
 
     public PurchaseServiceImpl(PurchaseRepository purchaseRepository,
                                 PurchaseItemRepository purchaseItemRepository,
-                                PersonService personService) {
+                                PersonService personService,
+                                PurchaseCreationSenderBroker purchaseCreationSenderBroker,
+                                PurchaseDeactivationSenderBroker purchaseDeactivationSenderBroker) {
         this.purchaseRepository = purchaseRepository;
         this.purchaseItemRepository = purchaseItemRepository;
         this.personService = personService;
+        this.purchaseCreationSenderBroker = purchaseCreationSenderBroker;
+        this.purchaseDeactivationSenderBroker = purchaseDeactivationSenderBroker;
     }
 
     @Override
@@ -55,14 +62,22 @@ public class PurchaseServiceImpl implements PurchaseService {
         BigDecimal totalTaxes = BigDecimal.ZERO;
         for (PurchaseItemRequestDTO itemRequest : request.items()) {
             BigDecimal itemSubtotal = itemRequest.unitPrice().multiply(BigDecimal.valueOf(itemRequest.quantity()));
-            BigDecimal itemTax = itemSubtotal.multiply(taxRateFor(itemRequest.taxCategory()))
+            BigDecimal itemTax = itemSubtotal.multiply(itemRequest.taxCategory().getRate())
                     .setScale(2, RoundingMode.HALF_UP);
             totalTaxes = totalTaxes.add(itemTax);
         }
 
         Purchase purchase = toEntity(request, totalTaxes);
-        Purchase saved = purchaseRepository.save(purchase);
-        return toResponseDTO(saved);
+        // El id se genera aqui mismo (no en la base de datos): no se llama a
+        // purchaseRepository.save(). Quien realmente persiste la compra es el
+        // listener de ucopet-commercial-processor al consumir este mensaje,
+        // igual que el patron ya usado en healthPlan/pet.
+        purchase.setId(UUID.randomUUID());
+
+        String idMessage = UUID.randomUUID().toString();
+        purchaseCreationSenderBroker.execute(purchase, idMessage);
+
+        return toResponseDTO(purchase);
     }
 
     @Override
@@ -96,6 +111,10 @@ public class PurchaseServiceImpl implements PurchaseService {
     @Override
     public PurchaseResponseDTO receivePurchase(UUID id) {
         Purchase purchase = findPurchaseOrThrow(id);
+        if (purchase.getStatus() != PurchaseStatus.PENDING) {
+            throw new PurchaseStateConflictException(
+                    "Solo se puede recibir una compra en estado PENDING. Estado actual: " + purchase.getStatus());
+        }
         purchase.setStatus(PurchaseStatus.RECEIVED);
         purchase.setUpdatedAt(LocalDateTime.now(ZoneId.of("America/Bogota")));
         purchase.setUpdatedByPersonId(currentPersonId());
@@ -106,16 +125,35 @@ public class PurchaseServiceImpl implements PurchaseService {
     @Override
     public PurchaseResponseDTO cancelPurchase(UUID id) {
         Purchase purchase = findPurchaseOrThrow(id);
+        if (purchase.getStatus() == PurchaseStatus.CANCELLED) {
+            throw new PurchaseStateConflictException(
+                    "La compra " + purchase.getPurchaseNumber() + " ya se encuentra CANCELLED.");
+        }
+        if (purchase.getStatus() == PurchaseStatus.LINKED) {
+            throw new PurchaseStateConflictException(
+                    "No se puede cancelar la compra " + purchase.getPurchaseNumber()
+                            + " porque ya tiene un egreso vinculado (LINKED).");
+        }
         purchase.setStatus(PurchaseStatus.CANCELLED);
         purchase.setUpdatedAt(LocalDateTime.now(ZoneId.of("America/Bogota")));
         purchase.setUpdatedByPersonId(currentPersonId());
-        Purchase saved = purchaseRepository.save(purchase);
-        return toResponseDTO(saved);
+
+        // Igual que en create: no se llama a purchaseRepository.save(), el
+        // listener de ucopet-commercial-processor es quien persiste el cambio.
+        String idMessage = UUID.randomUUID().toString();
+        purchaseDeactivationSenderBroker.execute(purchase, idMessage);
+
+        return toResponseDTO(purchase);
     }
 
     @Override
     public PurchaseResponseDTO linkExpense(UUID id, LinkExpenseRequestDTO request) {
         Purchase purchase = findPurchaseOrThrow(id);
+        if (purchase.getStatus() != PurchaseStatus.RECEIVED) {
+            throw new PurchaseStateConflictException(
+                    "Solo se puede vincular un egreso a una compra en estado RECEIVED. Estado actual: "
+                            + purchase.getStatus());
+        }
         purchase.setExpenseId(request.expenseId());
         purchase.setStatus(PurchaseStatus.LINKED);
         purchase.setUpdatedAt(LocalDateTime.now(ZoneId.of("America/Bogota")));
@@ -125,23 +163,15 @@ public class PurchaseServiceImpl implements PurchaseService {
     }
 
     @Override
-    public PurchaseIdResponseDTO findIdByPurchaseNumber(String purchaseNumber) {
+    public UUID findIdByPurchaseNumber(String purchaseNumber) {
         Purchase purchase = purchaseRepository.findByPurchaseNumber(purchaseNumber)
                 .orElseThrow(() -> new PurchaseNumberNotFoundException(purchaseNumber));
-        return new PurchaseIdResponseDTO(purchase.getId());
+        return purchase.getId();
     }
 
     private Purchase findPurchaseOrThrow(UUID id) {
         return purchaseRepository.findById(id)
                 .orElseThrow(() -> new PurchaseNotFoundException(id));
-    }
-
-    private BigDecimal taxRateFor(TaxCategory category) {
-        return switch (category) {
-            case STANDARD -> new BigDecimal("0.19");
-            case REDUCED -> new BigDecimal("0.05");
-            case EXEMPT -> BigDecimal.ZERO;
-        };
     }
 
     private RelatedEntityDTO resolvePerson(UUID personId) {

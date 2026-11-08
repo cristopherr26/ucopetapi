@@ -34,49 +34,50 @@ public class SecurityConfig {
     private static final String PERSONS_ALL = PERSONS + "/**";
 
     private static final String[] USERS = {
-        "/api/v1/doctor", "/api/v1/doctor/**",
-        "/api/v1/pets", "/api/v1/pets/**",
-        "/api/v1/tutorPet", "/api/v1/tutorPet/**"
+            "/api/v1/doctor", "/api/v1/doctor/**",
+            "/api/v1/pets", "/api/v1/pets/**",
+            "/api/v1/tutorPet", "/api/v1/tutorPet/**"
     };
 
     private static final String[] NOTIFICATIONS = {
-        "/api/notifications", "/api/notifications/**"
+            "/api/notifications", "/api/notifications/**"
     };
 
     private static final String[] HEALTH = {
-        "/api/v1/appointments", "/api/v1/appointments/**",
-        "/api/v1/certificate", "/api/v1/certificate/**",
-        "/api/v1/episodes", "/api/v1/episodes/**",
-        "/api/v1/orders", "/api/v1/orders/**",
-        "/api/v1/petcares", "/api/v1/petcares/**",
-        "/api/v1/procedures", "/api/v1/procedures/**",
-        "/api/v1/spaces", "/api/v1/spaces/**",
-        "/api/v1/specialtie", "/api/v1/specialtie/**",
-        "/api/v1/specialtiedoctor", "/api/v1/specialtiedoctor/**",
-        "/api/v1/vitalsigns", "/api/v1/vitalsigns/**"
+            "/api/v1/appointments", "/api/v1/appointments/**",
+            "/api/v1/certificate", "/api/v1/certificate/**",
+            "/api/v1/episodes", "/api/v1/episodes/**",
+            "/api/v1/orders", "/api/v1/orders/**",
+            "/api/v1/petcares", "/api/v1/petcares/**",
+            "/api/v1/procedures", "/api/v1/procedures/**",
+            "/api/v1/spaces", "/api/v1/spaces/**",
+            "/api/v1/specialtie", "/api/v1/specialtie/**",
+            "/api/v1/specialtiedoctor", "/api/v1/specialtiedoctor/**",
+            "/api/v1/vitalsigns", "/api/v1/vitalsigns/**"
     };
 
     private static final String[] COMMERCIAL = {
-        "/api/v1/healthplans", "/api/v1/healthplans/**",
-        "/api/v1/providers", "/api/v1/providers/**",
-        "/api/v1/purchases", "/api/v1/purchases/**"
+            "/api/v1/healthplans", "/api/v1/healthplans/**",
+            "/api/v1/providers", "/api/v1/providers/**",
+            "/api/v1/purchases", "/api/v1/purchases/**"
     };
 
     private static final String[] INVENTORY = {
-        "/api/headquarter", "/api/headquarter/**",
-        "/api/transfers", "/api/transfers/**"
+            "/api/headquarter", "/api/headquarter/**",
+            "/api/transfers", "/api/transfers/**"
     };
 
     private static final String[] PAYMENTS = {
-        "/api/invoices", "/api/invoices/**",
-        "/api/v1/Egresses", "/api/v1/newEgress", "/api/v1/metodosDePago",
-        "/api/v1/receipts", "/api/v1/receipts/**"
+            "/api/invoices", "/api/invoices/**",
+            "/api/v1/Egresses", "/api/v1/newEgress", "/api/v1/metodosDePago",
+            "/api/v1/receipts", "/api/v1/receipts/**"
     };
 
     private static final String[] CATALOG = {
-        "/api/v1/products", "/api/v1/products/**",
-        "/api/v1/services", "/api/v1/services/**",
-        "/api/v1/stock", "/api/v1/stock/**"
+            "/api/v1/products", "/api/v1/products/**",
+            "/api/v1/services", "/api/v1/services/**",
+            "/api/v1/stock", "/api/v1/stock/**",
+            "/api/v1/catalog", "/api/v1/catalog/**"
     };
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -94,40 +95,40 @@ public class SecurityConfig {
     @SuppressWarnings("java:S4502")
     public SecurityFilterChain filterChain(HttpSecurity http) {
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(CsrfConfigurer::disable)
-            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                    .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.ASYNC).permitAll()
-                    .requestMatchers(HttpMethod.POST, PERSONS + "/login").permitAll()
-                    .requestMatchers(HttpMethod.GET, PERSONS + "/me").authenticated()
-                    .requestMatchers(HttpMethod.POST, PERSONS + "/logout").authenticated()
-                    .requestMatchers(HttpMethod.POST, PERSONS).hasRole(Role.ADMIN.name())
-                    .requestMatchers(HttpMethod.DELETE, PERSONS_ALL).hasRole(Role.ADMIN.name())
-                    .requestMatchers(HttpMethod.GET, PERSONS, PERSONS_ALL)
-                            .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
-                    .requestMatchers(PERSONS, PERSONS_ALL).authenticated()
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(CsrfConfigurer::disable)
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.ASYNC).permitAll()
+                        .requestMatchers(HttpMethod.POST, PERSONS + "/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, PERSONS + "/me").authenticated()
+                        .requestMatchers(HttpMethod.POST, PERSONS + "/logout").authenticated()
+                        .requestMatchers(HttpMethod.POST, PERSONS).hasRole(Role.ADMIN.name())
+                        .requestMatchers(HttpMethod.DELETE, PERSONS_ALL).hasRole(Role.ADMIN.name())
+                        .requestMatchers(HttpMethod.GET, PERSONS, PERSONS_ALL)
+                        .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
+                        .requestMatchers(PERSONS, PERSONS_ALL).authenticated()
 
-                    .requestMatchers(NOTIFICATIONS).authenticated()
-                    .requestMatchers(HttpMethod.GET, USERS)
-                            .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
-                    .requestMatchers(USERS).hasRole(Role.ADMIN.name())
+                        .requestMatchers(NOTIFICATIONS).authenticated()
+                        .requestMatchers(HttpMethod.GET, USERS)
+                        .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
+                        .requestMatchers(USERS).hasRole(Role.ADMIN.name())
 
-                    .requestMatchers(HEALTH)
-                            .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
+                        .requestMatchers(HEALTH)
+                        .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
 
-                    .requestMatchers(COMMERCIAL).hasRole(Role.ADMIN.name())
-                    .requestMatchers(INVENTORY).hasRole(Role.ADMIN.name())
-                    .requestMatchers(PAYMENTS).hasRole(Role.ADMIN.name())
+                        .requestMatchers(COMMERCIAL).hasRole(Role.ADMIN.name())
+                        .requestMatchers(INVENTORY).hasRole(Role.ADMIN.name())
+                        .requestMatchers(PAYMENTS).hasRole(Role.ADMIN.name())
 
-                    .requestMatchers(HttpMethod.GET, CATALOG)
-                            .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
-                    .requestMatchers(CATALOG).hasRole(Role.ADMIN.name())
+                        .requestMatchers(HttpMethod.GET, CATALOG)
+                        .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
+                        .requestMatchers(CATALOG).hasRole(Role.ADMIN.name())
 
-                    .anyRequest().authenticated())
-            .exceptionHandling(e -> e.authenticationEntryPoint(
-                    (_, res, _) -> res.sendError(HttpStatus.UNAUTHORIZED.value())))
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                        .anyRequest().authenticated())
+                .exceptionHandling(e -> e.authenticationEntryPoint(
+                        (_, res, _) -> res.sendError(HttpStatus.UNAUTHORIZED.value())))
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

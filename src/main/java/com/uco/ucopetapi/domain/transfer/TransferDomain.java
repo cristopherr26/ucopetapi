@@ -1,18 +1,13 @@
 package com.uco.ucopetapi.domain.transfer;
 
-import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
-import com.uco.ucopetapi.domain.person.PersonDomain;
 import com.uco.ucopetapi.dto.transfers.TransferStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
@@ -26,13 +21,11 @@ public class TransferDomain {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "origin_headquarter_id", nullable = false)
-    private HeadquarterDomain originHeadquarter;
+    @Column(name = "origin_headquarter_id", nullable = false)
+    private UUID originHeadquarterId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "destination_headquarter_id", nullable = false)
-    private HeadquarterDomain destinationHeadquarter;
+    @Column(name = "destination_headquarter_id", nullable = false)
+    private UUID destinationHeadquarterId;
 
     @Column(name = "product_id", nullable = false)
     private UUID productId;
@@ -47,112 +40,52 @@ public class TransferDomain {
     @Column(name = "observations", length = 500)
     private String observations;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by", nullable = false)
-    private PersonDomain createdBy;
+    @Column(name = "created_by", nullable = false)
+    private UUID createdBy;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "updated_by")
-    private PersonDomain updatedBy;
+    @Column(name = "updated_by")
+    private UUID updatedBy;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     public TransferDomain() {
-        // Constructor vacio requerido por JPA/Hibernate: lo usa por reflexion para
-        // instanciar la entidad antes de poblarla con los setters (ej. al leer de BD).
-        // La construccion "completa" se hace con este constructor + setters desde
-        // TransferService.
+        // Requerido por JPA
     }
 
-    public UUID getId() {
-        return id;
-    }
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
+    public UUID getOriginHeadquarterId() { return originHeadquarterId; }
+    public void setOriginHeadquarterId(UUID originHeadquarterId) { this.originHeadquarterId = originHeadquarterId; }
 
-    public HeadquarterDomain getOriginHeadquarter() {
-        return originHeadquarter;
-    }
+    public UUID getDestinationHeadquarterId() { return destinationHeadquarterId; }
+    public void setDestinationHeadquarterId(UUID destinationHeadquarterId) { this.destinationHeadquarterId = destinationHeadquarterId; }
 
-    public void setOriginHeadquarter(HeadquarterDomain originHeadquarter) {
-        this.originHeadquarter = originHeadquarter;
-    }
+    public UUID getProductId() { return productId; }
+    public void setProductId(UUID productId) { this.productId = productId; }
 
-    public HeadquarterDomain getDestinationHeadquarter() {
-        return destinationHeadquarter;
-    }
+    public Integer getQuantity() { return quantity; }
+    public void setQuantity(Integer quantity) { this.quantity = quantity; }
 
-    public void setDestinationHeadquarter(HeadquarterDomain destinationHeadquarter) {
-        this.destinationHeadquarter = destinationHeadquarter;
-    }
+    public TransferStatus getStatus() { return status; }
+    public void setStatus(TransferStatus status) { this.status = status; }
 
-    public UUID getProductId() {
-        return productId;
-    }
+    public String getObservations() { return observations; }
+    public void setObservations(String observations) { this.observations = observations; }
 
-    public void setProductId(UUID productId) {
-        this.productId = productId;
-    }
+    public UUID getCreatedBy() { return createdBy; }
+    public void setCreatedBy(UUID createdBy) { this.createdBy = createdBy; }
 
-    public Integer getQuantity() {
-        return quantity;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public void setQuantity(Integer quantity) {
-        this.quantity = quantity;
-    }
+    public UUID getUpdatedBy() { return updatedBy; }
+    public void setUpdatedBy(UUID updatedBy) { this.updatedBy = updatedBy; }
 
-    public TransferStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(TransferStatus status) {
-        this.status = status;
-    }
-
-    public String getObservations() {
-        return observations;
-    }
-
-    public void setObservations(String observations) {
-        this.observations = observations;
-    }
-
-    public PersonDomain getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(PersonDomain createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public PersonDomain getUpdatedBy() {
-        return updatedBy;
-    }
-
-    public void setUpdatedBy(PersonDomain updatedBy) {
-        this.updatedBy = updatedBy;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }
