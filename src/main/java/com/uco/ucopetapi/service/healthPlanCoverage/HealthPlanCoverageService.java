@@ -9,13 +9,8 @@ import com.uco.ucopetapi.messaging.healthPlanCoverage.HealthPlanCoverageDeactiva
 import com.uco.ucopetapi.messaging.healthPlanCoverage.HealthPlanCoverageUpdateSenderBroker;
 import com.uco.ucopetapi.repository.healthPlan.IHealthPlanRepository;
 import com.uco.ucopetapi.repository.healthPlanCoverage.IHealthPlanCoverageRepository;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.List;
 import java.util.UUID;
@@ -28,7 +23,6 @@ public class HealthPlanCoverageService {
     private final HealthPlanCoverageCreationSenderBroker creationSenderBroker;
     private final HealthPlanCoverageUpdateSenderBroker updateSenderBroker;
     private final HealthPlanCoverageDeactivationSenderBroker deactivationSenderBroker;
-    private final RestClient restClient;
 
     public HealthPlanCoverageService(
             IHealthPlanCoverageRepository coverageRepository,
@@ -42,9 +36,6 @@ public class HealthPlanCoverageService {
         this.creationSenderBroker = creationSenderBroker;
         this.updateSenderBroker = updateSenderBroker;
         this.deactivationSenderBroker = deactivationSenderBroker;
-        this.restClient = RestClient.builder()
-                .baseUrl("http://localhost:8080")
-                .build();
     }
 
     @Transactional(readOnly = true)
@@ -81,19 +72,24 @@ public class HealthPlanCoverageService {
             throw new DuplicateCoverageException();
         }
 
-        validateCoverageLimit(healthPlanId);
-
         HealthPlanCoverageDomain healthPlanCoverage = new HealthPlanCoverageDomain();
-        healthPlanCoverage.setId(UUID.randomUUID());
+        // Vinculación explícita con la entidad padre
         healthPlanCoverage.setHealthPlan(healthPlan);
         healthPlanCoverage.setServiceId(dto.getServiceId());
-        healthPlanCoverage.setProcedureId(dto.getProcedureId()); // <-- ¡Asignado aquí!
+        healthPlanCoverage.setProcedureId(dto.getProcedureId());
         healthPlanCoverage.setCoveragePercentage(dto.getCoveragePercentage());
         healthPlanCoverage.setCoverageLimit(dto.getCoverageLimit());
         healthPlanCoverage.setDeleted(false);
 
-        String idMessage = UUID.randomUUID().toString();
-        creationSenderBroker.execute(healthPlanCoverage, idMessage);
+        // Guardar en la base de datos
+        healthPlanCoverage = coverageRepository.save(healthPlanCoverage);
+
+        try {
+            String idMessage = UUID.randomUUID().toString();
+            creationSenderBroker.execute(healthPlanCoverage, idMessage);
+        } catch (Exception e) {
+            System.err.println("Advertencia RabbitMQ: " + e.getMessage());
+        }
 
         return toDTO(healthPlanCoverage);
     }
@@ -109,10 +105,16 @@ public class HealthPlanCoverageService {
 
         healthPlanCoverage.setCoveragePercentage(dto.getCoveragePercentage());
         healthPlanCoverage.setCoverageLimit(dto.getCoverageLimit());
-        healthPlanCoverage.setProcedureId(dto.getProcedureId()); // <-- ¡Asignado aquí también!
+        healthPlanCoverage.setProcedureId(dto.getProcedureId());
 
-        String idMessage = UUID.randomUUID().toString();
-        updateSenderBroker.execute(healthPlanCoverage, idMessage);
+        healthPlanCoverage = coverageRepository.save(healthPlanCoverage);
+
+        try {
+            String idMessage = UUID.randomUUID().toString();
+            updateSenderBroker.execute(healthPlanCoverage, idMessage);
+        } catch (Exception e) {
+            System.err.println("Advertencia RabbitMQ: " + e.getMessage());
+        }
 
         return toDTO(healthPlanCoverage);
     }
@@ -134,12 +136,18 @@ public class HealthPlanCoverageService {
             healthPlanCoverage.setCoverageLimit(dto.getCoverageLimit());
         }
 
-        if (dto.getProcedureId() != null) { // <-- ¡Agregado para patch!
+        if (dto.getProcedureId() != null) {
             healthPlanCoverage.setProcedureId(dto.getProcedureId());
         }
 
-        String idMessage = UUID.randomUUID().toString();
-        updateSenderBroker.execute(healthPlanCoverage, idMessage);
+        healthPlanCoverage = coverageRepository.save(healthPlanCoverage);
+
+        try {
+            String idMessage = UUID.randomUUID().toString();
+            updateSenderBroker.execute(healthPlanCoverage, idMessage);
+        } catch (Exception e) {
+            System.err.println("Advertencia RabbitMQ: " + e.getMessage());
+        }
 
         return toDTO(healthPlanCoverage);
     }
@@ -151,9 +159,14 @@ public class HealthPlanCoverageService {
         HealthPlanCoverageDomain healthPlanCoverage = findCoverageOrThrow(healthPlanId, coverageId);
 
         healthPlanCoverage.setDeleted(true);
+        coverageRepository.save(healthPlanCoverage);
 
-        String idMessage = UUID.randomUUID().toString();
-        deactivationSenderBroker.execute(healthPlanCoverage, idMessage);
+        try {
+            String idMessage = UUID.randomUUID().toString();
+            deactivationSenderBroker.execute(healthPlanCoverage, idMessage);
+        } catch (Exception e) {
+            System.err.println("Advertencia RabbitMQ: " + e.getMessage());
+        }
     }
 
     private HealthPlanCoverageDomain findCoverageOrThrow(UUID healthPlanId, UUID coverageId) {
@@ -191,8 +204,8 @@ public class HealthPlanCoverageService {
     }
 
     private void validatePercentage(Integer percentage) {
-        if (percentage == null || percentage < 0 || percentage > 100) {
-            throw new IllegalArgumentException("Coverage percentage must be between 0 and 100");
+        if (percentage == null || percentage < 1 || percentage > 80) {
+            throw new IllegalArgumentException("El porcentaje de cobertura debe estar entre 1 y 80.");
         }
     }
 
@@ -200,67 +213,6 @@ public class HealthPlanCoverageService {
         if (serviceId == null) {
             throw new ServiceNotFoundException();
         }
-
-        try {
-            Boolean active = restClient
-                    .get()
-                    .uri("/api/v1/services/{id}/active", serviceId)
-                    .header(HttpHeaders.AUTHORIZATION, currentAuthorizationHeader())
-                    .retrieve()
-                    .body(Boolean.class);
-
-            if (!Boolean.TRUE.equals(active)) {
-                throw new ServiceNotFoundException();
-            }
-        } catch (RestClientException ex) {
-            throw new ServiceServiceException(
-                    "Could not validate service: the services service is unavailable",
-                    ex
-            );
-        }
-    }
-
-    private void validateCoverageLimit(UUID healthPlanId) {
-        long currentCoverages = coverageRepository
-                .findByHealthPlanIdAndDeletedFalse(healthPlanId)
-                .size();
-
-        long activeServices = getActiveServicesCount();
-
-        if (currentCoverages >= activeServices) {
-            throw new CoverageLimitExceededException();
-        }
-    }
-
-    private long getActiveServicesCount() {
-        try {
-            Long count = restClient
-                    .get()
-                    .uri("/api/v1/services/count-active")
-                    .header(HttpHeaders.AUTHORIZATION, currentAuthorizationHeader())
-                    .retrieve()
-                    .body(Long.class);
-
-            return count == null ? 0L : count;
-        } catch (RestClientException ex) {
-            throw new ServiceServiceException(
-                    "Could not obtain active services count: the services service is unavailable",
-                    ex
-            );
-        }
-    }
-
-    private String currentAuthorizationHeader() {
-        ServletRequestAttributes attrs =
-                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-
-        if (attrs == null) {
-            throw new ServiceServiceException(
-                    "No active HTTP request found to propagate the authorization header"
-            );
-        }
-
-        return attrs.getRequest().getHeader(HttpHeaders.AUTHORIZATION);
     }
 
     private HealthPlanCoverageDTO toDTO(HealthPlanCoverageDomain healthPlanCoverage) {
