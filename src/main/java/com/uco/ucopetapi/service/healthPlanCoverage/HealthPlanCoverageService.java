@@ -43,7 +43,7 @@ public class HealthPlanCoverageService {
         validateHealthPlan(healthPlanId);
 
         return coverageRepository
-                .findByHealthPlanIdAndDeletedFalse(healthPlanId)
+                .findByHealthPlan_IdAndDeletedFalse(healthPlanId)
                 .stream()
                 .map(this::toDTO)
                 .toList();
@@ -52,9 +52,7 @@ public class HealthPlanCoverageService {
     @Transactional(readOnly = true)
     public HealthPlanCoverageDTO findById(UUID healthPlanId, UUID coverageId) {
         validateHealthPlan(healthPlanId);
-
         HealthPlanCoverageDomain healthPlanCoverage = findCoverageOrThrow(healthPlanId, coverageId);
-
         return toDTO(healthPlanCoverage);
     }
 
@@ -66,14 +64,13 @@ public class HealthPlanCoverageService {
         validateService(dto.getServiceId());
 
         boolean duplicated = coverageRepository
-                .existsByHealthPlanIdAndServiceIdAndDeletedFalse(healthPlanId, dto.getServiceId());
+                .existsByHealthPlan_IdAndServiceIdAndDeletedFalse(healthPlanId, dto.getServiceId());
 
         if (duplicated) {
             throw new DuplicateCoverageException();
         }
 
         HealthPlanCoverageDomain healthPlanCoverage = new HealthPlanCoverageDomain();
-        // Vinculación explícita con la entidad padre
         healthPlanCoverage.setHealthPlan(healthPlan);
         healthPlanCoverage.setServiceId(dto.getServiceId());
         healthPlanCoverage.setProcedureId(dto.getProcedureId());
@@ -81,7 +78,6 @@ public class HealthPlanCoverageService {
         healthPlanCoverage.setCoverageLimit(dto.getCoverageLimit());
         healthPlanCoverage.setDeleted(false);
 
-        // Guardar en la base de datos
         healthPlanCoverage = coverageRepository.save(healthPlanCoverage);
 
         try {
@@ -158,6 +154,7 @@ public class HealthPlanCoverageService {
 
         HealthPlanCoverageDomain healthPlanCoverage = findCoverageOrThrow(healthPlanId, coverageId);
 
+        // BORRADO LÓGICO
         healthPlanCoverage.setDeleted(true);
         coverageRepository.save(healthPlanCoverage);
 
@@ -171,7 +168,7 @@ public class HealthPlanCoverageService {
 
     private HealthPlanCoverageDomain findCoverageOrThrow(UUID healthPlanId, UUID coverageId) {
         return coverageRepository
-                .findByIdAndHealthPlanIdAndDeletedFalse(coverageId, healthPlanId)
+                .findByIdAndHealthPlan_IdAndDeletedFalse(coverageId, healthPlanId)
                 .orElseThrow(CoverageNotFoundException::new);
     }
 
@@ -188,7 +185,7 @@ public class HealthPlanCoverageService {
         validateService(dto.getServiceId());
 
         boolean duplicated = coverageRepository
-                .existsByHealthPlanIdAndServiceIdAndIdNotAndDeletedFalse(healthPlanId, dto.getServiceId(), coverageId);
+                .existsByHealthPlan_IdAndServiceIdAndIdNotAndDeletedFalse(healthPlanId, dto.getServiceId(), coverageId);
 
         if (duplicated) {
             throw new DuplicateCoverageException();
