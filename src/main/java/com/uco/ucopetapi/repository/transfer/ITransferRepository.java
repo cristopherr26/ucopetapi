@@ -14,11 +14,11 @@ import java.util.UUID;
 public interface ITransferRepository extends JpaRepository<TransferDomain, UUID> {
 
     @Query("""
-            SELECT t FROM TransferDomain t
-            WHERE (:status IS NULL OR t.status = :status)
-              AND (:originId IS NULL OR t.originHeadquarter.id = :originId)
-              AND (:destinationId IS NULL OR t.destinationHeadquarter.id = :destinationId)
-            """)
+        SELECT t FROM TransferDomain t
+        WHERE (:status IS NULL OR t.status = :status)
+          AND (:originId IS NULL OR t.originHeadquarterId = :originId)
+          AND (:destinationId IS NULL OR t.destinationHeadquarterId = :destinationId)
+        """)
     List<TransferDomain> findByFilter(@Param("status") TransferStatus status,
                                       @Param("originId") UUID originId,
                                       @Param("destinationId") UUID destinationId);
