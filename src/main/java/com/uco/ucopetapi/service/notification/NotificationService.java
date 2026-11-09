@@ -5,6 +5,7 @@ import com.uco.ucopetapi.domain.person.PersonDomain;
 import com.uco.ucopetapi.dto.notification.NotificationDTO;
 import com.uco.ucopetapi.dto.notification.NotificationRequest;
 import com.uco.ucopetapi.exception.BusinessException;
+import com.uco.ucopetapi.exception.notification.NotificationNotFoundException;
 import com.uco.ucopetapi.messaging.notification.MessageSenderBrokerNotification;
 import com.uco.ucopetapi.repository.notification.INotificationRepository;
 import com.uco.ucopetapi.repository.person.PersonRepository;
@@ -22,6 +23,7 @@ public class NotificationService {
     private final INotificationRepository notificationRepository;
     private final PersonRepository personRepository;
     private final MessageSenderBrokerNotification messageSender;
+
     public NotificationService(INotificationRepository notificationRepository,
                                PersonRepository personRepository,
                                MessageSenderBrokerNotification messageSender) {
@@ -58,9 +60,8 @@ public class NotificationService {
     }
 
     @Transactional
-    public void markAsRead(UUID notificationId) {
-        NotificationDomain notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new BusinessException("Notificación no encontrada"));
+    public void markAsRead(UUID notificationId, UUID currentPersonId) {
+        NotificationDomain notification = findOwned(notificationId, currentPersonId);
         notification.markAsRead();
         notificationRepository.save(notification);
     }
@@ -70,9 +71,19 @@ public class NotificationService {
         notificationRepository.markAllAsReadByPersonId(personId);
     }
 
-
-    public void delete(UUID notificationId) {
+    public void delete(UUID notificationId, UUID currentPersonId) {
+        findOwned(notificationId, currentPersonId);
         messageSender.sendDelete(notificationId);
+    }
+
+    private NotificationDomain findOwned(UUID notificationId, UUID currentPersonId) {
+        NotificationDomain notification = notificationRepository.findById(notificationId)
+                .orElseThrow(NotificationNotFoundException::new);
+        if (!notification.getPerson().getId().equals(currentPersonId)) {
+            // Se responde "no encontrada" para no revelar que la notificación existe.
+            throw new NotificationNotFoundException();
+        }
+        return notification;
     }
 
     private NotificationDTO toDTO(NotificationDomain n) {
