@@ -5,6 +5,7 @@ import com.uco.ucopetapi.dto.egress.EgressDTO;
 import com.uco.ucopetapi.dto.egress.EgressRequestDTO;
 import com.uco.ucopetapi.service.egress.EgressService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.amqp.AmqpException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -96,8 +97,8 @@ public class EgressController {
             HttpServletRequest httpRequest) {
 
         EgressDomain newEgress = buildEgressFromNames(null, request, authHeader(httpRequest));
-        EgressDTO savedEgress = egressService.saveEgress(newEgress);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedEgress);
+        EgressDTO acceptedEgress = egressService.saveEgress(newEgress);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(acceptedEgress);
     }
 
     @PutMapping("/{id}")
@@ -107,14 +108,14 @@ public class EgressController {
             HttpServletRequest httpRequest) {
 
         EgressDomain updatedEgress = buildEgressFromNames(id, request, authHeader(httpRequest));
-        EgressDTO result = egressService.updateEgress(id, updatedEgress);
-        return ResponseEntity.ok(result);
+        EgressDTO acceptedEgress = egressService.updateEgress(id, updatedEgress);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(acceptedEgress);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEgress(@PathVariable UUID id) {
         egressService.deleteEgress(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.accepted().build();
     }
 
     private EgressDomain buildEgressFromNames(UUID id, EgressRequestDTO request, String authHeader) {
@@ -223,5 +224,11 @@ public class EgressController {
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleNotFound(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(MESSAGE, ex.getMessage()));
+    }
+
+    @ExceptionHandler(AmqpException.class)
+    public ResponseEntity<Map<String, String>> handleBrokerUnavailable(AmqpException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of(MESSAGE, "No fue posible enviar la operación a procesar. Intenta de nuevo más tarde."));
     }
 }

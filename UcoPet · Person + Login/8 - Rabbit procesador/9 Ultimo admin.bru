@@ -1,0 +1,20 @@
+meta {
+  name: Dar de baja al unico admin → 409 (no se publica nada)
+  type: http
+  seq: 9
+}
+
+delete {
+  url: {{baseUrl}}/persons/{{adminId}}
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test("409: se valida en el API antes de publicar", () =>
+      expect(res.getStatus()).to.equal(409));
+}
+
+settings {
+  encodeUrl: true
+}

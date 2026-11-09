@@ -1,22 +1,21 @@
 package com.uco.ucopetapi.dto.invoice;
 
-import com.uco.ucopetapi.crosscutting.helpers.IntHelper;
+import java.math.BigDecimal;
 
 public final class RegisterPaymentRequestDTO {
 
-    private Integer amount;
+    private BigDecimal amount;
 
     public RegisterPaymentRequestDTO() {
-        this.amount = IntHelper.getDefault();
     }
 
-    public RegisterPaymentRequestDTO(Integer amount) {
-        setAmount(amount);
+    public RegisterPaymentRequestDTO(BigDecimal amount) {
+        this.amount = amount;
     }
 
-    public Integer getAmount() { return amount; }
+    public BigDecimal getAmount() { return amount; }
 
-    public void setAmount(Integer amount) {
-        this.amount = IntHelper.getDefault(amount);
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
     }
 }

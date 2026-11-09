@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.dto.space;
 
+
 import java.util.UUID;
 
 public class SpaceDTO {
@@ -8,6 +9,7 @@ public class SpaceDTO {
     private String type;
     private String description;
     private Boolean active;
+    private UUID headquarterId;
 
     public SpaceDTO() {
     }
@@ -18,6 +20,11 @@ public class SpaceDTO {
         setType(type);
         setDescription(description);
         setActive(active);
+    }
+
+    public SpaceDTO(UUID id, String code, String type, String description, Boolean active, UUID headquarterId) {
+        this(id, code, type, description, active);
+        setHeadquarterId(headquarterId);
     }
 
     public UUID getId() {
@@ -58,5 +65,13 @@ public class SpaceDTO {
 
     public void setActive(Boolean active) {
         this.active = active;
+    }
+
+    public UUID getHeadquarterId() {
+        return headquarterId;
+    }
+
+    public void setHeadquarterId(UUID headquarterId) {
+        this.headquarterId = headquarterId;
     }
 }

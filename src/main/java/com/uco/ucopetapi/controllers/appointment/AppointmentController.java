@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -56,26 +57,29 @@ public class AppointmentController {
         return ResponseEntity.ok(appointmentService.findPendingByTutorId(tutorId));
     }
 
+    // Crear, actualizar y cambiar de estado son ASINCRONOS: la API valida y publica en RabbitMQ,
+    // y el procesador de salud guarda. Por eso responden 202 Accepted con el idMessage del mensaje.
     @PostMapping({"", "/", "/appointment"})
-    public ResponseEntity<AppointmentDTO> create(@RequestBody AppointmentDTO appointmentDTO) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(appointmentService.create(appointmentDTO));
+    public ResponseEntity<Map<String, String>> create(@RequestBody AppointmentDTO appointmentDTO) {
+        String idMessage = appointmentService.create(appointmentDTO);
+        return accepted("La creacion de la cita fue iniciada", idMessage, appointmentDTO.getId());
     }
 
     @PutMapping({"", "/", "/appointment"})
-    public ResponseEntity<AppointmentDTO> update(
+    public ResponseEntity<Map<String, String>> update(
             @RequestParam(required = true) UUID id,
             @RequestBody AppointmentDTO appointmentDTO) {
         return appointmentService.update(id, appointmentDTO)
-                .map(ResponseEntity::ok)
+                .map(idMessage -> accepted("La actualizacion de la cita fue iniciada", idMessage, id))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<AppointmentDTO> updateStatus(
+    public ResponseEntity<Map<String, String>> updateStatus(
             @PathVariable UUID id,
             @RequestBody AppointmentStatusDTO appointmentStatusDTO) {
-        return appointmentService.updateStatus(id, appointmentStatusDTO)
-                .map(ResponseEntity::ok)
+        return appointmentService.requestStatusChange(id, appointmentStatusDTO)
+                .map(idMessage -> accepted("El cambio de estado de la cita fue iniciado", idMessage, id))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -131,5 +135,10 @@ public class AppointmentController {
         return appointmentTypeService.delete(id)
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.notFound().build();
+    }
+
+    private ResponseEntity<Map<String, String>> accepted(String message, String idMessage, UUID id) {
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(Map.of("message", message, "idMessage", idMessage, "id", id.toString()));
     }
 }

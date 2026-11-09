@@ -14,12 +14,17 @@ public interface IAppointmentRepository extends JpaRepository<AppointmentDomain,
 
     List<AppointmentDomain> findByTutorIdAndStatus(UUID tutorId, String status);
 
-    boolean existsByDoctorIdAndAppointmentDateAndAppointmentTime(UUID doctorId,
-                                                                 LocalDate appointmentDate,
-                                                                 LocalTime appointmentTime);
+    // Cruce de horario al CREAR una cita. Las citas con el estado indicado (CANCELLED)
+    // no cuentan: una cita cancelada libera el horario del medico.
+    boolean existsByDoctorIdAndAppointmentDateAndAppointmentTimeAndStatusNot(UUID doctorId,
+                                                                             LocalDate appointmentDate,
+                                                                             LocalTime appointmentTime,
+                                                                             String status);
 
-    boolean existsByDoctorIdAndAppointmentDateAndAppointmentTimeAndIdNot(UUID doctorId,
-                                                                         LocalDate appointmentDate,
-                                                                         LocalTime appointmentTime,
-                                                                         UUID id);
+    // Cruce de horario al ACTUALIZAR: se ignora la propia cita y las canceladas
+    boolean existsByDoctorIdAndAppointmentDateAndAppointmentTimeAndIdNotAndStatusNot(UUID doctorId,
+                                                                                     LocalDate appointmentDate,
+                                                                                     LocalTime appointmentTime,
+                                                                                     UUID id,
+                                                                                     String status);
 }

@@ -1,0 +1,40 @@
+meta {
+  name: Crear persona (correo en mayusculas) → 201
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/persons
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "documentType": "CC",
+    "documentNumber": "{{rabbitDoc}}",
+    "firstName": "Prueba",
+    "lastName": "Rabbit",
+    "email": "{{rabbitCorreo}}",
+    "address": "Calle 1 # 2-3, Rionegro",
+    "phone": "3001234567",
+    "admin": false,
+    "active": true
+  }
+}
+
+script:post-response {
+  test("201", () => expect(res.getStatus()).to.equal(201));
+  test("el API ya devuelve el id (lo genera antes de publicar)", () =>
+      expect(res.getBody().id).to.be.a("string"));
+  bru.setVar("rabbitId", res.getBody().id);
+}
+
+settings {
+  encodeUrl: true
+}

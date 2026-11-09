@@ -70,6 +70,7 @@ class PersonSecurityTest {
         noRoleEmail = "sin.rol." + doc + "@ucopet.com";
         noRoleId = field(call("POST", "/persons", personJson(doc, "sin.rol." + doc),
                 adminToken).body(), "id");
+        waitUntilSaved(noRoleId);
         call("PUT", "/persons/" + noRoleId + "/password",
                 "{\"password\":\"" + NO_ROLE_PASSWORD + "\"}", adminToken);
     }
@@ -166,6 +167,7 @@ class PersonSecurityTest {
             assertThat(alta.statusCode()).isEqualTo(201);
 
             String id = field(alta.body(), "id");
+            waitUntilSaved(id);
             assertThat(call("DELETE", "/persons/" + id, null, adminToken).statusCode())
                     .isEqualTo(204);
         }
@@ -345,6 +347,7 @@ class PersonSecurityTest {
             String email = "medica." + doc + "@ucopet.com";
             String id = field(call("POST", "/persons", personJson(doc, "medica." + doc),
                     adminToken).body(), "id");
+            waitUntilSaved(id);
             call("PUT", "/persons/" + id + "/password",
                     "{\"password\":\"" + NO_ROLE_PASSWORD + "\"}", adminToken);
 
@@ -409,6 +412,51 @@ class PersonSecurityTest {
     }
 
     @Nested
+    @DisplayName("La cookie del navegador")
+    class BrowserCookie {
+
+        @Test
+        @DisplayName("el login la manda HttpOnly, SameSite=Strict y solo para /api")
+        void loginLaManda() throws Exception {
+            HttpResponse<String> response = call("POST", "/persons/login",
+                    "{\"email\":\"" + ADMIN + "\",\"password\":\"" + ADMIN_PASSWORD + "\"}", null);
+            assertThat(response.statusCode()).isEqualTo(200);
+            assertThat(authCookieOf(response))
+                    .startsWith(AuthCookie.NAME + "=" + field(response.body(), "token") + ";")
+                    .contains("HttpOnly")
+                    .contains("SameSite=Strict")
+                    .contains("Path=/api");
+        }
+
+        @Test
+        @DisplayName("sola, sin encabezado Authorization, sirve para entrar")
+        void sirveSinEncabezado() throws Exception {
+            String token = tokenFor(ADMIN, ADMIN_PASSWORD);
+            assertThat(callWithCookie("GET", "/persons/me", token).statusCode()).isEqualTo(200);
+        }
+
+        @Test
+        @DisplayName("una cookie adulterada no sirve")
+        void adulterada() throws Exception {
+            assertThat(callWithCookie("GET", "/persons/me", "no.es.token").statusCode()).isEqualTo(401);
+        }
+
+        @Test
+        @DisplayName("cerrar sesion la borra y el token deja de servir")
+        void logoutLaBorra() throws Exception {
+            String token = tokenFor(ADMIN, ADMIN_PASSWORD);
+            HttpResponse<String> response = callWithCookie("POST", "/persons/logout", token);
+            assertThat(response.statusCode()).isEqualTo(204);
+            assertThat(authCookieOf(response))
+                    .startsWith(AuthCookie.NAME + "=;")
+                    .contains("Max-Age=0");
+            assertThat(callWithCookie("GET", "/persons/me", token).statusCode()).isEqualTo(401);
+
+            adminToken = tokenFor(ADMIN, ADMIN_PASSWORD);
+        }
+    }
+
+    @Nested
     @DisplayName("Validacion de entrada")
     class InputValidation {
 
@@ -437,6 +485,21 @@ class PersonSecurityTest {
         }
     }
 
+    // Crear una persona ahora es asincrono: el API publica en Rabbit y el procesador de Usuarios
+    // la guarda un momento despues. Antes de usarla hay que esperar a que exista en la base.
+    // Por eso estos tests necesitan RabbitMQ y el procesador corriendo.
+    private void waitUntilSaved(String id) throws InterruptedException {
+        UUID personId = UUID.fromString(id);
+        for (int i = 0; i < 50; i++) {
+            if (personRepository.existsById(personId)) {
+                return;
+            }
+            Thread.sleep(100);
+        }
+        throw new IllegalStateException("La persona " + id + " no aparecio en la base despues de 5 s. "
+                + "Esta corriendo RabbitMQ y el procesador de Usuarios?");
+    }
+
     private String tokenFor(String email, String password) throws Exception {
         return field(call("POST", "/persons/login",
                 "{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}", null).body(), "token");
@@ -459,6 +522,23 @@ class PersonSecurityTest {
         return http.send(request.build(), HttpResponse.BodyHandlers.ofString());
     }
 
+    private HttpResponse<String> callWithCookie(String method, String path, String token)
+            throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:" + port + "/api/v1" + path))
+                .method(method, HttpRequest.BodyPublishers.noBody())
+                .header("Cookie", AuthCookie.NAME + "=" + token)
+                .build();
+        return http.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static String authCookieOf(HttpResponse<String> response) {
+        return response.headers().allValues("Set-Cookie").stream()
+                .filter(value -> value.startsWith(AuthCookie.NAME + "="))
+                .findFirst()
+                .orElse("");
+    }
+
     private static String passwordChange(String current, String updated, String confirmation) {
         return """
                 {"currentPassword":"%s","newPassword":"%s","confirmPassword":"%s"}
@@ -476,4 +556,4 @@ class PersonSecurityTest {
         int from = json.indexOf("\"" + name + "\":\"") + name.length() + 4;
         return json.substring(from, json.indexOf('"', from));
     }
-}
+}

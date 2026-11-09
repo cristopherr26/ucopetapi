@@ -1,6 +1,7 @@
 package com.uco.ucopetapi.controllers.invoice;
 
 import com.uco.ucopetapi.dto.invoice.CreateInvoiceRequestDTO;
+import com.uco.ucopetapi.dto.invoice.InvoiceAcceptedDTO;
 import com.uco.ucopetapi.dto.invoice.InvoiceDTO;
 import com.uco.ucopetapi.dto.invoice.InvoiceFilterRequestDTO;
 import com.uco.ucopetapi.dto.invoice.RegisterPaymentRequestDTO;
@@ -11,11 +12,11 @@ import java.util.UUID;
 
 public interface InvoiceController {
 
-    ResponseEntity<InvoiceDTO> registerNewInvoice(CreateInvoiceRequestDTO request);
+    ResponseEntity<InvoiceAcceptedDTO> registerNewInvoice(CreateInvoiceRequestDTO request);
 
-    ResponseEntity<InvoiceDTO> registerPayment(UUID id, RegisterPaymentRequestDTO payment);
+    ResponseEntity<InvoiceAcceptedDTO> registerPayment(UUID id, RegisterPaymentRequestDTO payment);
 
-    ResponseEntity<InvoiceDTO> cancelInvoice(UUID id);
+    ResponseEntity<InvoiceAcceptedDTO> cancelInvoice(UUID id);
 
     ResponseEntity<InvoiceDTO> findById(UUID id);
 

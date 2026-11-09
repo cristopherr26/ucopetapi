@@ -5,29 +5,39 @@ import com.uco.ucopetapi.domain.healthPlanCoverage.HealthPlanCoverageDomain;
 import com.uco.ucopetapi.dto.healthPlan.HealthPlanDTO;
 import com.uco.ucopetapi.dto.healthPlanCoverage.HealthPlanCoverageDTO;
 import com.uco.ucopetapi.exception.healthPlan.HealthPlanNotFoundException;
+import com.uco.ucopetapi.messaging.healthPlan.HealthPlanCreationSenderBroker;
+import com.uco.ucopetapi.messaging.healthPlan.HealthPlanDeactivationSenderBroker;
+import com.uco.ucopetapi.messaging.healthPlan.HealthPlanUpdateSenderBroker;
 import com.uco.ucopetapi.repository.healthPlan.IHealthPlanRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Service
-@Transactional
-
 public class HealthPlanService {
 
     private final IHealthPlanRepository healthPlanRepository;
+    private final HealthPlanCreationSenderBroker healthPlanCreationSenderBroker;
+    private final HealthPlanUpdateSenderBroker healthPlanUpdateSenderBroker;
+    private final HealthPlanDeactivationSenderBroker healthPlanDeactivationSenderBroker;
 
-    public HealthPlanService(IHealthPlanRepository healthPlanRepository) {
+    public HealthPlanService(
+            IHealthPlanRepository healthPlanRepository,
+            HealthPlanCreationSenderBroker healthPlanCreationSenderBroker,
+            HealthPlanUpdateSenderBroker healthPlanUpdateSenderBroker,
+            HealthPlanDeactivationSenderBroker healthPlanDeactivationSenderBroker
+    ) {
         this.healthPlanRepository = healthPlanRepository;
+        this.healthPlanCreationSenderBroker = healthPlanCreationSenderBroker;
+        this.healthPlanUpdateSenderBroker = healthPlanUpdateSenderBroker;
+        this.healthPlanDeactivationSenderBroker = healthPlanDeactivationSenderBroker;
     }
 
     @Transactional(readOnly = true)
     public List<HealthPlanDTO> findAll() {
-
         return healthPlanRepository.findByDeletedFalse()
                 .stream()
                 .map(this::toDTO)
@@ -36,7 +46,6 @@ public class HealthPlanService {
 
     @Transactional(readOnly = true)
     public HealthPlanDTO findById(UUID id) {
-
         HealthPlanDomain healthPlanDomain = healthPlanRepository
                 .findByIdAndDeletedFalse(id)
                 .orElseThrow(HealthPlanNotFoundException::new);
@@ -46,7 +55,6 @@ public class HealthPlanService {
 
     @Transactional(readOnly = true)
     public List<HealthPlanDTO> findByName(String name) {
-
         return healthPlanRepository
                 .findByNameContainingIgnoreCaseAndDeletedFalse(name)
                 .stream()
@@ -55,9 +63,7 @@ public class HealthPlanService {
     }
 
     @Transactional(readOnly = true)
-    public List<HealthPlanDTO> findByInsuranceCompany(
-            String insuranceCompany) {
-
+    public List<HealthPlanDTO> findByInsuranceCompany(String insuranceCompany) {
         return healthPlanRepository
                 .findByInsuranceCompanyIgnoreCaseAndDeletedFalse(insuranceCompany)
                 .stream()
@@ -65,37 +71,33 @@ public class HealthPlanService {
                 .toList();
     }
 
+    @Transactional
     public HealthPlanDTO save(HealthPlanDTO dto) {
-
         HealthPlanDomain healthPlan = new HealthPlanDomain();
 
+        healthPlan.setId(UUID.randomUUID());
         healthPlan.setName(dto.getName());
         healthPlan.setInsuranceCompany(dto.getInsuranceCompany());
         healthPlan.setDescription(dto.getDescription());
 
         if (dto.getStatus() == null || dto.getStatus().isBlank()) {
-            healthPlan.setStatus(
-                    HealthPlanDomain.Status.ACTIVA
-            );
+            healthPlan.setStatus(HealthPlanDomain.Status.ACTIVA);
         } else {
-            healthPlan.setStatus(
-                    HealthPlanDomain.Status.valueOf(
-                            dto.getStatus().toUpperCase()
-                    )
-            );
+            healthPlan.setStatus(HealthPlanDomain.Status.valueOf(dto.getStatus().toUpperCase()));
         }
 
         healthPlan.setDeleted(false);
         healthPlan.setCoverages(new ArrayList<>());
 
-        HealthPlanDomain savedHealthPlan =
-                healthPlanRepository.save(healthPlan);
+        // Se envía a RabbitMQ sin llamar a repository.save()
+        String idMessage = UUID.randomUUID().toString();
+        healthPlanCreationSenderBroker.execute(healthPlan, idMessage);
 
-        return toDTO(savedHealthPlan);
+        return toDTO(healthPlan);
     }
 
+    @Transactional
     public HealthPlanDTO update(UUID id, HealthPlanDTO dto) {
-
         HealthPlanDomain healthPlan = healthPlanRepository
                 .findByIdAndDeletedFalse(id)
                 .orElseThrow(HealthPlanNotFoundException::new);
@@ -103,24 +105,19 @@ public class HealthPlanService {
         healthPlan.setName(dto.getName());
         healthPlan.setDescription(dto.getDescription());
 
-        if (dto.getStatus() != null &&
-                !dto.getStatus().isBlank()) {
-
-            healthPlan.setStatus(
-                    HealthPlanDomain.Status.valueOf(
-                            dto.getStatus().toUpperCase()
-                    )
-            );
+        if (dto.getStatus() != null && !dto.getStatus().isBlank()) {
+            healthPlan.setStatus(HealthPlanDomain.Status.valueOf(dto.getStatus().toUpperCase()));
         }
 
-        HealthPlanDomain updatedHealthPlan =
-                healthPlanRepository.save(healthPlan);
+        // Se envía a RabbitMQ sin llamar a repository.save()
+        String idMessage = UUID.randomUUID().toString();
+        healthPlanUpdateSenderBroker.execute(healthPlan, idMessage);
 
-        return toDTO(updatedHealthPlan);
+        return toDTO(healthPlan);
     }
 
-    public HealthPlanDTO patch( UUID id, HealthPlanDTO dto) {
-
+    @Transactional
+    public HealthPlanDTO patch(UUID id, HealthPlanDTO dto) {
         HealthPlanDomain healthPlan = healthPlanRepository
                 .findByIdAndDeletedFalse(id)
                 .orElseThrow(HealthPlanNotFoundException::new);
@@ -134,61 +131,58 @@ public class HealthPlanService {
         }
 
         if (dto.getStatus() != null) {
-            healthPlan.setStatus(
-                    HealthPlanDomain.Status.valueOf(
-                            dto.getStatus().toUpperCase()
-                    )
-            );
+            healthPlan.setStatus(HealthPlanDomain.Status.valueOf(dto.getStatus().toUpperCase()));
         }
 
-        HealthPlanDomain updatedHealthPlan =
-                healthPlanRepository.save(healthPlan);
+        // Se envía a RabbitMQ sin llamar a repository.save()
+        String idMessage = UUID.randomUUID().toString();
+        healthPlanUpdateSenderBroker.execute(healthPlan, idMessage);
 
-        return toDTO(updatedHealthPlan);
+        return toDTO(healthPlan);
     }
 
+    @Transactional
     public void delete(UUID id) {
-
-
         HealthPlanDomain healthPlan = healthPlanRepository
                 .findByIdAndDeletedFalse(id)
                 .orElseThrow(HealthPlanNotFoundException::new);
 
         healthPlan.setDeleted(true);
-        healthPlan.setStatus( HealthPlanDomain.Status.INACTIVA );
+        healthPlan.setStatus(HealthPlanDomain.Status.INACTIVA);
 
-        healthPlanRepository.save(healthPlan);
+        // Se envía a RabbitMQ sin llamar a repository.save()
+        String idMessage = UUID.randomUUID().toString();
+        healthPlanDeactivationSenderBroker.execute(healthPlan, idMessage);
     }
 
     private HealthPlanDTO toDTO(HealthPlanDomain healthPlan) {
-
-        List<HealthPlanCoverageDTO> coverageDTOs =
-                healthPlan.getCoverages()
-                        .stream()
-                        .filter(coverage -> !coverage.isDeleted())
-                        .map(this::toCoverageDTO)
-                        .toList();
+        List<HealthPlanCoverageDTO> coverageDTOs = new ArrayList<>();
+        if (healthPlan.getCoverages() != null) {
+            coverageDTOs = healthPlan.getCoverages()
+                    .stream()
+                    .filter(coverage -> !coverage.isDeleted())
+                    .map(this::toCoverageDTO)
+                    .toList();
+        }
 
         return new HealthPlanDTO(
                 healthPlan.getId(),
                 healthPlan.getName(),
                 healthPlan.getInsuranceCompany(),
                 healthPlan.getDescription(),
-                healthPlan.getStatus().name(),
+                healthPlan.getStatus() != null ? healthPlan.getStatus().name() : null,
                 coverageDTOs
         );
     }
 
-    private HealthPlanCoverageDTO toCoverageDTO(
-            HealthPlanCoverageDomain coverage) {
-
+    private HealthPlanCoverageDTO toCoverageDTO(HealthPlanCoverageDomain coverage) {
         return new HealthPlanCoverageDTO(
                 coverage.getId(),
-                coverage.getHealthPlan().getId(),
+                coverage.getHealthPlan() != null ? coverage.getHealthPlan().getId() : null,
                 coverage.getServiceId(),
+                coverage.getProcedureId(),
                 coverage.getCoveragePercentage(),
                 coverage.getCoverageLimit()
         );
     }
 }
-

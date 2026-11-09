@@ -1,12 +1,12 @@
 package com.uco.ucopetapi.domain.product;
 
-import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
 import jakarta.persistence.*;
 
 import java.util.UUID;
 
 @Entity
-@Table(name = "service_headquarters", uniqueConstraints = @UniqueConstraint(columnNames = {"service_id", "headquarter_id"}))
+@Table(name = "service_headquarters",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"service_id", "headquarter_id"}))
 public class ServiceHeadquarterDomain {
 
     @Id
@@ -17,17 +17,16 @@ public class ServiceHeadquarterDomain {
     @JoinColumn(name = "service_id", nullable = false, updatable = false)
     private ServiceDomain service;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "headquarter_id", nullable = false, updatable = false)
-    private HeadquarterDomain headquarter;
+    @Column(name = "headquarter_id", nullable = false, updatable = false)
+    private UUID headquarterId;
 
     protected ServiceHeadquarterDomain() {
     }
 
-    public ServiceHeadquarterDomain(final UUID id, final ServiceDomain service, final HeadquarterDomain headquarter) {
+    public ServiceHeadquarterDomain(final UUID id, final ServiceDomain service, final UUID headquarterId) {
         this.id = id;
         this.service = service;
-        this.headquarter = headquarter;
+        this.headquarterId = headquarterId;
     }
 
     public UUID getId() {
@@ -38,7 +37,7 @@ public class ServiceHeadquarterDomain {
         return service;
     }
 
-    public HeadquarterDomain getHeadquarter() {
-        return headquarter;
+    public UUID getHeadquarterId() {
+        return headquarterId;
     }
 }

@@ -26,6 +26,11 @@ public class SpaceDomain {
     @Column(name = "active")
     private Boolean active;
 
+    // Sede a la que pertenece el espacio
+    // la existencia de la sede se valida en el service. Nullable: los espacios viejos no tienen sede.
+    @Column(name = "headquarter_id")
+    private UUID headquarterId;
+
     public SpaceDomain() {
     }
 
@@ -35,6 +40,11 @@ public class SpaceDomain {
         setType(type);
         setDescription(description);
         setActive(active);
+    }
+
+    public SpaceDomain(UUID id, String code, String type, String description, Boolean active, UUID headquarterId) {
+        this(id, code, type, description, active);
+        setHeadquarterId(headquarterId);
     }
 
     public UUID getId() {
@@ -75,6 +85,14 @@ public class SpaceDomain {
 
     public void setActive(Boolean active) {
         this.active = active;
+    }
+
+    public UUID getHeadquarterId() {
+        return headquarterId;
+    }
+
+    public void setHeadquarterId(UUID headquarterId) {
+        this.headquarterId = headquarterId;
     }
 
 }

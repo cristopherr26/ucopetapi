@@ -14,6 +14,7 @@ import jakarta.persistence.Transient;
 import jakarta.persistence.UniqueConstraint;
 import org.springframework.data.domain.Persistable;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -48,13 +49,13 @@ public class InvoiceDomain implements Persistable<UUID> {
     private LocalDateTime issueDate;
 
     @Column(name = "total", nullable = false)
-    private Integer total;
+    private BigDecimal total;
 
     @Column(name = "paid_amount", nullable = false)
-    private Integer paidAmount;
+    private BigDecimal paidAmount;
 
     @Column(name = "balance", nullable = false)
-    private Integer balance;
+    private BigDecimal balance;
 
     @Column(name = "observations", length = 255)
     private String observations;
@@ -67,13 +68,11 @@ public class InvoiceDomain implements Persistable<UUID> {
     private boolean isNew = true;
 
     protected InvoiceDomain() {
-        // Requerido por JPA/Hibernate para instanciar por reflexion al
-        // leer filas de la base de datos. No usar directamente.
     }
 
     public InvoiceDomain(UUID id, UUID saleOrderId, String invoiceNumber, UUID headquarterId, UUID clientID,
-                          UUID petId, LocalDateTime issueDate, Integer total, Integer paidAmount, Integer balance,
-                          String observations, InvoiceState state) {
+                         UUID petId, LocalDateTime issueDate, BigDecimal total, BigDecimal paidAmount, BigDecimal balance,
+                         String observations, InvoiceState state) {
         setID(id);
         setSaleOrderId(saleOrderId);
         setInvoiceNumber(invoiceNumber);
@@ -96,9 +95,9 @@ public class InvoiceDomain implements Persistable<UUID> {
     public UUID getClientID() { return clientID; }
     public UUID getPetId() { return petId; }
     public LocalDateTime getIssueDate() { return issueDate; }
-    public Integer getTotal() { return total; }
-    public Integer getPaidAmount() { return paidAmount; }
-    public Integer getBalance() { return balance; }
+    public BigDecimal getTotal() { return total; }
+    public BigDecimal getPaidAmount() { return paidAmount; }
+    public BigDecimal getBalance() { return balance; }
     public String getObservations() { return observations; }
     public InvoiceState getState() { return state; }
 
@@ -109,9 +108,9 @@ public class InvoiceDomain implements Persistable<UUID> {
     public void setClientID(UUID clientID) { this.clientID = clientID; }
     public void setPetId(UUID petId) { this.petId = petId; }
     public void setIssueDate(LocalDateTime issueDate) { this.issueDate = issueDate; }
-    public void setTotal(Integer total) { this.total = total; }
-    public void setPaidAmount(Integer paidAmount) { this.paidAmount = paidAmount; }
-    public void setBalance(Integer balance) { this.balance = balance; }
+    public void setTotal(BigDecimal total) { this.total = total; }
+    public void setPaidAmount(BigDecimal paidAmount) { this.paidAmount = paidAmount; }
+    public void setBalance(BigDecimal balance) { this.balance = balance; }
     public void setObservations(String observations) { this.observations = observations; }
     public void setState(InvoiceState state) { this.state = state; }
 

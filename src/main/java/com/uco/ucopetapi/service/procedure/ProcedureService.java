@@ -1,17 +1,19 @@
 package com.uco.ucopetapi.service.procedure;
 
 import com.uco.ucopetapi.domain.procedure.ProcedureDomain;
-import com.uco.ucopetapi.domain.procedure.ProcedureProductDomain;
 import com.uco.ucopetapi.domain.procedure.mapper.ProcedureMapper;
 import com.uco.ucopetapi.dto.procedure.ProcedureDTO;
-import com.uco.ucopetapi.dto.procedure.ProcedureProductDTO;
+import com.uco.ucopetapi.dto.procedure.ProcedureItemDTO;
 import com.uco.ucopetapi.dto.product.ProductDTO;
 import com.uco.ucopetapi.dto.space.SpaceDTO;
+import com.uco.ucopetapi.messaging.procedure.ProcedureCreationSenderBroker;
+import com.uco.ucopetapi.messaging.procedure.ProcedureDesactivationSenderBroker;
 import com.uco.ucopetapi.repository.procedure.IProcedureRepository;
 import com.uco.ucopetapi.service.procedure.exception.InvalidProcedureRequestException;
 import com.uco.ucopetapi.service.procedure.exception.ProcedureConflictException;
 import com.uco.ucopetapi.service.procedure.exception.ProcedureNotFoundException;
 import com.uco.ucopetapi.service.product.ProductService;
+import com.uco.ucopetapi.service.product.ServiceService;
 import com.uco.ucopetapi.service.space.SpaceService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,13 +40,22 @@ public class ProcedureService implements IProcedureService {
     private final SpaceService spaceService;
     private final ProcedureMapper procedureMapper;
     private final ProductService productService;
+    private final ServiceService serviceService;
+    private final ProcedureCreationSenderBroker creationSender;
+    private final ProcedureDesactivationSenderBroker desactivationSender;
 
     public ProcedureService(final IProcedureRepository procedureRepository, final SpaceService spaceService,
-                            final ProcedureMapper procedureMapper, final ProductService productService) {
+                            final ProcedureMapper procedureMapper, final ProductService productService,
+                            final ServiceService serviceService,
+                            final ProcedureCreationSenderBroker creationSender,
+                            final ProcedureDesactivationSenderBroker desactivationSender) {
         this.procedureRepository = procedureRepository;
         this.spaceService = spaceService;
         this.procedureMapper = procedureMapper;
         this.productService = productService;
+        this.serviceService = serviceService;
+        this.creationSender = creationSender;
+        this.desactivationSender = desactivationSender;
     }
 
     @Override
@@ -86,59 +97,62 @@ public class ProcedureService implements IProcedureService {
     }
 
     @Override
-    @Transactional
-    public ProcedureDTO create(final ProcedureDTO request) {
+    public String create(final ProcedureDTO request) {
         validateRequest(request);
-        validateSpaceIsActive(request.getSpaceId());
-        final String code = resolveCodeForCreate(request.getCode());
-        validateCodeIsAvailable(code, null);
-        final ProcedureDomain procedure = new ProcedureDomain(code, clean(request.getType()),
-                clean(request.getDescription()), request.getDurationMinutes(), request.getSpaceId(),
-                buildDefaultProducts(request.getDefaultProducts()), true);
-        return procedureMapper.toDTO(procedureRepository.save(procedure));
+        validateReferences(request, null);
+        request.setId(UUID.randomUUID());
+        request.setActive(null);
+        return publishCreation(request);
     }
 
     @Override
-    @Transactional
-    public ProcedureDTO update(final UUID id, final ProcedureDTO request) {
+    public String update(final UUID id, final ProcedureDTO request) {
         validateId(id);
         validateRequest(request);
-        validateSpaceIsActive(request.getSpaceId());
-        final ProcedureDomain procedure = findEntityById(id);
-        final String code = resolveCodeForUpdate(request.getCode(), procedure.getCode());
-        validateCodeIsAvailable(code, id);
-        procedure.setCode(code);
-        procedure.setType(clean(request.getType()));
-        procedure.setDescription(clean(request.getDescription()));
-        procedure.setDurationMinutes(request.getDurationMinutes());
-        procedure.setSpaceId(request.getSpaceId());
-        procedure.setDefaultProducts(buildDefaultProducts(request.getDefaultProducts()));
-        return procedureMapper.toDTO(procedureRepository.save(procedure));
+        validateProcedureExists(id);
+        validateReferences(request, id);
+        request.setId(id);
+        request.setActive(null);
+        return publishCreation(request);
     }
 
     @Override
-    @Transactional
-    public ProcedureDTO deactivate(final UUID id) {
-        return updateStatus(id, false);
+    public String deactivate(final UUID id) {
+        return publishStatus(id, false);
     }
 
     @Override
-    @Transactional
-    public ProcedureDTO activate(final UUID id) {
-        return updateStatus(id, true);
+    public String activate(final UUID id) {
+        return publishStatus(id, true);
     }
 
-    private ProcedureDTO updateStatus(final UUID id, final boolean active) {
+    private String publishCreation(final ProcedureDTO request) {
+        final String idMessage = UUID.randomUUID().toString();
+        creationSender.execute(request, idMessage);
+        return idMessage;
+    }
+
+    private String publishStatus(final UUID id, final boolean active) {
         validateId(id);
-        final ProcedureDomain procedure = findEntityById(id);
-        procedure.setActive(active);
-        return procedureMapper.toDTO(procedureRepository.save(procedure));
+        validateProcedureExists(id);
+        final ProcedureDTO message = new ProcedureDTO();
+        message.setId(id);
+        message.setActive(active);
+        final String idMessage = UUID.randomUUID().toString();
+        desactivationSender.execute(message, idMessage);
+        return idMessage;
     }
 
     private ProcedureDomain findEntityById(final UUID id) {
         return procedureRepository.findById(id)
                 .orElseThrow(() -> new ProcedureNotFoundException(
                         "No se encontró el procedimiento solicitado"));
+    }
+
+    private void validateProcedureExists(final UUID id) {
+        if (!procedureRepository.existsById(id)) {
+            throw new ProcedureNotFoundException("No se encontró el procedimiento solicitado");
+        }
     }
 
     private void validateRequest(final ProcedureDTO request) {
@@ -155,7 +169,55 @@ public class ProcedureService implements IProcedureService {
                 "La descripción no puede superar los 500 caracteres", MAX_DESCRIPTION_LENGTH);
         validateDuration(request.getDurationMinutes());
         validateIdValue(request.getSpaceId(), "El espacio es obligatorio");
-        validateProducts(request.getDefaultProducts());
+        validateItems(request.getDefaultItems());
+    }
+
+    private void validateReferences(final ProcedureDTO request, final UUID currentId) {
+        validateSpaceIsActive(request.getSpaceId());
+        request.getDefaultItems().forEach(this::validateItemExists);
+        validateCodeIsAvailable(normalizeCode(request.getCode()), currentId);
+    }
+
+    private void validateSpaceIsActive(final UUID spaceId) {
+        final boolean existsActiveSpace = spaceService.getSpacesByStatus(true).stream()
+                .anyMatch(space -> Objects.equals(space.getId(), spaceId));
+        if (!existsActiveSpace) {
+            throw new InvalidProcedureRequestException(
+                    "El espacio seleccionado no existe o no se encuentra activo");
+        }
+    }
+
+    private void validateItemExists(final ProcedureItemDTO item) {
+        if (existsActiveService(item.itemId()) || existsActiveProduct(item.itemId())) {
+            return;
+        }
+        throw new InvalidProcedureRequestException(
+                "El producto o servicio con id " + item.itemId() + " no existe o no se encuentra activo");
+    }
+
+    private boolean existsActiveProduct(final UUID itemId) {
+        try {
+            final ProductDTO product = productService.getById(itemId, null);
+            return Boolean.TRUE.equals(product.getActive());
+        } catch (NoSuchElementException _) {
+            return false;
+        }
+    }
+
+    private boolean existsActiveService(final UUID itemId) {
+        return serviceService.list(null, true, null, null, null, null).stream()
+                .anyMatch(service -> Objects.equals(service.getId(), itemId));
+    }
+
+    private void validateCodeIsAvailable(final String code, final UUID currentId) {
+        if (code == null) {
+            return;
+        }
+        procedureRepository.findByCode(code)
+                .filter(procedure -> !procedure.getId().equals(currentId))
+                .ifPresent(procedure -> {
+                    throw new ProcedureConflictException("Ya existe un procedimiento con el código indicado");
+                });
     }
 
     private void validateCodeFormat(final String code) {
@@ -216,122 +278,39 @@ public class ProcedureService implements IProcedureService {
         }
     }
 
-    private void validateSpaceIsActive(final UUID spaceId) {
-        final boolean existsActiveSpace = spaceService.getSpacesByStatus(true).stream()
-                .anyMatch(space -> Objects.equals(space.getId(), spaceId));
-        if (!existsActiveSpace) {
+    private void validateItems(final List<ProcedureItemDTO> items) {
+        if (items == null || items.isEmpty()) {
             throw new InvalidProcedureRequestException(
-                    "El espacio seleccionado no existe o no se encuentra activo");
+                    "Debes asociar al menos un producto o servicio predeterminado");
+        }
+        final Set<UUID> itemIds = new HashSet<>();
+        for (ProcedureItemDTO item : items) {
+            validateItem(item, itemIds);
         }
     }
 
-    private void validateCodeIsAvailable(final String code, final UUID currentId) {
-        if (code == null) {
-            return;
-        }
-        procedureRepository.findByCode(code)
-                .filter(procedure -> !procedure.getId().equals(currentId))
-                .ifPresent(procedure -> {
-                    throw new ProcedureConflictException("Ya existe un procedimiento con el código indicado");
-                });
-    }
-
-    private String resolveCodeForCreate(final String requestedCode) {
-        final String code = normalizeCode(requestedCode);
-        return code == null ? generateNextCode() : code;
-    }
-
-    private String resolveCodeForUpdate(final String requestedCode, final String currentCode) {
-        final String code = normalizeCode(requestedCode);
-        final String storedCode = normalizeCode(currentCode);
-        return code == null ? resolveCodeForCreate(storedCode) : code;
-    }
-
-    private String generateNextCode() {
-        final int nextSequence = procedureRepository.findAll().stream()
-                .map(ProcedureDomain::getCode)
-                .map(this::extractCodeSequence)
-                .max(Integer::compareTo)
-                .orElse(0) + 1;
-        if (nextSequence > MAX_CODE_SEQUENCE) {
-            throw new ProcedureConflictException("No hay códigos disponibles para nuevos procedimientos");
-        }
-        return String.valueOf(nextSequence);
-    }
-
-    private int extractCodeSequence(final String code) {
-        if (code == null || !code.matches(NUMERIC_CODE_REGEX)) {
-            return 0;
-        }
-        try {
-            return Integer.parseInt(code);
-        } catch (NumberFormatException _) {
-            return 0;
-        }
-    }
-
-    private void validateProducts(final List<ProcedureProductDTO> products) {
-        if (products == null || products.isEmpty()) {
-            throw new InvalidProcedureRequestException("Debes asociar al menos un producto predeterminado");
-        }
-        final Set<UUID> productIds = new HashSet<>();
-        for (ProcedureProductDTO product : products) {
-            validateProduct(product, productIds);
-        }
-    }
-
-    private void validateProduct(final ProcedureProductDTO product, final Set<UUID> productIds) {
-        if (product == null) {
+    private void validateItem(final ProcedureItemDTO item, final Set<UUID> itemIds) {
+        if (item == null) {
             throw new InvalidProcedureRequestException(
-                    "La información del producto predeterminado es obligatoria");
+                    "La información del producto o servicio predeterminado es obligatoria");
         }
-        validateProductId(product.getProductId());
-        validateProductQuantity(product.getQuantity());
-        validateProductIsNotDuplicated(product.getProductId(), productIds);
-    }
-
-    private void validateProductId(final UUID productId) {
-        if (productId == null) {
+        if (item.itemId() == null) {
             throw new InvalidProcedureRequestException(
-                    "El identificador del producto predeterminado es obligatorio");
+                    "El identificador del producto o servicio predeterminado es obligatorio");
+        }
+        validateItemQuantity(item.quantity());
+        if (!itemIds.add(item.itemId())) {
+            throw new InvalidProcedureRequestException(
+                    "Un producto o servicio predeterminado solo puede asociarse una vez");
         }
     }
 
-    private void validateProductQuantity(final Integer quantity) {
+    private void validateItemQuantity(final Integer quantity) {
         if (quantity == null) {
             throw new InvalidProcedureRequestException("La cantidad es obligatoria");
         }
         if (quantity <= 0) {
             throw new InvalidProcedureRequestException("La cantidad debe ser mayor que cero");
-        }
-    }
-
-    private void validateProductIsNotDuplicated(final UUID productId, final Set<UUID> productIds) {
-        if (!productIds.add(productId)) {
-            throw new InvalidProcedureRequestException(
-                    "Un producto predeterminado solo puede asociarse una vez");
-        }
-    }
-
-    private List<ProcedureProductDomain> buildDefaultProducts(final List<ProcedureProductDTO> products) {
-        return products.stream()
-                .map(item -> {
-                    validateProductExists(item.getProductId());
-                    return new ProcedureProductDomain(item.getProductId(), item.getQuantity());
-                })
-                .toList();
-    }
-
-    private void validateProductExists(final UUID productId) {
-        final ProductDTO product;
-        try {
-            product = productService.getById(productId, null);
-        } catch (NoSuchElementException _) {
-            throw new InvalidProcedureRequestException("El producto con id " + productId + " no existe");
-        }
-        if (!Boolean.TRUE.equals(product.getActive())) {
-            throw new InvalidProcedureRequestException(
-                    "El producto con id " + productId + " no se encuentra activo");
         }
     }
 

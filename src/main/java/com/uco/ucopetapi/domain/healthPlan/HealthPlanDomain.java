@@ -10,6 +10,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "health_plans")
 
+// Tarjeta de membresía (Ej: Plan Oro) que adquieres para tu mascota
 public class HealthPlanDomain {
 
     @Id
