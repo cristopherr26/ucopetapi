@@ -56,3 +56,4 @@ out/
 # La barra inicial es obligatoria: sin ella tambien ignoraria el paquete
 # src/main/java/com/uco/ucopetapi/config/
 /config/
+jmeter/ 
