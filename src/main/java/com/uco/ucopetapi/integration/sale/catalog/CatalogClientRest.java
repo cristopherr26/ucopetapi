@@ -25,7 +25,6 @@ public class CatalogClientRest implements CatalogClient {
 
                     var incomingRequest = servletAttributes.getRequest();
 
-                    // Autenticación mediante Bearer Token (Bruno)
                     String authorization = incomingRequest
                             .getHeader(HttpHeaders.AUTHORIZATION);
 
@@ -36,7 +35,6 @@ public class CatalogClientRest implements CatalogClient {
                         );
                     }
 
-                    // Autenticación mediante cookie HttpOnly (Angular)
                     Cookie[] cookies = incomingRequest.getCookies();
 
                     if (cookies != null) {

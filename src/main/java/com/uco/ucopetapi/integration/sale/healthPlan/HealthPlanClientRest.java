@@ -26,7 +26,6 @@ public class HealthPlanClientRest implements HealthPlanClient {
                     var incomingRequest =
                             servletAttributes.getRequest();
 
-                    // Autenticación mediante token Bearer
                     String authorization = incomingRequest
                             .getHeader(HttpHeaders.AUTHORIZATION);
 
@@ -39,7 +38,6 @@ public class HealthPlanClientRest implements HealthPlanClient {
                         );
                     }
 
-                    // Autenticación mediante cookie HttpOnly
                     Cookie[] cookies = incomingRequest.getCookies();
 
                     if (cookies != null) {
