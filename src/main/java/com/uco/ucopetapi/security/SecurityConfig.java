@@ -69,7 +69,7 @@ public class SecurityConfig {
 
     private static final String[] PAYMENTS = {
             "/api/invoices", "/api/invoices/**",
-            "/api/v1/Egresses", "/api/v1/newEgress", "/api/v1/metodosDePago",
+            "/api/v1/Egresses", "/api/v1/Egresses/**", "/api/v1/PayMethods", "/api/v1/PayMethods/**",
             "/api/v1/receipts", "/api/v1/receipts/**"
     };
 
