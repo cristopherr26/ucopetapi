@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.service.purchases;
 
+import com.uco.ucopetapi.domain.purchases.ItemType;
 import com.uco.ucopetapi.domain.purchases.Purchase;
 import com.uco.ucopetapi.domain.purchases.PurchaseItem;
 import com.uco.ucopetapi.domain.purchases.PurchaseStatus;
@@ -18,6 +19,8 @@ import com.uco.ucopetapi.repository.purchases.PurchaseItemRepository;
 import com.uco.ucopetapi.repository.purchases.PurchaseRepository;
 import com.uco.ucopetapi.service.headquarter.HeadquarterService;
 import com.uco.ucopetapi.service.person.PersonService;
+import com.uco.ucopetapi.service.product.ProductService;
+import com.uco.ucopetapi.service.product.ServiceService;
 import com.uco.ucopetapi.service.provider.ProviderService;
 import com.uco.ucopetapi.service.purchases.exception.DuplicatePurchaseNumberException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseNotFoundException;
@@ -45,6 +48,8 @@ public class PurchaseServiceImpl implements PurchaseService {
     private final PersonService personService;
     private final ProviderService providerService;
     private final HeadquarterService headquarterService;
+    private final ProductService productService;
+    private final ServiceService serviceService;
     private final PurchaseCreationSenderBroker purchaseCreationSenderBroker;
     private final PurchaseDeactivationSenderBroker purchaseDeactivationSenderBroker;
     private static final ZoneId BOGOTA_ZONE = ZoneId.of("America/Bogota");
@@ -54,6 +59,8 @@ public class PurchaseServiceImpl implements PurchaseService {
                                 PersonService personService,
                                 ProviderService providerService,
                                 HeadquarterService headquarterService,
+                                ProductService productService,
+                                ServiceService serviceService,
                                 PurchaseCreationSenderBroker purchaseCreationSenderBroker,
                                 PurchaseDeactivationSenderBroker purchaseDeactivationSenderBroker) {
         this.purchaseRepository = purchaseRepository;
@@ -61,6 +68,8 @@ public class PurchaseServiceImpl implements PurchaseService {
         this.personService = personService;
         this.providerService = providerService;
         this.headquarterService = headquarterService;
+        this.productService = productService;
+        this.serviceService = serviceService;
         this.purchaseCreationSenderBroker = purchaseCreationSenderBroker;
         this.purchaseDeactivationSenderBroker = purchaseDeactivationSenderBroker;
     }
@@ -216,6 +225,22 @@ public class PurchaseServiceImpl implements PurchaseService {
         }
     }
 
+    // Antes esto siempre devolvia el nombre en null: toItemDTO armaba el
+    // RelatedEntityDTO directo con (productId, null) sin consultar el
+    // catalogo, por eso en el detalle de la compra salia "Item sin nombre".
+    // Igual que resolveSupplier/resolveHeadquarter, si no se encuentra se
+    // devuelve el id igual, solo que sin nombre.
+    private RelatedEntityDTO resolveProduct(UUID productId, ItemType itemType) {
+        try {
+            String name = itemType == ItemType.SERVICE
+                    ? serviceService.getById(productId).getName()
+                    : productService.getById(productId, null).getName();
+            return new RelatedEntityDTO(productId, name);
+        } catch (RuntimeException _) {
+            return new RelatedEntityDTO(productId, null);
+        }
+    }
+
     private UUID currentPersonId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null) {
@@ -255,6 +280,10 @@ public class PurchaseServiceImpl implements PurchaseService {
 
     private PurchaseItem toItemEntity(PurchaseItemRequestDTO request) {
         PurchaseItem item = new PurchaseItem();
+        // El id se genera aqui, igual que el de la compra: el consumidor de
+        // ucopet-commercial-processor inserta el item con este mismo id, no
+        // llama a purchaseItemRepository.save() de este lado.
+        item.setId(UUID.randomUUID());
         item.setProductId(request.productId());
         item.setItemType(request.itemType());
         item.setQuantity(request.quantity());
@@ -293,7 +322,7 @@ public class PurchaseServiceImpl implements PurchaseService {
 
     private Item toItemDTO(PurchaseItem item) {
         return new Item(
-                new RelatedEntityDTO(item.getProductId(), null),
+                resolveProduct(item.getProductId(), item.getItemType()),
                 item.getItemType(),
                 item.getQuantity(),
                 item.getUnitPrice(),
