@@ -27,8 +27,8 @@ public class DoctorController {
     }
 
     @GetMapping
-    public ResponseEntity<List<DoctorDTO>> findAllDoctor() {
-        List<DoctorDTO> doctors = doctorService.findAll().stream()
+    public ResponseEntity<List<DoctorDTO>> findAllDoctor(@RequestParam UUID headquarterId) {
+        List<DoctorDTO> doctors = doctorService.findAll(headquarterId).stream()
                 .map(doctorMapper::toDTO)
                 .toList();
         return ResponseEntity.ok(doctors);
@@ -44,8 +44,10 @@ public class DoctorController {
     }
 
     @GetMapping("/filter")
-    public ResponseEntity<List<DoctorDTO>> findDoctorByFilter(@RequestParam(required = false) String licenseNumber) {
-        List<DoctorDTO> doctors = doctorService.findByFilter(licenseNumber).stream()
+    public ResponseEntity<List<DoctorDTO>> findDoctorByFilter(
+            @RequestParam UUID headquarterId,
+            @RequestParam(required = false) String licenseNumber) {
+        List<DoctorDTO> doctors = doctorService.findByFilter(headquarterId, licenseNumber).stream()
                 .map(doctorMapper::toDTO)
                 .toList();
         return ResponseEntity.ok(doctors);

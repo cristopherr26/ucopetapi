@@ -34,8 +34,9 @@ public class SpecialtieDoctorService {
         this.specialtieDoctorDeactivateSenderBroker = specialtieDoctorDeactivateSenderBroker;
     }
 
-    public List<SpecialtieDoctorDomain> findAll() {
-        return specialtieDoctorRepository.findAll();
+    public List<SpecialtieDoctorDomain> findAll(UUID headquarterId) {
+        validateHeadquarterId(headquarterId);
+        return specialtieDoctorRepository.findByHeadquarterId(headquarterId);
     }
 
     public SpecialtieDoctorDomain findById(UUID id) {
@@ -43,10 +44,15 @@ public class SpecialtieDoctorService {
                 .orElseThrow(() -> new BusinessException("No se encontro una relacion doctor-especialidad con id " + id));
     }
 
-    public List<SpecialtieDoctorDomain> findByFilter(UUID idDoctor, UUID idSpecialtie) {
-        if (idDoctor != null) return specialtieDoctorRepository.findByDoctor_Id(idDoctor);
-        if (idSpecialtie != null) return specialtieDoctorRepository.findByIdSpecialtie(idSpecialtie);
-        return specialtieDoctorRepository.findAll();
+    public List<SpecialtieDoctorDomain> findByFilter(UUID headquarterId, UUID idDoctor, UUID idSpecialtie) {
+        validateHeadquarterId(headquarterId);
+        if (idDoctor != null) {
+            return specialtieDoctorRepository.findByHeadquarterIdAndDoctor_Id(headquarterId, idDoctor);
+        }
+        if (idSpecialtie != null) {
+            return specialtieDoctorRepository.findByHeadquarterIdAndIdSpecialtie(headquarterId, idSpecialtie);
+        }
+        return specialtieDoctorRepository.findByHeadquarterId(headquarterId);
     }
 
     public SpecialtieDoctorDomain createNewSpecialtieDoctor(SpecialtieDoctorDomain specialtieDoctor) {
@@ -66,6 +72,7 @@ public class SpecialtieDoctorService {
 
         existingSpecialtieDoctor.setDoctor(specialtieDoctor.getDoctor());
         existingSpecialtieDoctor.setIdSpecialtie(specialtieDoctor.getIdSpecialtie());
+        existingSpecialtieDoctor.setHeadquarterId(specialtieDoctor.getHeadquarterId());
 
         String idMessage = UUID.randomUUID().toString();
         specialtieDoctorUpdateSenderBroker.execute(existingSpecialtieDoctor, idMessage);
@@ -124,10 +131,22 @@ public class SpecialtieDoctorService {
 
         validateUUID(specialtieDoctor.getDoctor().getId().toString());
         validateUUID(specialtieDoctor.getIdSpecialtie().toString());
+        validateHeadquarterId(specialtieDoctor.getHeadquarterId());
+
+        if (!specialtieDoctor.getHeadquarterId().equals(specialtieDoctor.getDoctor().getHeadquarterId())) {
+            throw new BusinessException("El doctor no pertenece a la sede indicada.");
+        }
 
         if (!specialtieRepository.existsById(specialtieDoctor.getIdSpecialtie())) {
             throw new BusinessException("La especialidad especificada no existe.");
         }
+    }
+
+    private void validateHeadquarterId(UUID headquarterId) {
+        if (headquarterId == null) {
+            throw new BusinessException("El ID de la sede es obligatorio.");
+        }
+        validateUUID(headquarterId.toString());
     }
 
     public UUID validateUUID(String uuid) {
