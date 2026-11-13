@@ -3,11 +3,13 @@ package com.uco.ucopetapi.controllers.product;
 import com.uco.ucopetapi.domain.product.enums.ServiceCategory;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 import com.uco.ucopetapi.dto.product.ServiceDTO;
+import com.uco.ucopetapi.service.product.CatalogMergePatch;
 import com.uco.ucopetapi.service.product.ServiceService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import tools.jackson.databind.JsonNode;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,9 +19,11 @@ import java.util.UUID;
 public class ServiceController {
 
     private final ServiceService serviceService;
+    private final CatalogMergePatch catalogMergePatch;
 
-    public ServiceController(ServiceService serviceService) {
+    public ServiceController(ServiceService serviceService, CatalogMergePatch catalogMergePatch) {
         this.serviceService = serviceService;
+        this.catalogMergePatch = catalogMergePatch;
     }
 
     @GetMapping
@@ -55,6 +59,13 @@ public class ServiceController {
     @PutMapping("/{id}")
     public ResponseEntity<ServiceDTO> update(@PathVariable UUID id, @Valid @RequestBody ServiceDTO service) {
         return new ResponseEntity<>(serviceService.update(id, service), HttpStatus.OK);
+    }
+
+    @PatchMapping(path = "/{id}", consumes = CatalogMergePatch.MEDIA_TYPE)
+    public ResponseEntity<ServiceDTO> patch(@PathVariable UUID id, @RequestBody JsonNode patch) {
+        ServiceDTO patched = catalogMergePatch.apply(serviceService.getById(id), patch,
+                CatalogMergePatch.SERVICE_FIELDS, ServiceDTO.class);
+        return new ResponseEntity<>(serviceService.update(id, patched), HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
