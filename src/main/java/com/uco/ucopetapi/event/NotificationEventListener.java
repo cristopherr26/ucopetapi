@@ -7,8 +7,15 @@ import com.uco.ucopetapi.service.notification.NotificationService;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+
 @Component
 public class NotificationEventListener {
+
+    private static final DateTimeFormatter LOGIN_DATE =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
     private final NotificationService notificationService;
 
     public NotificationEventListener(NotificationService notificationService) {
@@ -21,7 +28,7 @@ public class NotificationEventListener {
                 event.getDoctorId(),
                 "Cita programada",
                 "Cita para la mascota " + event.getPetName() + " ha sido registrada el " + event.getDate() +
-                 " a las " + event.getTime(),
+                        " a las " + event.getTime(),
                 NotificationType.APPOINTMENT_CREATED,
                 event.getAppointmentId(),
                 ReferenceType.APPOINTMENT
@@ -45,10 +52,13 @@ public class NotificationEventListener {
 
     @EventListener
     public void onLoginSucceded(LoginSuccededEvent event) {
+        String when = event.getDate()
+                .withZoneSameInstant(ZoneId.of("America/Bogota"))
+                .format(LOGIN_DATE);
         notificationService.create(new NotificationRequest(
                 event.getPersonId(),
                 "Inicio de sesion exitoso",
-                "Ultimo inicio de sesion exitoso: " + event.getDate() + ".",
+                "Ultimo inicio de sesion exitoso: " + when + ".",
                 NotificationType.LOGIN_SUCCEDED,
                 event.getLoginId(),
                 ReferenceType.LOGIN

@@ -75,7 +75,6 @@ public class HealthPlanService {
     public HealthPlanDTO save(HealthPlanDTO dto) {
         HealthPlanDomain healthPlan = new HealthPlanDomain();
 
-        healthPlan.setId(UUID.randomUUID());
         healthPlan.setName(dto.getName());
         healthPlan.setInsuranceCompany(dto.getInsuranceCompany());
         healthPlan.setDescription(dto.getDescription());
@@ -89,9 +88,14 @@ public class HealthPlanService {
         healthPlan.setDeleted(false);
         healthPlan.setCoverages(new ArrayList<>());
 
-        // Se envía a RabbitMQ sin llamar a repository.save()
-        String idMessage = UUID.randomUUID().toString();
-        healthPlanCreationSenderBroker.execute(healthPlan, idMessage);
+        healthPlan = healthPlanRepository.save(healthPlan);
+
+        try {
+            String idMessage = UUID.randomUUID().toString();
+            healthPlanCreationSenderBroker.execute(healthPlan, idMessage);
+        } catch (Exception e) {
+            System.err.println("Advertencia RabbitMQ: " + e.getMessage());
+        }
 
         return toDTO(healthPlan);
     }
@@ -109,7 +113,6 @@ public class HealthPlanService {
             healthPlan.setStatus(HealthPlanDomain.Status.valueOf(dto.getStatus().toUpperCase()));
         }
 
-        // Se envía a RabbitMQ sin llamar a repository.save()
         String idMessage = UUID.randomUUID().toString();
         healthPlanUpdateSenderBroker.execute(healthPlan, idMessage);
 
@@ -134,7 +137,6 @@ public class HealthPlanService {
             healthPlan.setStatus(HealthPlanDomain.Status.valueOf(dto.getStatus().toUpperCase()));
         }
 
-        // Se envía a RabbitMQ sin llamar a repository.save()
         String idMessage = UUID.randomUUID().toString();
         healthPlanUpdateSenderBroker.execute(healthPlan, idMessage);
 
@@ -150,7 +152,6 @@ public class HealthPlanService {
         healthPlan.setDeleted(true);
         healthPlan.setStatus(HealthPlanDomain.Status.INACTIVA);
 
-        // Se envía a RabbitMQ sin llamar a repository.save()
         String idMessage = UUID.randomUUID().toString();
         healthPlanDeactivationSenderBroker.execute(healthPlan, idMessage);
     }

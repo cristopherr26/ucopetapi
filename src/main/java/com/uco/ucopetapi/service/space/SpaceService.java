@@ -1,8 +1,10 @@
 package com.uco.ucopetapi.service.space;
 
+import com.uco.ucopetapi.domain.headquarter.HeadquarterDomain;
 import com.uco.ucopetapi.domain.space.SpaceDomain;
 import com.uco.ucopetapi.messaging.spaces.MessageSenderBrokerCreationSpace;
 import com.uco.ucopetapi.messaging.spaces.MessageSenderBrokerDeactivationSpace;
+import com.uco.ucopetapi.repository.headquarter.HeadquarterRepository;
 import com.uco.ucopetapi.repository.space.ISpaceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,13 +22,16 @@ public class SpaceService {
     private static final Set<String> PATCHABLE_FIELDS = Set.of("type", "description", "active");
 
     private final ISpaceRepository spaceRepository;
+    private final HeadquarterRepository headquarterRepository;
     private final MessageSenderBrokerCreationSpace creationSender;
     private final MessageSenderBrokerDeactivationSpace deactivationSender;
 
     public SpaceService(ISpaceRepository spaceRepository,
+                        HeadquarterRepository headquarterRepository,
                         MessageSenderBrokerCreationSpace creationSender,
                         MessageSenderBrokerDeactivationSpace deactivationSender) {
         this.spaceRepository = spaceRepository;
+        this.headquarterRepository = headquarterRepository;
         this.creationSender = creationSender;
         this.deactivationSender = deactivationSender;
     }
@@ -66,9 +71,12 @@ public class SpaceService {
             throw new IllegalArgumentException("El código debe tener el formato de 3 letras mayúsculas, un guion y números (Ej: CON-101).");
         }
 
+        // - VALIDATE HEADQUARTER (SEDE): obligatoria, existente y activa -
+        UUID headquarterId = validateHeadquarter(space.getHeadquarterId());
+
         // - PUBLISH (async): el procesador de Salud es quien guarda en la BD -
         // El id se genera aqui para poder devolverlo al cliente en el 202.
-        SpaceDomain newSpace = new SpaceDomain(UUID.randomUUID(), code, type, description, active);
+        SpaceDomain newSpace = new SpaceDomain(UUID.randomUUID(), code, type, description, active, headquarterId);
         creationSender.execute(newSpace, newSpace.getId().toString());
         return newSpace;
     }
@@ -90,7 +98,7 @@ public class SpaceService {
         SpaceDomain current = existingSpace.get();
         creationSender.execute(new SpaceDomain(id, null, null, description, null), id.toString());
 
-        return Optional.of(new SpaceDomain(id, current.getCode(), current.getType(), description, current.getActive()));
+        return Optional.of(new SpaceDomain(id, current.getCode(), current.getType(), description, current.getActive(), current.getHeadquarterId()));
     }
 
     // PATCH clave/valor = Se modifican las claves que vienen en el body.
@@ -128,7 +136,8 @@ public class SpaceService {
                 current.getCode(),
                 change.getType() != null ? change.getType() : current.getType(),
                 change.getDescription() != null ? change.getDescription() : current.getDescription(),
-                change.getActive() != null ? change.getActive() : current.getActive()));
+                change.getActive() != null ? change.getActive() : current.getActive(),
+                current.getHeadquarterId()));
     }
 
     private void applyChange(SpaceDomain space, String key, Object value) {
@@ -169,6 +178,32 @@ public class SpaceService {
             throw new IllegalArgumentException("La descripción debe tener entre 10 y 255 caracteres.");
         }
         return description;
+    }
+
+    // La sede es obligatoria al crear, tiene que existir y estar activa.
+    // Despues de creado, el espacio no cambia de sede (por eso el PATCH no acepta "headquarterId").
+    private UUID validateHeadquarter(UUID headquarterId) {
+        if (headquarterId == null) {
+            throw new IllegalArgumentException("La sede es obligatoria.");
+        }
+
+        HeadquarterDomain headquarter = headquarterRepository.findById(headquarterId)
+                .orElseThrow(() -> new IllegalArgumentException("La sede indicada no existe."));
+
+        if (!Boolean.TRUE.equals(headquarter.getIsActive())) {
+            throw new IllegalArgumentException("La sede indicada está inactiva.");
+        }
+        return headquarterId;
+    }
+
+    public boolean headquarterExists(UUID headquarterId) {
+        return headquarterRepository.existsById(headquarterId);
+    }
+
+    @Transactional
+    public List<SpaceDomain> getSpacesByHeadquarter(UUID headquarterId) {
+
+        return spaceRepository.findByHeadquarterId(headquarterId);
     }
 
     @Transactional

@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.service.specialtieDoctor;
 
+import com.uco.ucopetapi.domain.doctor.DoctorDomain;
 import com.uco.ucopetapi.domain.specialtieDoctor.SpecialtieDoctorDomain;
 import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.messaging.specialtieDoctor.MessageSenderBrokerSpecialtieDoctorCreate;
@@ -33,8 +34,9 @@ public class SpecialtieDoctorService {
         this.specialtieDoctorDeactivateSenderBroker = specialtieDoctorDeactivateSenderBroker;
     }
 
-    public List<SpecialtieDoctorDomain> findAll() {
-        return specialtieDoctorRepository.findAll();
+    public List<SpecialtieDoctorDomain> findAll(UUID headquarterId) {
+        validateHeadquarterId(headquarterId);
+        return specialtieDoctorRepository.findByHeadquarterId(headquarterId);
     }
 
     public SpecialtieDoctorDomain findById(UUID id) {
@@ -42,10 +44,15 @@ public class SpecialtieDoctorService {
                 .orElseThrow(() -> new BusinessException("No se encontro una relacion doctor-especialidad con id " + id));
     }
 
-    public List<SpecialtieDoctorDomain> findByFilter(UUID idDoctor, UUID idSpecialtie) {
-        if (idDoctor != null) return specialtieDoctorRepository.findByDoctor_Id(idDoctor);
-        if (idSpecialtie != null) return specialtieDoctorRepository.findByIdSpecialtie(idSpecialtie);
-        return specialtieDoctorRepository.findAll();
+    public List<SpecialtieDoctorDomain> findByFilter(UUID headquarterId, UUID idDoctor, UUID idSpecialtie) {
+        validateHeadquarterId(headquarterId);
+        if (idDoctor != null) {
+            return specialtieDoctorRepository.findByHeadquarterIdAndDoctor_Id(headquarterId, idDoctor);
+        }
+        if (idSpecialtie != null) {
+            return specialtieDoctorRepository.findByHeadquarterIdAndIdSpecialtie(headquarterId, idSpecialtie);
+        }
+        return specialtieDoctorRepository.findByHeadquarterId(headquarterId);
     }
 
     public SpecialtieDoctorDomain createNewSpecialtieDoctor(SpecialtieDoctorDomain specialtieDoctor) {
@@ -65,6 +72,7 @@ public class SpecialtieDoctorService {
 
         existingSpecialtieDoctor.setDoctor(specialtieDoctor.getDoctor());
         existingSpecialtieDoctor.setIdSpecialtie(specialtieDoctor.getIdSpecialtie());
+        existingSpecialtieDoctor.setHeadquarterId(specialtieDoctor.getHeadquarterId());
 
         String idMessage = UUID.randomUUID().toString();
         specialtieDoctorUpdateSenderBroker.execute(existingSpecialtieDoctor, idMessage);
@@ -73,10 +81,13 @@ public class SpecialtieDoctorService {
     }
 
     public void deactivateSpecialtieDoctor(UUID id) {
-        // Esta entidad no tiene un campo "active": "desactivar" una especialidad
-        // de un doctor equivale a eliminar esa relacion. Esa eliminacion la hace
-        // el listener al recibir el mensaje, no el service.
+
         SpecialtieDoctorDomain specialtieDoctor = findById(id);
+
+
+        DoctorDomain plainDoctor = new DoctorDomain();
+        plainDoctor.setId(specialtieDoctor.getDoctor().getId());
+        specialtieDoctor.setDoctor(plainDoctor);
 
         String idMessage = UUID.randomUUID().toString();
         specialtieDoctorDeactivateSenderBroker.execute(specialtieDoctor, idMessage);
@@ -117,8 +128,36 @@ public class SpecialtieDoctorService {
         if (specialtieDoctor.getIdSpecialtie() == null) {
             throw new BusinessException("El id de la especialidad es obligatorio.");
         }
+
+        validateUUID(specialtieDoctor.getDoctor().getId().toString());
+        validateUUID(specialtieDoctor.getIdSpecialtie().toString());
+        validateHeadquarterId(specialtieDoctor.getHeadquarterId());
+
+        if (!specialtieDoctor.getHeadquarterId().equals(specialtieDoctor.getDoctor().getHeadquarterId())) {
+            throw new BusinessException("El doctor no pertenece a la sede indicada.");
+        }
+
         if (!specialtieRepository.existsById(specialtieDoctor.getIdSpecialtie())) {
             throw new BusinessException("La especialidad especificada no existe.");
+        }
+    }
+
+    private void validateHeadquarterId(UUID headquarterId) {
+        if (headquarterId == null) {
+            throw new BusinessException("El ID de la sede es obligatorio.");
+        }
+        validateUUID(headquarterId.toString());
+    }
+
+    public UUID validateUUID(String uuid) {
+        if (uuid == null || uuid.trim().isEmpty()) {
+            throw new BusinessException("El ID proporcionado no puede ser nulo o estar vacio.");
+        }
+
+        try {
+            return UUID.fromString(uuid);
+        } catch (IllegalArgumentException _) {
+            throw new BusinessException("El tipo de dato proporcionado no es un UUID valido: " + uuid);
         }
     }
 }

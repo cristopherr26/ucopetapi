@@ -1,6 +1,6 @@
 package com.uco.ucopetapi.messaging.appointment;
 
-import com.uco.ucopetapi.dto.appointment.AppointmentDTO;
+import com.uco.ucopetapi.domain.appointment.AppointmentDomain;
 import com.uco.ucopetapi.util.MessageSender;
 import com.uco.ucopetapi.util.gson.MapperJsonObject;
 import org.springframework.amqp.core.MessageProperties;
@@ -9,8 +9,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 // Publica en RabbitMQ la cita a crear o actualizar. El procesador de salud la guarda en la BD.
+// Viaja el AppointmentDomain, igual que el PetDomain de las mascotas.
 @Component
-public class AppointmentCreationSenderBroker implements MessageSender<AppointmentDTO> {
+public class AppointmentCreationSenderBroker implements MessageSender<AppointmentDomain> {
 
     private final RabbitTemplate rabbitTemplate;
     private final MapperJsonObject mapperJsonObject;
@@ -28,7 +29,7 @@ public class AppointmentCreationSenderBroker implements MessageSender<Appointmen
     }
 
     @Override
-    public void execute(final AppointmentDTO message, final String idMessage) {
+    public void execute(final AppointmentDomain message, final String idMessage) {
         final String json = mapperJsonObject.execute(message)
                 .orElseThrow(() -> new IllegalStateException(
                         "No fue posible serializar el mensaje de la cita"));

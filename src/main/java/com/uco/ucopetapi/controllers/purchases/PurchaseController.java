@@ -2,7 +2,6 @@ package com.uco.ucopetapi.controllers.purchases;
 
 import com.uco.ucopetapi.domain.purchases.PurchaseStatus;
 import com.uco.ucopetapi.dto.purchases.LinkExpenseRequestDTO;
-import com.uco.ucopetapi.dto.purchases.PurchaseIdResponseDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseRequestDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseResponseDTO;
 import com.uco.ucopetapi.service.purchases.PurchaseService;
@@ -27,7 +26,7 @@ import java.util.UUID;
 @RequestMapping("api/v1/purchases")
 public class PurchaseController {
 
-    private static final String ROLE_ADMIN = "hasRole('ADMIN')";
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final PurchaseService purchaseService;
 
@@ -35,13 +34,13 @@ public class PurchaseController {
         this.purchaseService = purchaseService;
     }
 
-    @PreAuthorize(ROLE_ADMIN)
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<PurchaseResponseDTO> create(@RequestBody @Valid PurchaseRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(purchaseService.createPurchase(request));
     }
 
-    @PreAuthorize(ROLE_ADMIN)
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<Page<PurchaseResponseDTO>> findByFilter(
             @RequestParam(required = true) UUID headquarterId,
@@ -50,35 +49,38 @@ public class PurchaseController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        // NUEVO: saneamos page y size antes de armar la paginación.
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.clamp(size, 1, MAX_PAGE_SIZE);
+        PageRequest pageable = PageRequest.of(safePage, safeSize, Sort.by("createdAt").descending());
         return ResponseEntity.ok(purchaseService.listPurchases(headquarterId, status, supplierId, pageable));
     }
 
-    @PreAuthorize(ROLE_ADMIN)
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<PurchaseResponseDTO> findById(@PathVariable UUID id) {
         return ResponseEntity.ok(purchaseService.getPurchaseById(id));
     }
 
-    @PreAuthorize(ROLE_ADMIN)
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/lookup")
-    public ResponseEntity<PurchaseIdResponseDTO> findIdByPurchaseNumber(@RequestParam String purchaseNumber) {
+    public ResponseEntity<UUID> findIdByPurchaseNumber(@RequestParam String purchaseNumber) {
         return ResponseEntity.ok(purchaseService.findIdByPurchaseNumber(purchaseNumber));
     }
 
-    @PreAuthorize(ROLE_ADMIN)
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/receive")
     public ResponseEntity<PurchaseResponseDTO> receive(@PathVariable UUID id) {
         return ResponseEntity.ok(purchaseService.receivePurchase(id));
     }
 
-    @PreAuthorize(ROLE_ADMIN)
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/cancel")
     public ResponseEntity<PurchaseResponseDTO> cancel(@PathVariable UUID id) {
         return ResponseEntity.ok(purchaseService.cancelPurchase(id));
     }
 
-    @PreAuthorize(ROLE_ADMIN)
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/link-expense")
     public ResponseEntity<PurchaseResponseDTO> linkExpense(
             @PathVariable UUID id,

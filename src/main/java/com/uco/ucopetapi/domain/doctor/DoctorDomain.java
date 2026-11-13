@@ -23,14 +23,17 @@ public class DoctorDomain {
     @Column(name = "license_number", nullable = false, unique = true)
     private String licenseNumber;
 
+    @Column(name = "headquarter_id", nullable = false)
+    private UUID headquarterId;
 
     public DoctorDomain() {
     }
 
-    public DoctorDomain(UUID id, UUID idPerson, String licenseNumber) {
+    public DoctorDomain(UUID id, UUID idPerson, String licenseNumber, UUID headquarterId) {
         this.id = id;
         this.idPerson = idPerson;
         this.licenseNumber = licenseNumber;
+        this.headquarterId = headquarterId;
     }
 
     public UUID getId() {
@@ -55,5 +58,13 @@ public class DoctorDomain {
 
     public void setLicenseNumber(String licenseNumber) {
         this.licenseNumber = licenseNumber;
+    }
+
+    public UUID getHeadquarterId() {
+        return headquarterId;
+    }
+
+    public void setHeadquarterId(UUID headquarterId) {
+        this.headquarterId = headquarterId;
     }
 }

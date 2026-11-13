@@ -40,8 +40,9 @@ public class DoctorService {
         this.doctorDeactivateSenderBroker = doctorDeactivateSenderBroker;
     }
 
-    public List<DoctorDomain> findAll() {
-        return doctorRepository.findAll();
+    public List<DoctorDomain> findAll(UUID headquarterId) {
+        validateHeadquarterId(headquarterId);
+        return doctorRepository.findByHeadquarterId(headquarterId);
     }
 
     public DoctorDomain findById(UUID id) {
@@ -49,11 +50,13 @@ public class DoctorService {
                 .orElseThrow(() -> new BusinessException("No se encontro un doctor con id " + id));
     }
 
-    public List<DoctorDomain> findByFilter(String licenseNumber) {
+    public List<DoctorDomain> findByFilter(UUID headquarterId, String licenseNumber) {
+        validateHeadquarterId(headquarterId);
         if (licenseNumber == null || licenseNumber.isBlank()) {
-            return doctorRepository.findAll();
+            return doctorRepository.findByHeadquarterId(headquarterId);
         }
-        return doctorRepository.findByLicenseNumberContainingIgnoreCase(licenseNumber);
+        return doctorRepository.findByHeadquarterIdAndLicenseNumberContainingIgnoreCase(
+                headquarterId, licenseNumber.trim());
     }
 
     public DoctorDomain createNewDoctor(DoctorDomain doctor) {
@@ -73,6 +76,7 @@ public class DoctorService {
 
         existingDoctor.setLicenseNumber(doctor.getLicenseNumber().trim());
         existingDoctor.setIdPerson(doctor.getIdPerson());
+        existingDoctor.setHeadquarterId(doctor.getHeadquarterId());
 
         String idMessage = UUID.randomUUID().toString();
         doctorUpdateSenderBroker.execute(existingDoctor, idMessage);
@@ -89,8 +93,7 @@ public class DoctorService {
     }
 
     public void activateDoctor(UUID id) {
-        // Mismo enfoque que deactivateDoctor: no toco PersonService, solo uso
-        // su API publica (findById/update) para reactivar la Person asociada.
+
         DoctorDomain doctor = findById(id);
         PersonDTO current = personService.findById(doctor.getIdPerson());
 
@@ -141,6 +144,8 @@ public class DoctorService {
         if (doctor.getIdPerson() == null) {
             throw new BusinessException("El id de la persona es obligatorio.");
         }
+        validateUUID(doctor.getIdPerson().toString());
+        validateHeadquarterId(doctor.getHeadquarterId());
         String licenseNumber = doctor.getLicenseNumber();
         if (licenseNumber == null || licenseNumber.trim().isEmpty()) {
             throw new BusinessException("El numero de licencia es obligatorio.");
@@ -151,6 +156,25 @@ public class DoctorService {
         }
         if (!licenseTrimmed.matches(LICENSE_NUMBER_REGEX)) {
             throw new BusinessException("El numero de licencia solo puede contener letras, numeros y guiones.");
+        }
+    }
+
+    private void validateHeadquarterId(UUID headquarterId) {
+        if (headquarterId == null) {
+            throw new BusinessException("El ID de la sede es obligatorio.");
+        }
+        validateUUID(headquarterId.toString());
+    }
+
+    public UUID validateUUID(String uuid) {
+        if (uuid == null || uuid.trim().isEmpty()) {
+            throw new BusinessException("El ID proporcionado no puede ser nulo o estar vacio.");
+        }
+
+        try {
+            return UUID.fromString(uuid);
+        } catch (IllegalArgumentException _) {
+            throw new BusinessException("El tipo de dato proporcionado no es un UUID valido: " + uuid);
         }
     }
 }

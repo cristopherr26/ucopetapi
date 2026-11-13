@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.domain.procedure;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
@@ -7,6 +8,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 
 import java.util.ArrayList;
@@ -37,7 +39,8 @@ public class ProcedureDomain {
     private UUID spaceId;
 
     @ElementCollection(fetch = FetchType.EAGER)
-    private List<ProcedureProductDomain> defaultProducts = new ArrayList<>();
+    @CollectionTable(name = "procedure_default_items", joinColumns = @JoinColumn(name = "procedure_id"))
+    private List<ProcedureItemDomain> defaultItems = new ArrayList<>();
 
     @Column(nullable = false)
     private boolean active = true;
@@ -48,14 +51,14 @@ public class ProcedureDomain {
 
     public ProcedureDomain(final String code, final String type, final String description,
                            final Integer durationMinutes, final UUID spaceId,
-                           final List<ProcedureProductDomain> defaultProducts,
+                           final List<ProcedureItemDomain> defaultItems,
                            final boolean active) {
         this.code = code;
         this.type = type;
         this.description = description;
         this.durationMinutes = durationMinutes;
         this.spaceId = spaceId;
-        setDefaultProducts(defaultProducts);
+        setDefaultItems(defaultItems);
         this.active = active;
     }
 
@@ -70,9 +73,9 @@ public class ProcedureDomain {
     public void setDurationMinutes(final Integer durationMinutes) { this.durationMinutes = durationMinutes; }
     public UUID getSpaceId() { return spaceId; }
     public void setSpaceId(final UUID spaceId) { this.spaceId = spaceId; }
-    public List<ProcedureProductDomain> getDefaultProducts() { return new ArrayList<>(defaultProducts); }
-    public void setDefaultProducts(final List<ProcedureProductDomain> defaultProducts) {
-        this.defaultProducts = defaultProducts == null ? new ArrayList<>() : new ArrayList<>(defaultProducts);
+    public List<ProcedureItemDomain> getDefaultItems() { return new ArrayList<>(defaultItems); }
+    public void setDefaultItems(final List<ProcedureItemDomain> defaultItems) {
+        this.defaultItems = defaultItems == null ? new ArrayList<>() : new ArrayList<>(defaultItems);
     }
     public boolean isActive() { return active; }
     public void setActive(final boolean active) { this.active = active; }

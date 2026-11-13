@@ -147,7 +147,8 @@ public class AppointmentService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Los datos del estado de la cita son obligatorios");
         }
-        if (!appointmentRepository.existsById(id)) {
+        Optional<AppointmentDomain> current = appointmentRepository.findById(id);
+        if (current.isEmpty()) {
             return Optional.empty();
         }
 
@@ -156,6 +157,7 @@ public class AppointmentService {
         candidate.setId(id);
         updateStatusFields(candidate, appointmentStatusDTO);
         validateStatusRules(candidate, id);
+        validateScheduleWhenReactivated(current.get(), current.get().getStatus(), candidate.getStatus());
         return Optional.of(publishStatus(candidate));
     }
 
@@ -173,8 +175,10 @@ public class AppointmentService {
 
         return appointmentRepository.findById(id)
                 .map(appointment -> {
+                    String previousStatus = appointment.getStatus();
                     updateStatusFields(appointment, appointmentStatusDTO);
                     validateStatusRules(appointment, id);
+                    validateScheduleWhenReactivated(appointment, previousStatus, appointment.getStatus());
                     return toDTO(appointmentRepository.save(appointment));
                 });
     }
@@ -191,13 +195,14 @@ public class AppointmentService {
 
     private String publishSave(AppointmentDomain appointment) {
         String idMessage = UUID.randomUUID().toString();
-        creationSender.execute(toMessage(appointment), idMessage);
+        creationSender.execute(appointment, idMessage);
         return idMessage;
     }
 
     private String publishStatus(AppointmentDomain appointment) {
         String idMessage = UUID.randomUUID().toString();
-        AppointmentDTO message = new AppointmentDTO();
+        // Solo viajan id, estado y justificacion; el resto de campos queda en null
+        AppointmentDomain message = new AppointmentDomain();
         message.setId(appointment.getId());
         message.setStatus(appointment.getStatus());
         message.setCancellationReason(appointment.getCancellationReason());
@@ -258,7 +263,18 @@ public class AppointmentService {
         validateRequiredSchedule(appointment);
         validateStatusRules(appointment, currentAppointmentId);
         validateRelationships(appointment);
-        validateDoctorScheduleAvailability(appointment, currentAppointmentId);
+        // Una cita cancelada no ocupa el horario del medico, asi que no compite por el.
+        if (!CANCELLED_STATUS.equals(appointment.getStatus())) {
+            validateDoctorScheduleAvailability(appointment, currentAppointmentId);
+        }
+    }
+
+    // Si la cita estaba cancelada su horario pudo ser tomado por otra: al reactivarla se revisa de nuevo.
+    private void validateScheduleWhenReactivated(AppointmentDomain appointment, String previousStatus,
+                                                 String newStatus) {
+        if (CANCELLED_STATUS.equals(previousStatus) && !CANCELLED_STATUS.equals(newStatus)) {
+            validateDoctorScheduleAvailability(appointment, appointment.getId());
+        }
     }
 
     private void validateRequiredSchedule(AppointmentDomain appointment) {
@@ -369,15 +385,17 @@ public class AppointmentService {
 
     private void validateDoctorScheduleAvailability(AppointmentDomain appointment, UUID currentAppointmentId) {
         boolean scheduleTaken = currentAppointmentId == null
-                ? appointmentRepository.existsByDoctorIdAndAppointmentDateAndAppointmentTime(
-                        appointment.getDoctorId(),
-                        appointment.getAppointmentDate(),
-                        appointment.getAppointmentTime())
-                : appointmentRepository.existsByDoctorIdAndAppointmentDateAndAppointmentTimeAndIdNot(
+                ? appointmentRepository.existsByDoctorIdAndAppointmentDateAndAppointmentTimeAndStatusNot(
                         appointment.getDoctorId(),
                         appointment.getAppointmentDate(),
                         appointment.getAppointmentTime(),
-                        currentAppointmentId);
+                        CANCELLED_STATUS)
+                : appointmentRepository.existsByDoctorIdAndAppointmentDateAndAppointmentTimeAndIdNotAndStatusNot(
+                        appointment.getDoctorId(),
+                        appointment.getAppointmentDate(),
+                        appointment.getAppointmentTime(),
+                        currentAppointmentId,
+                        CANCELLED_STATUS);
 
         if (scheduleTaken) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -412,21 +430,6 @@ public class AppointmentService {
         appointment.setStatus(appointmentDTO.getStatus());
         appointment.setCancellationReason(appointmentDTO.getCancellationReason());
         return appointment;
-    }
-
-    // Mensaje limpio para el procesador: solo los datos de la cita ya validada (sin nombres).
-    private AppointmentDTO toMessage(AppointmentDomain appointment) {
-        AppointmentDTO message = new AppointmentDTO();
-        message.setId(appointment.getId());
-        message.setTutorId(appointment.getTutorId());
-        message.setPetId(appointment.getPetId());
-        message.setDoctorId(appointment.getDoctorId());
-        message.setAppointmentTypeId(appointment.getAppointmentTypeId());
-        message.setAppointmentDate(appointment.getAppointmentDate());
-        message.setAppointmentTime(appointment.getAppointmentTime());
-        message.setStatus(appointment.getStatus());
-        message.setCancellationReason(appointment.getCancellationReason());
-        return message;
     }
 
     private AppointmentDTO toDTO(AppointmentDomain appointment) {

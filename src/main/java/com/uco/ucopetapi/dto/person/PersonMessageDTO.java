@@ -11,10 +11,11 @@ public record PersonMessageDTO(
         String email,
         String address,
         String phone,
-        Boolean admin,
-        Boolean active) {
+        boolean admin,
+        boolean active) {
 
     public static PersonMessageDTO onlyId(UUID id) {
-        return new PersonMessageDTO(id, null, null, null, null, null, null, null, null, null);
+        // Para dar de baja el procesador solo lee el id.
+        return new PersonMessageDTO(id, null, null, null, null, null, null, null, false, false);
     }
 }

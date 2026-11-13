@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -24,6 +25,7 @@ public class PurchaseItem {
 
     @ManyToOne
     @JoinColumn(name = "purchase_id", nullable = false)
+    @JsonIgnore
     private Purchase purchase;
 
     @Column(nullable = false)
@@ -47,18 +49,7 @@ public class PurchaseItem {
     private TaxCategory taxCategory;
 
     public PurchaseItem() {
-    }
-
-    public PurchaseItem(UUID id, Purchase purchase, UUID productId, ItemType itemType, Integer quantity,
-                         BigDecimal unitPrice, BigDecimal subtotal, TaxCategory taxCategory) {
-        this.id = id;
-        this.purchase = purchase;
-        this.productId = productId;
-        this.itemType = itemType;
-        this.quantity = quantity;
-        this.unitPrice = unitPrice;
-        this.subtotal = subtotal;
-        this.taxCategory = taxCategory;
+        // Constructor vacio requerido por JPA/Hibernate para instanciar la entidad por reflexion.
     }
 
     public UUID getId() {
