@@ -10,7 +10,11 @@ public interface IDoctorRepository extends JpaRepository<DoctorDomain, UUID> {
     List<DoctorDomain> findByIdPerson(UUID idPerson);
     List<DoctorDomain> findByLicenseNumberContainingIgnoreCase(String licenseNumber);
 
-    // Para validar persona duplicada y licencia duplicada en DoctorService.
+
+    List<DoctorDomain> findByHeadquarterId(UUID headquarterId);
+    List<DoctorDomain> findByHeadquarterIdAndLicenseNumberContainingIgnoreCase(UUID headquarterId, String licenseNumber);
+
+
     boolean existsByIdPerson(UUID idPerson);
     boolean existsByLicenseNumber(String licenseNumber);
 }

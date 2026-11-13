@@ -10,6 +10,9 @@ public interface ISpecialtieDoctorRepository extends JpaRepository<SpecialtieDoc
     List<SpecialtieDoctorDomain> findByDoctor_Id(UUID idDoctor);
     List<SpecialtieDoctorDomain> findByIdSpecialtie(UUID idSpecialtie);
 
-    // Para validar relacion duplicada en SpecialtieDoctorService.
+    List<SpecialtieDoctorDomain> findByHeadquarterId(UUID headquarterId);
+    List<SpecialtieDoctorDomain> findByHeadquarterIdAndDoctor_Id(UUID headquarterId, UUID idDoctor);
+    List<SpecialtieDoctorDomain> findByHeadquarterIdAndIdSpecialtie(UUID headquarterId, UUID idSpecialtie);
+
     boolean existsByDoctor_IdAndIdSpecialtie(UUID idDoctor, UUID idSpecialtie);
 }

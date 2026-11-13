@@ -131,6 +131,10 @@ public class NotificationDomain {
             case APPOINTMENT_CREATED -> ReferenceType.APPOINTMENT;
             case ORDER_AUTHORIZED, ORDER_REJECTED, ORDER_PENDING -> ReferenceType.ORDER;
             case LOGIN_SUCCEDED -> ReferenceType.LOGIN;
+            case PET_CREATED, PET_UPDATED, PET_DELETED,
+                 DOCTOR_CREATED, DOCTOR_UPDATED, DOCTOR_DELETED,
+                 TUTOR_CREATED, TUTOR_UPDATED, TUTOR_DELETED,
+                 USER_CREATED, USER_UPDATED, USER_DELETED -> null;
         };
     }
 }

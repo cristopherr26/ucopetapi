@@ -1,14 +1,14 @@
-package com.uco.ucopetapi.dto.sale.sale;
+package com.uco.ucopetapi.domain.sale.sale;
 
-import com.uco.ucopetapi.dto.sale.itemSale.ItemSaleDTO;
-import com.uco.ucopetapi.dto.sale.enums.SaleOrderState;
+import com.uco.ucopetapi.domain.sale.enums.SaleOrderState;
+import com.uco.ucopetapi.domain.sale.itemSale.ItemSaleDomain;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-public record SaleOrderMessageDTO(
+public record SaleOrderMessageDomain(
         UUID id,
         UUID headquarterId,
         String orderNumber,
@@ -22,6 +22,6 @@ public record SaleOrderMessageDTO(
         BigDecimal total,
         String comment,
         SaleOrderState state,
-        List<ItemSaleDTO> items
+        List<ItemSaleDomain> items
 ) {
 }

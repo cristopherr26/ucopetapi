@@ -11,7 +11,7 @@ import com.uco.ucopetapi.dto.invoice.InvoiceDTO;
 import com.uco.ucopetapi.dto.invoice.InvoicePaymentMessageDTO;
 import com.uco.ucopetapi.dto.invoice.RegisterPaymentRequestDTO;
 import com.uco.ucopetapi.dto.invoice.enums.InvoiceState;
-import com.uco.ucopetapi.dto.sale.enums.SaleOrderState;
+import com.uco.ucopetapi.domain.sale.enums.SaleOrderState;
 import com.uco.ucopetapi.messaging.invoice.InvoiceCancelSenderBroker;
 import com.uco.ucopetapi.messaging.invoice.InvoiceCreationSenderBroker;
 import com.uco.ucopetapi.messaging.invoice.InvoicePaymentSenderBroker;

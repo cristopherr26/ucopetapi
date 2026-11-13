@@ -1,23 +1,30 @@
 package com.uco.ucopetapi.service.sale.itemSale;
 
-import com.uco.ucopetapi.dto.sale.sale.AddItemSaleRequestDTO;
-import com.uco.ucopetapi.dto.sale.sale.EditItemSaleRequestDTO;
-import com.uco.ucopetapi.dto.sale.itemSale.ItemSaleDTO;
-import com.uco.ucopetapi.dto.sale.sale.SaleOrderDTO;
+import com.uco.ucopetapi.domain.sale.itemSale.ItemSaleDomain;
+import com.uco.ucopetapi.domain.sale.sale.AddItemSaleRequestDomain;
+import com.uco.ucopetapi.domain.sale.sale.EditItemSaleRequestDomain;
+import com.uco.ucopetapi.domain.sale.sale.SaleOrderDomain;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface ItemSaleService {
 
-    SaleOrderDTO addItemToSaleOrder(UUID saleOrderId, AddItemSaleRequestDTO request);
+    SaleOrderDomain addItemToSaleOrder(
+            UUID saleOrderId,
+            AddItemSaleRequestDomain request
+    );
 
-    SaleOrderDTO editItemInSaleOrder(UUID saleOrderId, UUID itemSaleId, EditItemSaleRequestDTO request);
+    SaleOrderDomain editItemInSaleOrder(
+            UUID saleOrderId,
+            UUID itemSaleId,
+            EditItemSaleRequestDomain request
+    );
 
-    SaleOrderDTO removeItemFromSaleOrder(UUID saleOrderId, UUID itemSaleId);
+    SaleOrderDomain removeItemFromSaleOrder(
+            UUID saleOrderId,
+            UUID itemSaleId
+    );
 
-    List<ItemSaleDTO> listItemsBySaleOrder(UUID saleOrderId);
-
-
-
+    List<ItemSaleDomain> listItemsBySaleOrder(UUID saleOrderId);
 }

@@ -1,7 +1,7 @@
 package com.uco.ucopetapi.controllers.sale.sale;
 
 import com.uco.ucopetapi.dto.sale.sale.SaleOrderDTO;
-import com.uco.ucopetapi.dto.sale.enums.SaleOrderState;
+import com.uco.ucopetapi.domain.sale.enums.SaleOrderState;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDate;

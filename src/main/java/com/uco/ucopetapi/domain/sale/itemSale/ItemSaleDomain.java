@@ -1,8 +1,7 @@
 package com.uco.ucopetapi.domain.sale.itemSale;
 
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
-import com.uco.ucopetapi.dto.sale.itemSale.ItemSaleDTO;
-import com.uco.ucopetapi.dto.sale.enums.ItemType;
+import com.uco.ucopetapi.domain.sale.enums.ItemType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -93,7 +92,4 @@ public class ItemSaleDomain implements Persistable<UUID> {
         this.isNew = false;
     }
 
-    public ItemSaleDTO toDTO() {
-        return new ItemSaleDTO(id, saleOrderId, itemId, itemType, taxCategory, quantity, unitPrice, subtotal);
-    }
 }

@@ -28,8 +28,8 @@ public class SpecialtieDoctorController {
     }
 
     @GetMapping
-    public ResponseEntity<List<SpecialtieDoctorDTO>> findAllSpecialtieDoctor() {
-        List<SpecialtieDoctorDTO> specialtieDoctor = specialtieDoctorService.findAll()
+    public ResponseEntity<List<SpecialtieDoctorDTO>> findAllSpecialtieDoctor(@RequestParam UUID headquarterId) {
+        List<SpecialtieDoctorDTO> specialtieDoctor = specialtieDoctorService.findAll(headquarterId)
                 .stream().map(specialtieDoctorMapper::toDTO).toList();
         return ResponseEntity.ok(specialtieDoctor);
     }
@@ -45,9 +45,11 @@ public class SpecialtieDoctorController {
 
     @GetMapping("/filter")
     public ResponseEntity<List<SpecialtieDoctorDTO>> findByIdFilter(
+            @RequestParam UUID headquarterId,
             @RequestParam(required = false) UUID idDoctor,
             @RequestParam(required = false) UUID idSpecialtie) {
-        List<SpecialtieDoctorDTO> specialtieDoctor = specialtieDoctorService.findByFilter(idDoctor, idSpecialtie)
+        List<SpecialtieDoctorDTO> specialtieDoctor = specialtieDoctorService
+                .findByFilter(headquarterId, idDoctor, idSpecialtie)
                 .stream().map(specialtieDoctorMapper::toDTO).toList();
         return ResponseEntity.ok(specialtieDoctor);
     }

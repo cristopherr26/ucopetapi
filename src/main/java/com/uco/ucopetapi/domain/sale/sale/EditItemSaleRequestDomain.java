@@ -1,13 +1,13 @@
-package com.uco.ucopetapi.dto.sale.sale;
+package com.uco.ucopetapi.domain.sale.sale;
 
 import java.math.BigDecimal;
 
-public class EditItemSaleRequestDTO {
+public class EditItemSaleRequestDomain {
 
     private Integer quantity;
     private BigDecimal unitPrice;
 
-    public EditItemSaleRequestDTO() {}
+    public EditItemSaleRequestDomain() {}
 
     public Integer getQuantity() { return quantity; }
     public void setQuantity(Integer quantity) { this.quantity = quantity; }

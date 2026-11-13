@@ -2,7 +2,7 @@ package com.uco.ucopetapi.dto.sale.itemSale;
 
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 import com.uco.ucopetapi.domain.sale.itemSale.ItemSaleDomain;
-import com.uco.ucopetapi.dto.sale.enums.ItemType;
+import com.uco.ucopetapi.domain.sale.enums.ItemType;
 
 import java.math.BigDecimal;
 import java.util.UUID;
