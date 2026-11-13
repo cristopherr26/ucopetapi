@@ -20,6 +20,12 @@ public class HeadquarterDTO {
 
     public HeadquarterDTO() {}
 
+    public HeadquarterDTO( String name, String address, Boolean isActive) {
+        this.name = name;
+        this.address = address;
+        this.isActive = isActive;
+    }
+
     public HeadquarterDTO(UUID id, String name, String address, Boolean isActive) {
         this.id = id;
         this.name = name;
