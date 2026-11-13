@@ -49,18 +49,7 @@ public class PurchaseItem {
     private TaxCategory taxCategory;
 
     public PurchaseItem() {
-    }
-
-    public PurchaseItem(UUID id, Purchase purchase, UUID productId, ItemType itemType, Integer quantity,
-                         BigDecimal unitPrice, BigDecimal subtotal, TaxCategory taxCategory) {
-        this.id = id;
-        this.purchase = purchase;
-        this.productId = productId;
-        this.itemType = itemType;
-        this.quantity = quantity;
-        this.unitPrice = unitPrice;
-        this.subtotal = subtotal;
-        this.taxCategory = taxCategory;
+        // Constructor vacio requerido por JPA/Hibernate para instanciar la entidad por reflexion.
     }
 
     public UUID getId() {

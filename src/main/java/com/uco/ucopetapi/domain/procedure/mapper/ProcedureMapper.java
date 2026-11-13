@@ -1,9 +1,9 @@
 package com.uco.ucopetapi.domain.procedure.mapper;
 
 import com.uco.ucopetapi.domain.procedure.ProcedureDomain;
-import com.uco.ucopetapi.domain.procedure.ProcedureProductDomain;
+import com.uco.ucopetapi.domain.procedure.ProcedureItemDomain;
 import com.uco.ucopetapi.dto.procedure.ProcedureDTO;
-import com.uco.ucopetapi.dto.procedure.ProcedureProductDTO;
+import com.uco.ucopetapi.dto.procedure.ProcedureItemDTO;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -17,7 +17,7 @@ public class ProcedureMapper {
         }
 
         return new ProcedureDTO(domain.getId(), domain.getCode(), domain.getType(), domain.getDescription(),
-                domain.getDurationMinutes(), domain.getSpaceId(), toProductDTOList(domain.getDefaultProducts()),
+                domain.getDurationMinutes(), domain.getSpaceId(), toItemDTOList(domain.getDefaultItems()),
                 domain.isActive());
     }
 
@@ -31,13 +31,13 @@ public class ProcedureMapper {
                 .toList();
     }
 
-    private List<ProcedureProductDTO> toProductDTOList(final List<ProcedureProductDomain> products) {
-        if (products == null) {
+    private List<ProcedureItemDTO> toItemDTOList(final List<ProcedureItemDomain> items) {
+        if (items == null) {
             return List.of();
         }
 
-        return products.stream()
-                .map(item -> new ProcedureProductDTO(item.getProductId(), item.getQuantity()))
+        return items.stream()
+                .map(item -> new ProcedureItemDTO(item.getItemId(), item.getQuantity()))
                 .toList();
     }
 }

@@ -28,14 +28,17 @@ public class SpecialtieDoctorDomain {
     @Column(name = "id_specialtie", nullable = false)
     private UUID idSpecialtie;
 
+    @Column(name = "headquarter_id", nullable = false)
+    private UUID headquarterId;
 
     public SpecialtieDoctorDomain() {
     }
 
-    public SpecialtieDoctorDomain(UUID id, DoctorDomain doctor, UUID idSpecialtie) {
+    public SpecialtieDoctorDomain(UUID id, DoctorDomain doctor, UUID idSpecialtie, UUID headquarterId) {
         this.id = id;
         this.doctor = doctor;
         this.idSpecialtie = idSpecialtie;
+        this.headquarterId = headquarterId;
     }
 
     public UUID getId() {
@@ -60,5 +63,13 @@ public class SpecialtieDoctorDomain {
 
     public void setIdSpecialtie(UUID idSpecialtie) {
         this.idSpecialtie = idSpecialtie;
+    }
+
+    public UUID getHeadquarterId() {
+        return headquarterId;
+    }
+
+    public void setHeadquarterId(UUID headquarterId) {
+        this.headquarterId = headquarterId;
     }
 }

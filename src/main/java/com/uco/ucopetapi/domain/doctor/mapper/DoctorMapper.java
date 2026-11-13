@@ -12,7 +12,8 @@ public class DoctorMapper {
         return new DoctorDTO(
                 doctor.getId(),
                 doctor.getIdPerson(),
-                doctor.getLicenseNumber());
+                doctor.getLicenseNumber(),
+                doctor.getHeadquarterId());
     }
 
     public DoctorDomain toDomain(DoctorDTO doctor) {
@@ -20,6 +21,7 @@ public class DoctorMapper {
         return new DoctorDomain(
                 doctor.getId(),
                 doctor.getPerson(),
-                doctor.getLicenseNumber());
+                doctor.getLicenseNumber(),
+                doctor.getHeadquarterId());
     }
 }

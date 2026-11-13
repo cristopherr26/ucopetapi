@@ -1,9 +1,12 @@
 package com.uco.ucopetapi.service.purchases;
 
+import com.uco.ucopetapi.domain.purchases.ItemType;
 import com.uco.ucopetapi.domain.purchases.Purchase;
 import com.uco.ucopetapi.domain.purchases.PurchaseItem;
 import com.uco.ucopetapi.domain.purchases.PurchaseStatus;
 import com.uco.ucopetapi.dto.person.PersonDTO;
+import com.uco.ucopetapi.dto.provider.ProviderDTO;
+import com.uco.ucopetapi.dto.headquarter.HeadquarterDTO;
 import com.uco.ucopetapi.dto.purchases.LinkExpenseRequestDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseItemRequestDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseRequestDTO;
@@ -14,13 +17,18 @@ import com.uco.ucopetapi.messaging.purchases.PurchaseCreationSenderBroker;
 import com.uco.ucopetapi.messaging.purchases.PurchaseDeactivationSenderBroker;
 import com.uco.ucopetapi.repository.purchases.PurchaseItemRepository;
 import com.uco.ucopetapi.repository.purchases.PurchaseRepository;
+import com.uco.ucopetapi.service.headquarter.HeadquarterService;
 import com.uco.ucopetapi.service.person.PersonService;
+import com.uco.ucopetapi.service.product.ProductService;
+import com.uco.ucopetapi.service.product.ServiceService;
+import com.uco.ucopetapi.service.provider.ProviderService;
 import com.uco.ucopetapi.service.purchases.exception.DuplicatePurchaseNumberException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseNotFoundException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseNumberNotFoundException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseStateConflictException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -38,17 +46,30 @@ public class PurchaseServiceImpl implements PurchaseService {
     private final PurchaseRepository purchaseRepository;
     private final PurchaseItemRepository purchaseItemRepository;
     private final PersonService personService;
+    private final ProviderService providerService;
+    private final HeadquarterService headquarterService;
+    private final ProductService productService;
+    private final ServiceService serviceService;
     private final PurchaseCreationSenderBroker purchaseCreationSenderBroker;
     private final PurchaseDeactivationSenderBroker purchaseDeactivationSenderBroker;
+    private static final ZoneId BOGOTA_ZONE = ZoneId.of("America/Bogota");
 
     public PurchaseServiceImpl(PurchaseRepository purchaseRepository,
                                 PurchaseItemRepository purchaseItemRepository,
                                 PersonService personService,
+                                ProviderService providerService,
+                                HeadquarterService headquarterService,
+                                ProductService productService,
+                                ServiceService serviceService,
                                 PurchaseCreationSenderBroker purchaseCreationSenderBroker,
                                 PurchaseDeactivationSenderBroker purchaseDeactivationSenderBroker) {
         this.purchaseRepository = purchaseRepository;
         this.purchaseItemRepository = purchaseItemRepository;
         this.personService = personService;
+        this.providerService = providerService;
+        this.headquarterService = headquarterService;
+        this.productService = productService;
+        this.serviceService = serviceService;
         this.purchaseCreationSenderBroker = purchaseCreationSenderBroker;
         this.purchaseDeactivationSenderBroker = purchaseDeactivationSenderBroker;
     }
@@ -116,7 +137,7 @@ public class PurchaseServiceImpl implements PurchaseService {
                     "Solo se puede recibir una compra en estado PENDING. Estado actual: " + purchase.getStatus());
         }
         purchase.setStatus(PurchaseStatus.RECEIVED);
-        purchase.setUpdatedAt(LocalDateTime.now(ZoneId.of("America/Bogota")));
+        purchase.setUpdatedAt(LocalDateTime.now(BOGOTA_ZONE));
         purchase.setUpdatedByPersonId(currentPersonId());
         Purchase saved = purchaseRepository.save(purchase);
         return toResponseDTO(saved);
@@ -135,7 +156,7 @@ public class PurchaseServiceImpl implements PurchaseService {
                             + " porque ya tiene un egreso vinculado (LINKED).");
         }
         purchase.setStatus(PurchaseStatus.CANCELLED);
-        purchase.setUpdatedAt(LocalDateTime.now(ZoneId.of("America/Bogota")));
+        purchase.setUpdatedAt(LocalDateTime.now(BOGOTA_ZONE));
         purchase.setUpdatedByPersonId(currentPersonId());
 
         // Igual que en create: no se llama a purchaseRepository.save(), el
@@ -156,7 +177,7 @@ public class PurchaseServiceImpl implements PurchaseService {
         }
         purchase.setExpenseId(request.expenseId());
         purchase.setStatus(PurchaseStatus.LINKED);
-        purchase.setUpdatedAt(LocalDateTime.now(ZoneId.of("America/Bogota")));
+        purchase.setUpdatedAt(LocalDateTime.now(BOGOTA_ZONE));
         purchase.setUpdatedByPersonId(currentPersonId());
         Purchase saved = purchaseRepository.save(purchase);
         return toResponseDTO(saved);
@@ -178,13 +199,54 @@ public class PurchaseServiceImpl implements PurchaseService {
         try {
             PersonDTO person = personService.findById(personId);
             return new RelatedEntityDTO(personId, person.firstName() + " " + person.lastName());
-        } catch (ResponseStatusException e) {
+        } catch (ResponseStatusException _) {
             return new RelatedEntityDTO(personId, null);
         }
     }
 
+    // Igual que resolvePerson: si el proveedor no aparece (p. ej. datos de
+    // prueba inconsistentes) devolvemos el id igual, solo que sin nombre,
+    // en vez de tumbar la consulta completa.
+    private RelatedEntityDTO resolveSupplier(UUID supplierId) {
+        try {
+            ProviderDTO provider = providerService.findById(supplierId);
+            return new RelatedEntityDTO(supplierId, provider.getProviderName());
+        } catch (RuntimeException _) {
+            return new RelatedEntityDTO(supplierId, null);
+        }
+    }
+
+    private RelatedEntityDTO resolveHeadquarter(UUID headquarterId) {
+        try {
+            HeadquarterDTO headquarter = headquarterService.findById(headquarterId);
+            return new RelatedEntityDTO(headquarterId, headquarter.getName());
+        } catch (RuntimeException _) {
+            return new RelatedEntityDTO(headquarterId, null);
+        }
+    }
+
+    // Antes esto siempre devolvia el nombre en null: toItemDTO armaba el
+    // RelatedEntityDTO directo con (productId, null) sin consultar el
+    // catalogo, por eso en el detalle de la compra salia "Item sin nombre".
+    // Igual que resolveSupplier/resolveHeadquarter, si no se encuentra se
+    // devuelve el id igual, solo que sin nombre.
+    private RelatedEntityDTO resolveProduct(UUID productId, ItemType itemType) {
+        try {
+            String name = itemType == ItemType.SERVICE
+                    ? serviceService.getById(productId).getName()
+                    : productService.getById(productId, null).getName();
+            return new RelatedEntityDTO(productId, name);
+        } catch (RuntimeException _) {
+            return new RelatedEntityDTO(productId, null);
+        }
+    }
+
     private UUID currentPersonId() {
-        return UUID.fromString(SecurityContextHolder.getContext().getAuthentication().getName());
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new IllegalStateException("No hay un usuario autenticado en el contexto de seguridad.");
+        }
+        return UUID.fromString(authentication.getName());
     }
 
     private Purchase toEntity(PurchaseRequestDTO request, BigDecimal totalTaxes) {
@@ -202,11 +264,11 @@ public class PurchaseServiceImpl implements PurchaseService {
                 .supplierId(request.supplierId())
                 .purchaseNumber(request.purchaseNumber())
                 .headquarterId(request.headquarterId())
-                .hasDiscount(request.hasDiscount() == null ? false : request.hasDiscount())
-                .purchaseDate(LocalDateTime.now(ZoneId.of("America/Bogota")))
+                .hasDiscount(Boolean.TRUE.equals(request.hasDiscount()))
+                .purchaseDate(LocalDateTime.now(BOGOTA_ZONE))
                 .status(PurchaseStatus.PENDING)
-                .createdAt(LocalDateTime.now(ZoneId.of("America/Bogota")))
-                .updatedAt(LocalDateTime.now(ZoneId.of("America/Bogota")))
+                .createdAt(LocalDateTime.now(BOGOTA_ZONE))
+                .updatedAt(LocalDateTime.now(BOGOTA_ZONE))
                 .createdByPersonId(currentPersonId)
                 .updatedByPersonId(currentPersonId)
                 .subtotal(subtotal)
@@ -218,6 +280,10 @@ public class PurchaseServiceImpl implements PurchaseService {
 
     private PurchaseItem toItemEntity(PurchaseItemRequestDTO request) {
         PurchaseItem item = new PurchaseItem();
+        // El id se genera aqui, igual que el de la compra: el consumidor de
+        // ucopet-commercial-processor inserta el item con este mismo id, no
+        // llama a purchaseItemRepository.save() de este lado.
+        item.setId(UUID.randomUUID());
         item.setProductId(request.productId());
         item.setItemType(request.itemType());
         item.setQuantity(request.quantity());
@@ -237,7 +303,7 @@ public class PurchaseServiceImpl implements PurchaseService {
         return new PurchaseResponseDTO(
                 purchase.getId(),
                 purchase.getPurchaseNumber(),
-                new RelatedEntityDTO(purchase.getSupplierId(), null),
+                resolveSupplier(purchase.getSupplierId()),
                 items,
                 purchase.getPurchaseDate(),
                 purchase.getSubtotal(),
@@ -245,7 +311,7 @@ public class PurchaseServiceImpl implements PurchaseService {
                 purchase.getTotal(),
                 purchase.getStatus(),
                 purchase.getExpenseId(),
-                new RelatedEntityDTO(purchase.getHeadquarterId(), null),
+                resolveHeadquarter(purchase.getHeadquarterId()),
                 purchase.isHasDiscount(),
                 purchase.getCreatedAt(),
                 purchase.getUpdatedAt(),
@@ -256,7 +322,7 @@ public class PurchaseServiceImpl implements PurchaseService {
 
     private Item toItemDTO(PurchaseItem item) {
         return new Item(
-                new RelatedEntityDTO(item.getProductId(), null),
+                resolveProduct(item.getProductId(), item.getItemType()),
                 item.getItemType(),
                 item.getQuantity(),
                 item.getUnitPrice(),

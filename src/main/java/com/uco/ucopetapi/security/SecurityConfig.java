@@ -40,7 +40,7 @@ public class SecurityConfig {
     };
 
     private static final String[] NOTIFICATIONS = {
-            "/api/notifications", "/api/notifications/**"
+            "/api/v1/notifications", "/api/v1/notifications/**"
     };
 
     private static final String[] HEALTH = {
@@ -69,7 +69,7 @@ public class SecurityConfig {
 
     private static final String[] PAYMENTS = {
             "/api/invoices", "/api/invoices/**",
-            "/api/v1/Egresses", "/api/v1/newEgress", "/api/v1/metodosDePago",
+            "/api/v1/Egresses", "/api/v1/Egresses/**", "/api/v1/PayMethods", "/api/v1/PayMethods/**",
             "/api/v1/receipts", "/api/v1/receipts/**"
     };
 

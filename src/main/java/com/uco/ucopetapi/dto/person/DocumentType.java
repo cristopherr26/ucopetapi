@@ -6,7 +6,8 @@ public enum DocumentType {
     CE("Cedula de extranjeria"),
     PA("Pasaporte"),
     RC("Registro civil"),
-    PPT("Permiso por proteccion temporal");
+    PPT("Permiso por proteccion temporal"),
+    NIT("Numero de identificacion tributario");
 
     private final String descripcion;
 

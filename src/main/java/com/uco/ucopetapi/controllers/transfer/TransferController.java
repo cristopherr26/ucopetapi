@@ -56,9 +56,11 @@ public class TransferController {
 
     @PutMapping("/{id}")
     public ResponseEntity<TransferResponseDTO> updateTransfer(
+            Authentication authentication,
             @PathVariable UUID id,
             @Valid @RequestBody TransferRequestDTO transfer) {
-        return ResponseEntity.ok(transferService.updateTransfer(id, transfer));
+        UUID currentUserId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(transferService.updateTransfer(id, transfer, currentUserId));
     }
 
     @PatchMapping("/{id}/status")
