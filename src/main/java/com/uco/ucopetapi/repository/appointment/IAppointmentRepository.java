@@ -12,6 +12,9 @@ public interface IAppointmentRepository extends JpaRepository<AppointmentDomain,
 
     List<AppointmentDomain> findByTutorId(UUID tutorId);
 
+    // Para no dejar borrar un tipo de cita que ya tiene citas.
+    boolean existsByAppointmentTypeId(UUID appointmentTypeId);
+
     List<AppointmentDomain> findByTutorIdAndStatus(UUID tutorId, String status);
 
     // Cruce de horario al CREAR una cita. Las citas con el estado indicado (CANCELLED)
