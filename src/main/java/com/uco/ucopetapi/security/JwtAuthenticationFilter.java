@@ -24,22 +24,27 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    private static final String BEARER = "Bearer ";
+
     private final JwtService jwtService;
     private final PersonRepository personRepository;
+    private final AuthCookie authCookie;
 
-    public JwtAuthenticationFilter(JwtService jwtService, PersonRepository personRepository) {
+    public JwtAuthenticationFilter(JwtService jwtService, PersonRepository personRepository,
+                                   AuthCookie authCookie) {
         this.jwtService = jwtService;
         this.personRepository = personRepository;
+        this.authCookie = authCookie;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
-        String header = request.getHeader("Authorization");
+        Optional<String> token = tokenOf(request);
 
-        if (header != null && header.startsWith("Bearer ")) {
+        if (token.isPresent()) {
             try {
-                Claims claims = jwtService.validate(header.substring(7)).getPayload();
+                Claims claims = jwtService.validate(token.get()).getPayload();
 
                 Object raw = claims.get("tv");
                 Integer version = raw instanceof Number n ? n.intValue() : null;
@@ -71,5 +76,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         chain.doFilter(request, response);
+    }
+
+    private Optional<String> tokenOf(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header != null && header.startsWith(BEARER)) {
+            return Optional.of(header.substring(BEARER.length()));
+        }
+        return authCookie.read(request);
     }
 }

@@ -4,6 +4,7 @@ import com.uco.ucopetapi.domain.product.enums.ProductCategory;
 import com.uco.ucopetapi.domain.product.enums.TaxCategory;
 import com.uco.ucopetapi.dto.product.ProductDTO;
 import com.uco.ucopetapi.service.product.ProductService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,38 +23,32 @@ public class ProductController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ProductDTO>> list(
-            @RequestParam(required = false) ProductCategory category,
-            @RequestParam(required = false) Boolean active,
-            @RequestParam(required = false) Boolean sellable,
-            @RequestParam(required = false) TaxCategory taxCategory,
-            @RequestParam(required = false) UUID headquarterId
-    ) {
-        return ResponseEntity.ok(productService.list(category, active, sellable, taxCategory, headquarterId));
+    public List<ProductDTO> list(@RequestParam(required = false) ProductCategory category,
+                                 @RequestParam(required = false) Boolean active,
+                                 @RequestParam(required = false) Boolean sellable,
+                                 @RequestParam(required = false) TaxCategory taxCategory,
+                                 @RequestParam(required = false) UUID headquarterId) {
+        return productService.list(category, active, sellable, taxCategory, headquarterId);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProductDTO> getById(
-            @PathVariable UUID id,
-            @RequestParam(required = false) UUID headquarterId
-    ) {
-        return ResponseEntity.ok(productService.getById(id, headquarterId));
+    public ProductDTO getById(@PathVariable UUID id, @RequestParam(required = false) UUID headquarterId) {
+        return productService.getById(id, headquarterId);
     }
 
     @PostMapping
-    public ResponseEntity<ProductDTO> create(@RequestBody ProductDTO request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(productService.create(request));
+    public ResponseEntity<ProductDTO> create(@Valid @RequestBody ProductDTO product) {
+        return new ResponseEntity<>(productService.create(product), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProductDTO> update(@PathVariable UUID id, @RequestBody ProductDTO request) {
-        return ResponseEntity.ok(productService.update(id, request));
+    public ResponseEntity<ProductDTO> update(@PathVariable UUID id, @Valid @RequestBody ProductDTO product) {
+        return new ResponseEntity<>(productService.update(id, product), HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivate(@PathVariable UUID id) {
         productService.deactivate(id);
-        return ResponseEntity.noContent().build();
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
-
 }

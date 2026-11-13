@@ -2,7 +2,6 @@ package com.uco.ucopetapi.controllers.purchases;
 
 import com.uco.ucopetapi.domain.purchases.PurchaseStatus;
 import com.uco.ucopetapi.dto.purchases.LinkExpenseRequestDTO;
-import com.uco.ucopetapi.dto.purchases.PurchaseIdResponseDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseRequestDTO;
 import com.uco.ucopetapi.dto.purchases.PurchaseResponseDTO;
 import com.uco.ucopetapi.service.purchases.PurchaseService;
@@ -27,6 +26,8 @@ import java.util.UUID;
 @RequestMapping("api/v1/purchases")
 public class PurchaseController {
 
+    private static final int MAX_PAGE_SIZE = 100;
+
     private final PurchaseService purchaseService;
 
     public PurchaseController(PurchaseService purchaseService) {
@@ -48,7 +49,10 @@ public class PurchaseController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        // NUEVO: saneamos page y size antes de armar la paginación.
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.clamp(size, 1, MAX_PAGE_SIZE);
+        PageRequest pageable = PageRequest.of(safePage, safeSize, Sort.by("createdAt").descending());
         return ResponseEntity.ok(purchaseService.listPurchases(headquarterId, status, supplierId, pageable));
     }
 
@@ -60,7 +64,7 @@ public class PurchaseController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/lookup")
-    public ResponseEntity<PurchaseIdResponseDTO> findIdByPurchaseNumber(@RequestParam String purchaseNumber) {
+    public ResponseEntity<UUID> findIdByPurchaseNumber(@RequestParam String purchaseNumber) {
         return ResponseEntity.ok(purchaseService.findIdByPurchaseNumber(purchaseNumber));
     }
 

@@ -1,11 +1,11 @@
 package com.uco.ucopetapi.controllers.receipts;
 
+import com.uco.ucopetapi.dto.receipts.ReceiptAcceptedDTO;
 import com.uco.ucopetapi.dto.receipts.ReceiptRequestDTO;
 import com.uco.ucopetapi.dto.receipts.ReceiptResponseDTO;
 import com.uco.ucopetapi.dto.receipts.ReceiptStatus;
 import com.uco.ucopetapi.service.receipts.ReceiptService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -53,22 +53,21 @@ public class ReceiptController {
     }
 
     @PostMapping
-    public ResponseEntity<ReceiptResponseDTO> createNewReceipt(@RequestBody @Valid ReceiptRequestDTO request) {
-        ReceiptResponseDTO created = receiptService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    public ResponseEntity<ReceiptAcceptedDTO> createNewReceipt(@RequestBody @Valid ReceiptRequestDTO request) {
+        return ResponseEntity.accepted().body(receiptService.create(request));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ReceiptResponseDTO> updateReceipt(
+    public ResponseEntity<ReceiptAcceptedDTO> updateReceipt(
             @PathVariable UUID id,
             @RequestBody @Valid ReceiptRequestDTO request
     ) {
-        return ResponseEntity.ok(receiptService.update(id, request));
+        return ResponseEntity.accepted().body(receiptService.update(id, request));
     }
 
     @PutMapping("/{id}/cancel")
-    public ResponseEntity<ReceiptResponseDTO> cancelReceipt(@PathVariable UUID id) {
-        return ResponseEntity.ok(receiptService.cancel(id));
+    public ResponseEntity<ReceiptAcceptedDTO> cancelReceipt(@PathVariable UUID id) {
+        return ResponseEntity.accepted().body(receiptService.cancel(id));
     }
 
     @DeleteMapping("/{id}")
