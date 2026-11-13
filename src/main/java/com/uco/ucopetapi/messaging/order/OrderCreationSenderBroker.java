@@ -3,6 +3,7 @@ package com.uco.ucopetapi.messaging.order;
 import com.uco.ucopetapi.dto.order.OrderDTO;
 import com.uco.ucopetapi.util.MessageSender;
 import com.uco.ucopetapi.util.gson.MapperJsonObject;
+import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -31,7 +32,10 @@ public class OrderCreationSenderBroker implements MessageSender<OrderDTO> {
                 .orElseThrow(() -> new IllegalStateException(
                         "No fue posible serializar el mensaje de la orden"));
         rabbitTemplate.convertAndSend(exchangeName, routingKey, json, rabbitMessage -> {
+            rabbitMessage.getMessageProperties().setContentType(MessageProperties.CONTENT_TYPE_JSON);
             rabbitMessage.getMessageProperties().setMessageId(idMessage);
+            // El procesador lee este header para identificar el mensaje en sus logs
+            rabbitMessage.getMessageProperties().setHeader("idMensaje", idMessage);
             return rabbitMessage;
         });
     }
