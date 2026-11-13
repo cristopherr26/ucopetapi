@@ -29,7 +29,6 @@ public class PurchaseCreationSenderBroker implements MessageSender<Purchase> {
 
     @Override
     public void execute(Purchase message, String idMessage) {
-
         MessageProperties messageProperties = generateMessageProperties(idMessage);
 
         Optional<Message> messageBody = getMessageBody(message, messageProperties);

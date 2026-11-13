@@ -20,12 +20,16 @@ public class SpecialtieDoctorMapper {
     public SpecialtieDoctorDTO toDTO(SpecialtieDoctorDomain specialtieDoctor) {
         if (specialtieDoctor == null) return null;
         UUID doctorId = specialtieDoctor.getDoctor() != null ? specialtieDoctor.getDoctor().getId() : null;
-        return new SpecialtieDoctorDTO(specialtieDoctor.getId(), doctorId, specialtieDoctor.getIdSpecialtie());
+        return new SpecialtieDoctorDTO(
+                specialtieDoctor.getId(),
+                doctorId,
+                specialtieDoctor.getIdSpecialtie(),
+                specialtieDoctor.getHeadquarterId());
     }
 
     public SpecialtieDoctorDomain toDomain(SpecialtieDoctorDTO dto) {
         if (dto == null) return null;
         DoctorDomain doctor = dto.getDoctor() != null ? doctorService.findById(dto.getDoctor()) : null;
-        return new SpecialtieDoctorDomain(dto.getId(), doctor, dto.getSpecialtie());
+        return new SpecialtieDoctorDomain(dto.getId(), doctor, dto.getSpecialtie(), dto.getHeadquarterId());
     }
 }
