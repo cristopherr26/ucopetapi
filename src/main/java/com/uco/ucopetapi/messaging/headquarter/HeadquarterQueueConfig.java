@@ -28,7 +28,7 @@ public class HeadquarterQueueConfig {
         return save;
     }
 
-    private void setSave(Destiny save) {
+    public void setSave(Destiny save) {
         this.save = save;
     }
 
@@ -36,7 +36,7 @@ public class HeadquarterQueueConfig {
         return deactivate;
     }
 
-    private void setDeactivate(Destiny deactivate) {
+    public void setDeactivate(Destiny deactivate) {
         this.deactivate = deactivate;
     }
 }
