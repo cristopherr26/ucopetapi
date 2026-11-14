@@ -6,6 +6,7 @@ import com.uco.ucopetapi.domain.order.mapper.OrderMapper;
 import com.uco.ucopetapi.event.OrderStatusEvent;
 import com.uco.ucopetapi.messaging.order.OrderCreationSenderBroker;
 import com.uco.ucopetapi.repository.order.IOrderRepository;
+import com.uco.ucopetapi.repository.tutorPet.ITutorPetRepository;
 import com.uco.ucopetapi.service.order.exception.InvalidOrderRequestException;
 import com.uco.ucopetapi.service.order.exception.InvalidOrderStateException;
 import com.uco.ucopetapi.service.order.exception.OrderNotFoundException;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -25,13 +27,16 @@ public class OrderService implements IOrderService {
     private final ApplicationEventPublisher eventPublisher;
     private final OrderMapper orderMapper;
     private final OrderCreationSenderBroker creationSender;
+    private final ITutorPetRepository tutorPetRepository;
 
     public OrderService(IOrderRepository orderRepository, ApplicationEventPublisher eventPublisher,
-                        OrderMapper orderMapper, OrderCreationSenderBroker creationSender) {
+                        OrderMapper orderMapper, OrderCreationSenderBroker creationSender,
+                        ITutorPetRepository tutorPetRepository) {
         this.orderRepository = orderRepository;
         this.eventPublisher = eventPublisher;
         this.orderMapper = orderMapper;
         this.creationSender = creationSender;
+        this.tutorPetRepository = tutorPetRepository;
     }
 
     @Override
@@ -87,11 +92,13 @@ public class OrderService implements IOrderService {
         order.setState(isApproved ? OrderState.AUTHORIZED : OrderState.DENIED);
 
         OrderDomain orderSaved = orderRepository.save(order);
-        eventPublisher.publishEvent(new OrderStatusEvent(
-                order.getId(),
-                order.getTutorId(),
-                order.getIsAuthorized()
-        ));
+        Optional.ofNullable(order.getTutorId())
+                .flatMap(tutorPetRepository::findById)
+                .ifPresent(tutor -> eventPublisher.publishEvent(new OrderStatusEvent(
+                        order.getId(),
+                        tutor.getPerson().getId(),
+                        order.getIsAuthorized()
+                )));
         publishCreation(orderSaved);
         return orderSaved;
     }
