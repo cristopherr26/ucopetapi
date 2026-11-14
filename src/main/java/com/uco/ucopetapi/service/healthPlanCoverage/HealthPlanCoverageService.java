@@ -62,6 +62,7 @@ public class HealthPlanCoverageService {
 
         validatePercentage(dto.getCoveragePercentage());
         validateService(dto.getServiceId());
+        validateProcedure(dto.getProcedureId());
 
         boolean duplicated = coverageRepository
                 .existsByHealthPlan_IdAndServiceIdAndDeletedFalse(healthPlanId, dto.getServiceId());
@@ -101,7 +102,9 @@ public class HealthPlanCoverageService {
 
         healthPlanCoverage.setCoveragePercentage(dto.getCoveragePercentage());
         healthPlanCoverage.setCoverageLimit(dto.getCoverageLimit());
-        healthPlanCoverage.setProcedureId(dto.getProcedureId());
+        if (dto.getProcedureId() != null) {
+            healthPlanCoverage.setProcedureId(dto.getProcedureId());
+        }
 
         healthPlanCoverage = coverageRepository.save(healthPlanCoverage);
 
@@ -203,6 +206,12 @@ public class HealthPlanCoverageService {
     private void validatePercentage(Integer percentage) {
         if (percentage == null || percentage < 1 || percentage > 80) {
             throw new IllegalArgumentException("El porcentaje de cobertura debe estar entre 1 y 80.");
+        }
+    }
+
+    private void validateProcedure(UUID procedureId) {
+        if (procedureId == null) {
+            throw new IllegalArgumentException("El procedimiento de la cobertura es obligatorio.");
         }
     }
 
