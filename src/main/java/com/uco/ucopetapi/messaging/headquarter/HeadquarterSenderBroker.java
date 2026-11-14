@@ -2,7 +2,9 @@ package com.uco.ucopetapi.messaging.headquarter;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.uco.ucopetapi.config.headquarter.InstantTypeAdapter;
 import com.uco.ucopetapi.exception.BusinessException;
+import com.uco.ucopetapi.util.MessageSender;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.core.MessageDeliveryMode;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -11,7 +13,7 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 
 @Component
-public class HeadquarterSenderBroker implements HeadquarterCommandSender {
+public class HeadquarterSenderBroker implements MessageSender<HeadquarterCommand> {
 
     private static final String PUBLISH_ERROR_MSG =
             "No se pudo registrar la operación sobre la sede. Intente nuevamente.";
@@ -31,7 +33,7 @@ public class HeadquarterSenderBroker implements HeadquarterCommandSender {
 
     @Override
     public void execute(HeadquarterCommand command, String idMessage) {
-        HeadquarterQueueConfig.Destino destino = resolverDestino(command);
+        HeadquarterQueueConfig.Destiny destino = resolverDestino(command);
         String json = GSON.toJson(command);
 
         try {
@@ -41,6 +43,7 @@ public class HeadquarterSenderBroker implements HeadquarterCommandSender {
                     json,
                     mensaje -> {
                         mensaje.getMessageProperties().setMessageId(idMessage);
+                        mensaje.getMessageProperties().setHeader("idMensaje", idMessage);
                         mensaje.getMessageProperties()
                                .setDeliveryMode(MessageDeliveryMode.PERSISTENT);
                         return mensaje;
@@ -50,7 +53,7 @@ public class HeadquarterSenderBroker implements HeadquarterCommandSender {
         }
     }
 
-    private HeadquarterQueueConfig.Destino resolverDestino(HeadquarterCommand command) {
+    private HeadquarterQueueConfig.Destiny resolverDestino(HeadquarterCommand command) {
         return switch (command) {
             case SaveHeadquarterCommand ignored -> queueConfig.getSave();
             case DeactivateHeadquarterCommand ignored -> queueConfig.getDeactivate();
