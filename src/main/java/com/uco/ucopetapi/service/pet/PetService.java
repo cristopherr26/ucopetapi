@@ -95,11 +95,7 @@ public class PetService {
 
         validateFields(dto);
 
-        validateUUID(dto.getTutorId().toString());
-
-        validateUUID(dto.getHeadquarterId().toString());
-
-        validateUUID(dto.getPolicyId().toString());
+        validateReferences(dto);
 
         PetDomain pet = petMapper.toDomain(dto);
 
@@ -123,11 +119,7 @@ public class PetService {
 
         validateFields(dto);
 
-        validateUUID(dto.getTutorId().toString());
-
-        validateUUID(dto.getHeadquarterId().toString());
-
-        validateUUID(dto.getPolicyId().toString());
+        validateReferences(dto);
 
         existingPet.setName(dto.getName().trim());
         existingPet.setBirthDate(dto.getBirthDate());
@@ -232,13 +224,30 @@ public class PetService {
             );
         }
 
-        if (!breed.matches(TEXT_REGEX)) {
+        validateBreed(breed);
+    }
+
+    private void validateReferences(PetDTO dto) {
+
+        if (dto.getTutorId() == null) {
             throw new BusinessException(
-                    "La raza no puede contener espacios."
+                    "El tutor es obligatorio."
             );
         }
 
-        validateBreed(breed);
+        if (dto.getHeadquarterId() == null) {
+            throw new BusinessException(
+                    "La sede es obligatoria."
+            );
+        }
+
+        validateUUID(dto.getTutorId().toString());
+
+        validateUUID(dto.getHeadquarterId().toString());
+
+        if (dto.getPolicyId() != null) {
+            validateUUID(dto.getPolicyId().toString());
+        }
     }
 
     private void validateGenderField(String gender) {
