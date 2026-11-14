@@ -53,7 +53,7 @@ public class SpecialtieController {
         } catch (BusinessException e) {
             return ResponseEntity
                     .badRequest()
-                    .body(Map.of("message:", e.getMessage()));
+                    .body(Map.of("message", e.getMessage()));
         }
     }
 
@@ -69,7 +69,7 @@ public class SpecialtieController {
         } catch (BusinessException e) {
             return ResponseEntity
                     .badRequest()
-                    .body(Map.of("message:", e.getMessage()));
+                    .body(Map.of("message", e.getMessage()));
         }
     }
 }

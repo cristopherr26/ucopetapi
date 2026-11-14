@@ -15,7 +15,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/pets")
 public class PetController {
 
-    private static final String MESSAGE = "message:";
+    private static final String MESSAGE = "message";
 
     private final PetService petService;
 
