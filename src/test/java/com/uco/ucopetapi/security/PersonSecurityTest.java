@@ -356,7 +356,7 @@ class PersonSecurityTest {
             assertThat(call("POST", "/persons/login", credentials, null).statusCode())
                     .isEqualTo(401);
 
-            DoctorDomain row = new DoctorDomain(null, UUID.fromString(id), "MED-" + doc);
+            DoctorDomain row = new DoctorDomain(null, UUID.fromString(id), "MED-" + doc, UUID.randomUUID());
             doctorRepository.save(row);
             try {
                 var response = call("POST", "/persons/login", credentials, null);
