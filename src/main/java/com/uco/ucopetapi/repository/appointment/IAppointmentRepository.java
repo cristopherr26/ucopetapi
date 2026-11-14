@@ -12,6 +12,9 @@ public interface IAppointmentRepository extends JpaRepository<AppointmentDomain,
 
     List<AppointmentDomain> findByTutorId(UUID tutorId);
 
+    // Para no dejar borrar un tipo de cita que ya tiene citas.
+    boolean existsByAppointmentTypeId(UUID appointmentTypeId);
+
     List<AppointmentDomain> findByTutorIdAndStatus(UUID tutorId, String status);
 
     // Cruce de horario al CREAR una cita. Las citas con el estado indicado (CANCELLED)
@@ -20,6 +23,19 @@ public interface IAppointmentRepository extends JpaRepository<AppointmentDomain,
                                                                              LocalDate appointmentDate,
                                                                              LocalTime appointmentTime,
                                                                              String status);
+
+    // Una mascota no puede estar en dos citas a la vez (con cualquier medico). Las canceladas no cuentan.
+    boolean existsByPetIdAndAppointmentDateAndAppointmentTimeAndStatusNot(UUID petId,
+                                                                          LocalDate appointmentDate,
+                                                                          LocalTime appointmentTime,
+                                                                          String status);
+
+    // Igual que el anterior al ACTUALIZAR: se ignora la propia cita.
+    boolean existsByPetIdAndAppointmentDateAndAppointmentTimeAndIdNotAndStatusNot(UUID petId,
+                                                                                  LocalDate appointmentDate,
+                                                                                  LocalTime appointmentTime,
+                                                                                  UUID id,
+                                                                                  String status);
 
     // Cruce de horario al ACTUALIZAR: se ignora la propia cita y las canceladas
     boolean existsByDoctorIdAndAppointmentDateAndAppointmentTimeAndIdNotAndStatusNot(UUID doctorId,
