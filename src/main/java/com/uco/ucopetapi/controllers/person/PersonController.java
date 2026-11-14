@@ -50,7 +50,7 @@ public class PersonController {
 
     @GetMapping("/document-types")
     public List<DocumentTypeDTO> documentTypes() {
-        return Arrays.stream(DocumentType.values()).map(DocumentTypeDTO::de).toList();
+        return Arrays.stream(DocumentType.values()).filter(type -> type != DocumentType.NIT).map(DocumentTypeDTO::de).toList();
     }
 
     @GetMapping(params = {"documentType", "documentNumber"})

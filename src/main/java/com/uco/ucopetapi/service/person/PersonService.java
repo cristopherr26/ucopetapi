@@ -107,6 +107,7 @@ public class PersonService {
 
     @Transactional(readOnly = true)
     public PersonDTO create(PersonDTO person) {
+        validatePersonDocumentType(person);
         validateUniqueness(person, null);
 
         PersonMessageDTO message = toMessage(UUID.randomUUID(), person,
@@ -126,6 +127,7 @@ public class PersonService {
     @Transactional(readOnly = true)
     public PersonDTO update(UUID personId, PersonDTO person, boolean requestedByAdmin) {
         PersonDomain current = findOrThrow(personId);
+        validatePersonDocumentType(person);
         validateUniqueness(person, personId);
 
         // Solo un ADMIN puede cambiar el rol o el estado. Si quien edita no es ADMIN, se
@@ -319,6 +321,13 @@ public class PersonService {
             return false;
         }
         return passwordEncoder.matches(raw, stored);
+    }
+
+    private void validatePersonDocumentType(PersonDTO person) {
+        if (person.documentType() == DocumentType.NIT) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El NIT identifica empresas: una persona se registra con otro tipo de documento");
+        }
     }
 
     private void validateUniqueness(PersonDTO person, UUID personId) {
