@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.service.purchases;
 
+import com.uco.ucopetapi.domain.product.enums.StockMovementReason;
 import com.uco.ucopetapi.domain.purchases.ItemType;
 import com.uco.ucopetapi.domain.purchases.Purchase;
 import com.uco.ucopetapi.domain.purchases.PurchaseItem;
@@ -21,6 +22,7 @@ import com.uco.ucopetapi.service.headquarter.HeadquarterService;
 import com.uco.ucopetapi.service.person.PersonService;
 import com.uco.ucopetapi.service.product.ProductService;
 import com.uco.ucopetapi.service.product.ServiceService;
+import com.uco.ucopetapi.service.product.StockService;
 import com.uco.ucopetapi.service.provider.ProviderService;
 import com.uco.ucopetapi.service.purchases.exception.DuplicatePurchaseNumberException;
 import com.uco.ucopetapi.service.purchases.exception.PurchaseNotFoundException;
@@ -50,6 +52,7 @@ public class PurchaseServiceImpl implements PurchaseService {
     private final HeadquarterService headquarterService;
     private final ProductService productService;
     private final ServiceService serviceService;
+    private final StockService stockService;
     private final PurchaseCreationSenderBroker purchaseCreationSenderBroker;
     private final PurchaseDeactivationSenderBroker purchaseDeactivationSenderBroker;
     private static final ZoneId BOGOTA_ZONE = ZoneId.of("America/Bogota");
@@ -61,6 +64,7 @@ public class PurchaseServiceImpl implements PurchaseService {
                                 HeadquarterService headquarterService,
                                 ProductService productService,
                                 ServiceService serviceService,
+                                StockService stockService,
                                 PurchaseCreationSenderBroker purchaseCreationSenderBroker,
                                 PurchaseDeactivationSenderBroker purchaseDeactivationSenderBroker) {
         this.purchaseRepository = purchaseRepository;
@@ -70,6 +74,7 @@ public class PurchaseServiceImpl implements PurchaseService {
         this.headquarterService = headquarterService;
         this.productService = productService;
         this.serviceService = serviceService;
+        this.stockService = stockService;
         this.purchaseCreationSenderBroker = purchaseCreationSenderBroker;
         this.purchaseDeactivationSenderBroker = purchaseDeactivationSenderBroker;
     }
@@ -136,11 +141,20 @@ public class PurchaseServiceImpl implements PurchaseService {
             throw new PurchaseStateConflictException(
                     "Solo se puede recibir una compra en estado PENDING. Estado actual: " + purchase.getStatus());
         }
+        addReceivedItemsToStock(purchase);
         purchase.setStatus(PurchaseStatus.RECEIVED);
         purchase.setUpdatedAt(LocalDateTime.now(BOGOTA_ZONE));
         purchase.setUpdatedByPersonId(currentPersonId());
         Purchase saved = purchaseRepository.save(purchase);
         return toResponseDTO(saved);
+    }
+
+    private void addReceivedItemsToStock(Purchase purchase) {
+        purchaseItemRepository.findByPurchaseId(purchase.getId()).stream()
+                .filter(item -> item.getItemType() == ItemType.PRODUCT)
+                .forEach(item -> stockService.adjustStock(item.getProductId(), purchase.getHeadquarterId(),
+                        item.getQuantity(), StockMovementReason.PURCHASE,
+                        "Compra " + purchase.getPurchaseNumber()));
     }
 
     @Override
