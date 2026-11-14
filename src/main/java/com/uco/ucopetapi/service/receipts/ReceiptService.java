@@ -1,6 +1,5 @@
 package com.uco.ucopetapi.service.receipts;
 
-
 import com.uco.ucopetapi.domain.payMethod.PayMethodDomain;
 import com.uco.ucopetapi.domain.receipts.ReceiptDomain;
 import com.uco.ucopetapi.dto.receipts.ReceiptAcceptedDTO;
@@ -56,7 +55,7 @@ public class ReceiptService {
 
     @Transactional(readOnly = true)
     public List<ReceiptResponseDTO> findByFilter(final UUID tutorId, final ReceiptStatus state) {
-        List<ReceiptDomain> receipts;
+        final List<ReceiptDomain> receipts;
         if (tutorId != null && state != null) {
             receipts = receiptRepository.findByTutorIdAndState(tutorId, state);
         } else if (tutorId != null) {
@@ -80,23 +79,19 @@ public class ReceiptService {
         return receiptRepository.sumAmountByStateAndDateBetween(ReceiptStatus.ACTIVE, startDate, endDate);
     }
 
+    @Transactional(readOnly = true)
     public ReceiptAcceptedDTO create(final ReceiptRequestDTO request) {
-        validateAmount(request.amount());
-        validateConcept(request.concept());
-        if (request.tutorId() == null) {
-            throw new ReceiptValidationException("El tutor es obligatorio");
-        }
+        validateRequest(request);
         final PayMethodDomain payMethod = resolvePayMethod(request.payMethodId());
+        final LocalDateTime date = resolveDate(request.date());
 
-        final LocalDateTime date = request.date() != null ? request.date() : LocalDateTime.now(ZONE);
-        validateDateNotInFuture(date);
-
-        // Instancia nueva: NUNCA se guarda, solo viaja en el mensaje.
+        // Instancia nueva: la API no la guarda, solo viaja en el mensaje.
+        // El número y el estado definitivos los asigna el procesador.
         final ReceiptDomain receipt = ReceiptDomain.builder()
                 .id(UUID.randomUUID())
                 .tutorId(request.tutorId())
                 .petId(request.petId())
-                .concept(request.concept())
+                .concept(request.concept().trim())
                 .amount(request.amount())
                 .payMethod(detached(payMethod))
                 .date(date)
@@ -111,41 +106,21 @@ public class ReceiptService {
     @Transactional(readOnly = true)
     public ReceiptAcceptedDTO update(final UUID id, final ReceiptRequestDTO request) {
         final ReceiptDomain current = getOrThrow(id);
-
         if (current.getState() == ReceiptStatus.CANCELLED) {
-            throw new ReceiptValidationException("No se puede modificar un recibo anulado: " + id);
+            throw new ReceiptStateConflictException("No se puede modificar un recibo anulado");
         }
 
-        String concept = current.getConcept();
-        if (request.concept() != null) {
-            validateConcept(request.concept());
-            concept = request.concept();
-        }
+        validateRequest(request);
+        final PayMethodDomain payMethod = resolvePayMethod(request.payMethodId());
+        final LocalDateTime date = request.date() != null ? resolveDate(request.date()) : current.getDate();
 
-        BigDecimal amount = current.getAmount();
-        if (request.amount() != null) {
-            validateAmount(request.amount());
-            amount = request.amount();
-        }
-
-        LocalDateTime date = current.getDate();
-        if (request.date() != null) {
-            validateDateNotInFuture(request.date());
-            date = request.date();
-        }
-
-        final UUID payMethodId = request.payMethodId() != null
-                ? request.payMethodId()
-                : current.getPayMethod().getId();
-        final PayMethodDomain payMethod = resolvePayMethod(payMethodId);
-
-        // Instancia nueva con el estado final; la entidad cargada no se toca.
+        // Instancia nueva con el estado final; la entidad cargada no se modifica.
         final ReceiptDomain receipt = ReceiptDomain.builder()
                 .id(id)
-                .tutorId(request.tutorId() != null ? request.tutorId() : current.getTutorId())
+                .tutorId(request.tutorId())
                 .petId(request.petId())
-                .concept(concept)
-                .amount(amount)
+                .concept(request.concept().trim())
+                .amount(request.amount())
                 .payMethod(detached(payMethod))
                 .date(date)
                 .state(ReceiptStatus.ACTIVE)
@@ -159,9 +134,8 @@ public class ReceiptService {
     @Transactional(readOnly = true)
     public ReceiptAcceptedDTO cancel(final UUID id) {
         final ReceiptDomain current = getOrThrow(id);
-
         if (current.getState() == ReceiptStatus.CANCELLED) {
-            throw new ReceiptValidationException("El recibo ya está anulado: " + id);
+            throw new ReceiptStateConflictException("El recibo ya está anulado");
         }
 
         final ReceiptDomain receipt = ReceiptDomain.builder()
@@ -174,49 +148,45 @@ public class ReceiptService {
         return new ReceiptAcceptedDTO(id, idMessage);
     }
 
-    private PayMethodDomain resolvePayMethod(final UUID payMethodId) {
-        return payMethodRepository.findById(payMethodId)
-                .orElseThrow(() -> new ReceiptValidationException("El método de pago no existe: " + payMethodId));
+    private void validateRequest(final ReceiptRequestDTO request) {
+        if (request.tutorId() == null) {
+            throw new ReceiptValidationException("El tutor es obligatorio");
+        }
+        if (request.concept() == null || request.concept().isBlank()) {
+            throw new ReceiptValidationException("El concepto del recibo es obligatorio");
+        }
+        if (request.amount() == null || request.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ReceiptValidationException("El valor del recibo debe ser mayor a cero");
+        }
     }
 
-    // Copia suelta (sin proxy de Hibernate) para poder serializarla.
+    private LocalDateTime resolveDate(final LocalDateTime requested) {
+        final LocalDateTime now = LocalDateTime.now(ZONE);
+        if (requested == null) {
+            return now;
+        }
+        if (requested.isAfter(now)) {
+            throw new ReceiptValidationException("La fecha del recibo no puede ser futura");
+        }
+        return requested;
+    }
+
+    private PayMethodDomain resolvePayMethod(final UUID payMethodId) {
+        if (payMethodId == null) {
+            throw new ReceiptValidationException("El método de pago es obligatorio");
+        }
+        return payMethodRepository.findById(payMethodId)
+                .orElseThrow(() -> new ReceiptValidationException("El método de pago no existe"));
+    }
+
+    // Copia suelta (sin proxy de Hibernate) para poder serializarla en el mensaje.
     private PayMethodDomain detached(final PayMethodDomain payMethod) {
         return new PayMethodDomain(payMethod.getId(), payMethod.getName());
-    }
-
-    public void delete(final UUID id) {
-        getOrThrow(id);
-        throw new ReceiptValidationException(
-                "Los recibos de caja no se eliminan, se anulan. Usa cancelReceipt(" + id + ") en su lugar.");
     }
 
     private ReceiptDomain getOrThrow(final UUID id) {
         return receiptRepository.findById(id)
                 .orElseThrow(() -> new ReceiptNotFoundException(id));
-    }
-
-    private void validatePayMethodExists(final UUID payMethodId) {
-        if (payMethodId == null || !payMethodRepository.existsById(payMethodId)) {
-            throw new ReceiptValidationException("El método de pago no existe: " + payMethodId);
-        }
-    }
-
-    private void validateAmount(final BigDecimal amount) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new ReceiptValidationException("El valor del recibo debe ser mayor a cero");
-        }
-    }
-
-    private void validateConcept(final String concept) {
-        if (concept == null || concept.isBlank()) {
-            throw new ReceiptValidationException("El concepto del recibo es obligatorio");
-        }
-    }
-
-    private void validateDateNotInFuture(final LocalDateTime date) {
-        if (date.isAfter(LocalDateTime.now(ZONE))) {
-            throw new ReceiptValidationException("La fecha del recibo no puede ser futura");
-        }
     }
 
     private ReceiptResponseDTO toResponse(final ReceiptDomain receipt) {
