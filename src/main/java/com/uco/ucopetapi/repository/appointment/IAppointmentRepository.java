@@ -24,6 +24,19 @@ public interface IAppointmentRepository extends JpaRepository<AppointmentDomain,
                                                                              LocalTime appointmentTime,
                                                                              String status);
 
+    // Una mascota no puede estar en dos citas a la vez (con cualquier medico). Las canceladas no cuentan.
+    boolean existsByPetIdAndAppointmentDateAndAppointmentTimeAndStatusNot(UUID petId,
+                                                                          LocalDate appointmentDate,
+                                                                          LocalTime appointmentTime,
+                                                                          String status);
+
+    // Igual que el anterior al ACTUALIZAR: se ignora la propia cita.
+    boolean existsByPetIdAndAppointmentDateAndAppointmentTimeAndIdNotAndStatusNot(UUID petId,
+                                                                                  LocalDate appointmentDate,
+                                                                                  LocalTime appointmentTime,
+                                                                                  UUID id,
+                                                                                  String status);
+
     // Cruce de horario al ACTUALIZAR: se ignora la propia cita y las canceladas
     boolean existsByDoctorIdAndAppointmentDateAndAppointmentTimeAndIdNotAndStatusNot(UUID doctorId,
                                                                                      LocalDate appointmentDate,

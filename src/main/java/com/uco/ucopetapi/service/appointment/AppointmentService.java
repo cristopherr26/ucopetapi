@@ -31,6 +31,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -134,8 +135,17 @@ public class AppointmentService {
             return Optional.empty();
         }
 
+        // Una cita completada ya se atendio: queda como historial y no se vuelve a editar.
+        if (COMPLETED_STATUS.equals(stored.get().getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Una cita completada no se puede modificar");
+        }
+
         AppointmentDomain appointment = toDomain(appointmentDTO);
         validateAppointment(appointment, id, stored.get());
+        if (!Objects.equals(stored.get().getStatus(), appointment.getStatus())) {
+            validateStatusTransition(stored.get(), appointment.getStatus());
+        }
         appointment.setId(id);
         return Optional.of(publishSave(appointment));
     }
@@ -162,6 +172,7 @@ public class AppointmentService {
         candidate.setId(id);
         updateStatusFields(candidate, appointmentStatusDTO);
         validateStatusRules(candidate, id);
+        validateStatusTransition(current.get(), candidate.getStatus());
         validateScheduleWhenReactivated(current.get(), current.get().getStatus(), candidate.getStatus());
         return Optional.of(publishStatus(candidate));
     }
@@ -269,10 +280,70 @@ public class AppointmentService {
                                      AppointmentDomain stored) {
         validateRequiredSchedule(appointment, stored);
         validateStatusRules(appointment, currentAppointmentId);
-        validateRelationships(appointment);
-        // Una cita cancelada no ocupa el horario del medico, asi que no compite por el.
+        if (stored == null) {
+            validateInitialStatus(appointment);
+        }
+        validateRelationships(appointment, stored);
+        // Una cita cancelada no ocupa el horario del medico ni de la mascota, asi que no compite por el.
         if (!CANCELLED_STATUS.equals(appointment.getStatus())) {
-            validateDoctorScheduleAvailability(appointment, currentAppointmentId);
+            validateScheduleAvailability(appointment, currentAppointmentId);
+        }
+    }
+
+    // Una cita nueva nace pendiente o confirmada: no tiene sentido crearla ya completada o cancelada.
+    private void validateInitialStatus(AppointmentDomain appointment) {
+        if (COMPLETED_STATUS.equals(appointment.getStatus()) || CANCELLED_STATUS.equals(appointment.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Una cita nueva solo puede crearse como PENDING o CONFIRMED");
+        }
+    }
+
+    // Reglas del cambio de estado, segun el estado actual y la fecha y hora de la cita:
+    //   PENDING   -> CONFIRMED (solo si no ha pasado), CANCELLED
+    //   CONFIRMED -> COMPLETED (solo si ya llego la hora), CANCELLED
+    //   CANCELLED -> PENDING o CONFIRMED (reactivar, solo si no ha pasado)
+    //   COMPLETED -> nada
+    // Pedir el mismo estado que ya tiene no se rechaza (un reintento no debe fallar).
+    private void validateStatusTransition(AppointmentDomain current, String newStatus) {
+        String previous = current.getStatus();
+        if (newStatus == null || newStatus.equals(previous)) {
+            return;
+        }
+        if (COMPLETED_STATUS.equals(previous)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Una cita completada no puede cambiar de estado");
+        }
+
+        LocalDateTime now = LocalDateTime.now(APPLICATION_ZONE_ID).truncatedTo(ChronoUnit.MINUTES);
+        boolean hasSchedule = current.getAppointmentDate() != null && current.getAppointmentTime() != null;
+        LocalDateTime start = hasSchedule
+                ? LocalDateTime.of(current.getAppointmentDate(), current.getAppointmentTime())
+                        .truncatedTo(ChronoUnit.MINUTES)
+                : null;
+
+        if (COMPLETED_STATUS.equals(newStatus)) {
+            if (!CONFIRMED_STATUS.equals(previous)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Solo se puede completar una cita confirmada");
+            }
+            if (start != null && start.isAfter(now)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "No se puede completar una cita antes de su fecha y hora");
+            }
+        } else if (CONFIRMED_STATUS.equals(newStatus)) {
+            if (start != null && start.isBefore(now)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "No se puede confirmar una cita cuya fecha y hora ya pasaron");
+            }
+        } else if (PENDING_STATUS.equals(newStatus)) {
+            if (CONFIRMED_STATUS.equals(previous)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Una cita confirmada no puede volver a pendiente");
+            }
+            if (start != null && start.isBefore(now)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "No se puede reactivar una cita cuya fecha y hora ya pasaron");
+            }
         }
     }
 
@@ -280,7 +351,7 @@ public class AppointmentService {
     private void validateScheduleWhenReactivated(AppointmentDomain appointment, String previousStatus,
                                                  String newStatus) {
         if (CANCELLED_STATUS.equals(previousStatus) && !CANCELLED_STATUS.equals(newStatus)) {
-            validateDoctorScheduleAvailability(appointment, appointment.getId());
+            validateScheduleAvailability(appointment, appointment.getId());
         }
     }
 
@@ -359,27 +430,30 @@ public class AppointmentService {
         }
     }
 
-    private void validateRelationships(AppointmentDomain appointment) {
-        validateDoctor(appointment.getDoctorId());
-        validateTutorAndPet(appointment.getTutorId(), appointment.getPetId());
+    private void validateRelationships(AppointmentDomain appointment, AppointmentDomain stored) {
+        DoctorDomain doctor = validateDoctor(appointment.getDoctorId());
+        validateTutorAndPet(appointment.getTutorId(), appointment.getPetId(), doctor, stored);
         validateAppointmentType(appointment.getAppointmentTypeId());
     }
 
-    private void validateDoctor(UUID doctorId) {
+    private DoctorDomain validateDoctor(UUID doctorId) {
         if (doctorId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "El doctorId es obligatorio para crear una cita");
         }
 
         try {
-            doctorService.findById(doctorId);
+            return doctorService.findById(doctorId);
         } catch (BusinessException | NoSuchElementException _) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "No existe un medico con el id indicado");
         }
     }
 
-    private void validateTutorAndPet(UUID tutorId, UUID petId) {
+    // "stored" es la cita guardada (null al crear). Las reglas de mascota inactiva, sede y autocita solo se
+    // exigen cuando la cita es nueva o cambia el medico o la mascota: asi se pueden seguir editando citas
+    // viejas sin que una regla posterior las bloquee.
+    private void validateTutorAndPet(UUID tutorId, UUID petId, DoctorDomain doctor, AppointmentDomain stored) {
         if (tutorId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "El tutorId es obligatorio para crear una cita");
@@ -409,6 +483,26 @@ public class AppointmentService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "La mascota indicada no pertenece al tutor de la cita");
         }
+
+        boolean sameDoctorAndPet = stored != null
+                && doctor.getId().equals(stored.getDoctorId())
+                && petId.equals(stored.getPetId());
+        if (sameDoctorAndPet) {
+            return;
+        }
+        if (tutor.getPerson() != null && tutor.getPerson().equals(doctor.getIdPerson())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Un medico no puede agendarse citas para sus propias mascotas");
+        }
+        if (Boolean.FALSE.equals(pet.isActive())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La mascota indicada no esta activa");
+        }
+        if (pet.getHeadquarterId() != null && doctor.getHeadquarterId() != null
+                && !pet.getHeadquarterId().equals(doctor.getHeadquarterId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La mascota y el medico deben ser de la misma sede");
+        }
     }
 
     private void validateAppointmentType(UUID appointmentTypeId) {
@@ -423,6 +517,31 @@ public class AppointmentService {
         if (!appointmentTypeService.isActive(appointmentTypeId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "El tipo de cita indicado no esta activo");
+        }
+    }
+
+    private void validateScheduleAvailability(AppointmentDomain appointment, UUID currentAppointmentId) {
+        validateDoctorScheduleAvailability(appointment, currentAppointmentId);
+        validatePetScheduleAvailability(appointment, currentAppointmentId);
+    }
+
+    private void validatePetScheduleAvailability(AppointmentDomain appointment, UUID currentAppointmentId) {
+        boolean scheduleTaken = currentAppointmentId == null
+                ? appointmentRepository.existsByPetIdAndAppointmentDateAndAppointmentTimeAndStatusNot(
+                        appointment.getPetId(),
+                        appointment.getAppointmentDate(),
+                        appointment.getAppointmentTime(),
+                        CANCELLED_STATUS)
+                : appointmentRepository.existsByPetIdAndAppointmentDateAndAppointmentTimeAndIdNotAndStatusNot(
+                        appointment.getPetId(),
+                        appointment.getAppointmentDate(),
+                        appointment.getAppointmentTime(),
+                        currentAppointmentId,
+                        CANCELLED_STATUS);
+
+        if (scheduleTaken) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "La mascota ya tiene una cita programada para esa fecha y hora");
         }
     }
 
