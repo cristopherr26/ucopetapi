@@ -36,7 +36,9 @@ public class AttentionHealthCreationSenderBroker implements MessageSender<Attent
                 .setHeader("idMensaje", idMessage)
                 .build();
 
-        Optional<Message> body = mapperJsonObject.executeGson(message)
+        // AttentionHealth contains LocalDateTime fields. Use the shared Jackson
+        // serializer so those fields are encoded without reflective Gson errors.
+        Optional<Message> body = mapperJsonObject.execute(message)
                 .map(json -> MessageBuilder.withBody(json.getBytes(StandardCharsets.UTF_8))
                         .andProperties(properties)
                         .build());
