@@ -44,7 +44,7 @@ public class SecurityConfig {
     private static final String PETS = "/api/v1/pets";
 
     private static final String[] HEADQUARTERS = {
-            "/api/headquarter", "/api/headquarter/**"
+            "/api/v1/headquarter", "/api/v1/headquarter/**"
     };
 
     private static final String[] HEALTH_PLANS = {
@@ -71,11 +71,12 @@ public class SecurityConfig {
     private static final String[] COMMERCIAL = {
             "/api/v1/healthplans", "/api/v1/healthplans/**",
             "/api/v1/providers", "/api/v1/providers/**",
-            "/api/v1/purchases", "/api/v1/purchases/**"
+            "/api/v1/purchases", "/api/v1/purchases/**",
+            "/api/v1/sales", "/api/v1/sales/**"
     };
 
     private static final String[] INVENTORY = {
-            "/api/headquarter", "/api/headquarter/**",
+            "/api/v1/headquarter", "/api/v1/headquarter/**",
             "/api/transfers", "/api/transfers/**"
     };
 

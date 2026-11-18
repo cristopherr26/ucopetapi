@@ -367,6 +367,9 @@ class PersonSecurityTest {
                 assertThat(call("GET", "/persons", null, herToken).statusCode()).isEqualTo(200);
                 assertThat(call("GET", "/episodes", null, herToken).statusCode()).isEqualTo(200);
                 assertThat(call("GET", "/healthplans", null, herToken).statusCode()).isEqualTo(200);
+                assertThat(call("GET", "/headquarter", null, herToken).statusCode()).isEqualTo(200);
+                assertThat(call("POST", "/headquarter", "{}", herToken).statusCode()).isEqualTo(403);
+                assertThat(call("POST", "/sales", "{}", herToken).statusCode()).isEqualTo(403);
                 HttpResponse<String> created = call("POST", "/persons",
                         personJson("93999999", "otra").replace("\"admin\":false", "\"admin\":true"),
                         herToken);
