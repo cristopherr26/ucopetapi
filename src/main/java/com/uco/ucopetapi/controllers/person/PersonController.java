@@ -75,8 +75,11 @@ public class PersonController {
     }
 
     @PostMapping
-    public ResponseEntity<PersonDTO> create(@Valid @RequestBody PersonDTO person) {
-        return new ResponseEntity<>(personService.create(person), HttpStatus.CREATED);
+    public ResponseEntity<PersonDTO> create(@Valid @RequestBody PersonDTO person,
+                                            Authentication authentication) {
+        boolean requestedByAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> Role.ADMIN.authority().equals(a.getAuthority()));
+        return new ResponseEntity<>(personService.create(person, requestedByAdmin), HttpStatus.CREATED);
     }
 
     @PreAuthorize("hasRole('ADMIN') or #personId.toString() == authentication.name")

@@ -166,6 +166,36 @@ class PersonServiceTest {
     }
 
     @Nested
+    @DisplayName("Crear una persona (publica en la cola, no guarda)")
+    class Create {
+
+        @Test
+        @DisplayName("si quien crea no es ADMIN, la persona sale sin rol aunque pida admin")
+        void nonAdminCannotCreateAdmins() {
+            PersonDTO wantsAdmin = new PersonDTO(null, DocumentType.CC, "10203040", "Ana", "Prueba",
+                    EMAIL, null, null, true, true, null);
+
+            PersonDTO result = service.create(wantsAdmin, false);
+
+            ArgumentCaptor<PersonMessageDTO> captor = ArgumentCaptor.forClass(PersonMessageDTO.class);
+            verify(creationSender).execute(captor.capture(), anyString());
+            assertThat(captor.getValue().admin()).isFalse();
+            assertThat(result.admin()).isFalse();
+        }
+
+        @Test
+        @DisplayName("el ADMIN si puede crear otro administrador")
+        void adminCanCreateAdmins() {
+            PersonDTO wantsAdmin = new PersonDTO(null, DocumentType.CC, "10203040", "Ana", "Prueba",
+                    EMAIL, null, null, true, true, null);
+
+            PersonDTO result = service.create(wantsAdmin, true);
+
+            assertThat(result.admin()).isTrue();
+        }
+    }
+
+    @Nested
     @DisplayName("Correo")
     class Email {
 

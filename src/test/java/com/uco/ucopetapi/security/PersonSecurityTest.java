@@ -341,7 +341,7 @@ class PersonSecurityTest {
     class DoctorRole {
 
         @Test
-        @DisplayName("sin fila en doctors no entra; con fila entra como DOCTOR")
+        @DisplayName("sin fila en doctors no entra; con fila entra como DOCTOR y crea personas sin rol")
         void elRolApareceConLaFila() throws Exception {
             String doc = "9300" + System.currentTimeMillis() % 10000;
             String email = "medica." + doc + "@ucopet.com";
@@ -366,8 +366,16 @@ class PersonSecurityTest {
                 String herToken = field(response.body(), "token");
                 assertThat(call("GET", "/persons", null, herToken).statusCode()).isEqualTo(200);
                 assertThat(call("GET", "/episodes", null, herToken).statusCode()).isEqualTo(200);
-                assertThat(call("POST", "/persons", personJson("93999999", "otra"), herToken)
-                        .statusCode()).isEqualTo(403);
+                HttpResponse<String> created = call("POST", "/persons",
+                        personJson("93999999", "otra").replace("\"admin\":false", "\"admin\":true"),
+                        herToken);
+                assertThat(created.statusCode()).isEqualTo(201);
+                assertThat(created.body()).contains("\"admin\":false");
+                String createdId = field(created.body(), "id");
+                waitUntilSaved(createdId);
+                call("DELETE", "/persons/" + createdId, null, adminToken);
+                assertThat(call("DELETE", "/persons/" + id, null, herToken).statusCode())
+                        .isEqualTo(403);
                 assertThat(call("GET", "/purchases", null, herToken).statusCode()).isEqualTo(403);
             } finally {
                 doctorRepository.delete(row);
@@ -556,4 +564,4 @@ class PersonSecurityTest {
         int from = json.indexOf("\"" + name + "\":\"") + name.length() + 4;
         return json.substring(from, json.indexOf('"', from));
     }
-}
+}

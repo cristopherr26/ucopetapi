@@ -107,11 +107,16 @@ public class PersonService {
 
     @Transactional(readOnly = true)
     public PersonDTO create(PersonDTO person) {
+        return create(person, true);
+    }
+
+    @Transactional(readOnly = true)
+    public PersonDTO create(PersonDTO person, boolean requestedByAdmin) {
         validatePersonDocumentType(person);
         validateUniqueness(person, null);
 
         PersonMessageDTO message = toMessage(UUID.randomUUID(), person,
-                Boolean.TRUE.equals(person.admin()), true);
+                requestedByAdmin && Boolean.TRUE.equals(person.admin()), true);
         personCreationSenderBroker.execute(message, UUID.randomUUID().toString());
 
         return new PersonDTO(message.id(), message.documentType(), message.documentNumber(),

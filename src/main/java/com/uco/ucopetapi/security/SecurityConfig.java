@@ -39,6 +39,8 @@ public class SecurityConfig {
             "/api/v1/tutorPet", "/api/v1/tutorPet/**"
     };
 
+    private static final String TUTORS = "/api/v1/tutorPet";
+
     private static final String[] NOTIFICATIONS = {
             "/api/v1/notifications", "/api/v1/notifications/**"
     };
@@ -103,7 +105,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, PERSONS + "/login").permitAll()
                         .requestMatchers(HttpMethod.GET, PERSONS + "/me").authenticated()
                         .requestMatchers(HttpMethod.POST, PERSONS + "/logout").authenticated()
-                        .requestMatchers(HttpMethod.POST, PERSONS).hasRole(Role.ADMIN.name())
+                        .requestMatchers(HttpMethod.POST, PERSONS)
+                        .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
                         .requestMatchers(HttpMethod.DELETE, PERSONS_ALL).hasRole(Role.ADMIN.name())
                         .requestMatchers(HttpMethod.GET, PERSONS, PERSONS_ALL)
                         .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
@@ -111,6 +114,8 @@ public class SecurityConfig {
 
                         .requestMatchers(NOTIFICATIONS).authenticated()
                         .requestMatchers(HttpMethod.GET, USERS)
+                        .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
+                        .requestMatchers(HttpMethod.POST, TUTORS)
                         .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
                         .requestMatchers(USERS).hasRole(Role.ADMIN.name())
 
