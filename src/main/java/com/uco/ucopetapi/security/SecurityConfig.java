@@ -41,6 +41,16 @@ public class SecurityConfig {
 
     private static final String TUTORS = "/api/v1/tutorPet";
 
+    private static final String PETS = "/api/v1/pets";
+
+    private static final String[] HEADQUARTERS = {
+            "/api/headquarter", "/api/headquarter/**"
+    };
+
+    private static final String[] HEALTH_PLANS = {
+            "/api/v1/healthplans", "/api/v1/healthplans/**"
+    };
+
     private static final String[] NOTIFICATIONS = {
             "/api/v1/notifications", "/api/v1/notifications/**"
     };
@@ -115,13 +125,17 @@ public class SecurityConfig {
                         .requestMatchers(NOTIFICATIONS).authenticated()
                         .requestMatchers(HttpMethod.GET, USERS)
                         .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
-                        .requestMatchers(HttpMethod.POST, TUTORS)
+                        .requestMatchers(HttpMethod.POST, TUTORS, PETS)
                         .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
                         .requestMatchers(USERS).hasRole(Role.ADMIN.name())
 
                         .requestMatchers(HEALTH)
                         .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
 
+                        .requestMatchers(HttpMethod.GET, HEALTH_PLANS)
+                        .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
+                        .requestMatchers(HttpMethod.GET, HEADQUARTERS)
+                        .hasAnyRole(Role.ADMIN.name(), Role.DOCTOR.name())
                         .requestMatchers(COMMERCIAL).hasRole(Role.ADMIN.name())
                         .requestMatchers(INVENTORY).hasRole(Role.ADMIN.name())
                         .requestMatchers(PAYMENTS).hasRole(Role.ADMIN.name())

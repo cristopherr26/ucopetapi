@@ -366,6 +366,7 @@ class PersonSecurityTest {
                 String herToken = field(response.body(), "token");
                 assertThat(call("GET", "/persons", null, herToken).statusCode()).isEqualTo(200);
                 assertThat(call("GET", "/episodes", null, herToken).statusCode()).isEqualTo(200);
+                assertThat(call("GET", "/healthplans", null, herToken).statusCode()).isEqualTo(200);
                 HttpResponse<String> created = call("POST", "/persons",
                         personJson("93999999", "otra").replace("\"admin\":false", "\"admin\":true"),
                         herToken);
