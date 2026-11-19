@@ -39,17 +39,29 @@ public class MapperJsonObjectJackson implements MapperJsonObject{
     public Optional<String> executeGson(Object object) {
         try {
             Gson gson = new GsonBuilder().serializeNulls()
-                    .registerTypeAdapter(LocalDateTime.class, new JsonDeserializer<LocalDateTime>() {
-                        @Override
-                        public LocalDateTime deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-                            return LocalDateTime.parse(json.getAsString(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-                        }
-                    })
+                    .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
                     .create();
             String newObject = gson.toJson(object);
             return Optional.ofNullable(newObject);
         } catch (Exception _) {
             return Optional.empty();
+        }
+    }
+
+    private static final class LocalDateTimeAdapter
+            implements JsonSerializer<LocalDateTime>, JsonDeserializer<LocalDateTime> {
+
+        @Override
+        public JsonElement serialize(final LocalDateTime value, final Type typeOfSrc,
+                                     final JsonSerializationContext context) {
+            return new JsonPrimitive(value.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        }
+
+        @Override
+        public LocalDateTime deserialize(final JsonElement json, final Type typeOfT,
+                                         final JsonDeserializationContext context)
+                throws JsonParseException {
+            return LocalDateTime.parse(json.getAsString(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
         }
     }
 }

@@ -7,6 +7,7 @@ import com.uco.ucopetapi.domain.order.mapper.OrderMapper;
 import com.uco.ucopetapi.dto.attentionhealth.AttentionHealthDTO;
 import com.uco.ucopetapi.dto.attentionhealth.AttentionHealthVitalSignsDTO;
 import com.uco.ucopetapi.dto.attentionhealth.AttentionHealthProductDTO;
+import com.uco.ucopetapi.dto.invoice.CreateInvoiceRequestDTO;
 import com.uco.ucopetapi.dto.order.OrderDTO;
 import com.uco.ucopetapi.dto.product.ProductDTO;
 import com.uco.ucopetapi.domain.sale.sale.AddItemSaleRequestDomain;
@@ -18,6 +19,7 @@ import com.uco.ucopetapi.messaging.attentionhealth.AttentionHealthCreationSender
 import com.uco.ucopetapi.messaging.attentionhealth.AttentionHealthDeactivationSenderBroker;
 import com.uco.ucopetapi.service.headquarter.HeadquarterService;
 import com.uco.ucopetapi.service.order.IOrderService;
+import com.uco.ucopetapi.service.invoice.InvoiceService;
 import com.uco.ucopetapi.service.product.ProductService;
 import com.uco.ucopetapi.service.procedure.ProcedureService;
 import com.uco.ucopetapi.service.sale.itemSale.ItemSaleService;
@@ -58,6 +60,7 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
     private final HeadquarterService headquarterService;
     private final SaleOrderCompatibilityAdapter saleOrderCompatibilityAdapter;
     private final ItemSaleService itemSaleService;
+    private final InvoiceService invoiceService;
     private final AttentionHealthCreationSenderBroker creationSender;
     private final AttentionHealthDeactivationSenderBroker deactivationSender;
 
@@ -69,6 +72,7 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
                                    final HeadquarterService headquarterService,
                                    final SaleOrderCompatibilityAdapter saleOrderCompatibilityAdapter,
                                    final ItemSaleService itemSaleService,
+                                   final InvoiceService invoiceService,
                                    final AttentionHealthCreationSenderBroker creationSender,
                                    final AttentionHealthDeactivationSenderBroker deactivationSender) {
         this.attentionHealthRepository = attentionHealthRepository;
@@ -79,6 +83,7 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         this.headquarterService = headquarterService;
         this.saleOrderCompatibilityAdapter = saleOrderCompatibilityAdapter;
         this.itemSaleService = itemSaleService;
+        this.invoiceService = invoiceService;
         this.creationSender = creationSender;
         this.deactivationSender = deactivationSender;
     }
@@ -101,8 +106,8 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
 
         AttentionHealthDomain attention = new AttentionHealthDomain();
         attention.setAttentionId(attentionHealthRepository.nextAttentionId());
-        if (!REGISTERED.equalsIgnoreCase(request.getStatus().trim())) {
-            throw new BusinessException("Una atención nueva debe iniciar en estado REGISTERED.");
+        if (!IN_PROGRESS.equalsIgnoreCase(request.getStatus().trim())) {
+            throw new BusinessException("Una atención nueva debe iniciar en estado IN_PROGRESS.");
         }
         updateDomain(attention, request);
         creationSender.execute(attention, attention.getAttentionId().toString());
@@ -219,8 +224,12 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
 
     private void validateVitalSigns(final AttentionHealthVitalSignsDTO vitalSigns) {
         if (vitalSigns == null) {
-            return;
+            throw new BusinessException("Los signos vitales son obligatorios.");
         }
+        requireVitalValue(vitalSigns.getTemperature(), "La temperatura");
+        requireVitalValue(vitalSigns.getWeight(), "El peso");
+        requireVitalValue(vitalSigns.getHeartRate(), "La frecuencia cardíaca");
+        requireVitalValue(vitalSigns.getRespiratoryRate(), "La frecuencia respiratoria");
         validatePositive(vitalSigns.getTemperature(), "La temperatura");
         validatePositive(vitalSigns.getWeight(), "El peso");
         validateNonNegative(vitalSigns.getHeartRate(), "La frecuencia cardíaca");
@@ -234,6 +243,12 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         if (vitalSigns.getMeasurementDate() != null
                 && vitalSigns.getMeasurementDate().isAfter(LocalDateTime.now(ZONE_ID))) {
             throw new BusinessException("La fecha de medición no puede estar en el futuro.");
+        }
+    }
+
+    private void requireVitalValue(final Number value, final String fieldName) {
+        if (value == null) {
+            throw new BusinessException(fieldName + " es obligatorio.");
         }
     }
 
@@ -337,6 +352,7 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         for (UUID procedureId : attention.getProcedureIds()) {
             OrderDTO orderRequest = new OrderDTO();
             orderRequest.setPetId(attention.getPetId());
+            orderRequest.setTutorId(attention.getTutorId());
             orderRequest.setProcedureId(procedureId);
 
             OrderDomain order = orderService.save(orderMapper.toDomain(orderRequest));
@@ -369,6 +385,9 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
             item.setUnitPrice(product.getPrice());
             itemSaleService.addItemToSaleOrder(sale.getId(), item);
         }
+
+        invoiceService.registerNewInvoice(new CreateInvoiceRequestDTO(
+                sale.getId(), "Factura generada por la atención " + attention.getAttentionId()));
     }
 
     private void requireStatus(final AttentionHealthDomain attention, final String message,
@@ -503,8 +522,8 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         if (value == null) {
             throw new BusinessException("La fecha y hora de la atención son obligatorias.");
         }
-        if (value.isAfter(LocalDateTime.now(ZONE_ID))) {
-            throw new BusinessException("La fecha de la atención no puede estar en el futuro.");
+        if (!value.toLocalDate().equals(LocalDateTime.now(ZONE_ID).toLocalDate())) {
+            throw new BusinessException("La fecha de la atención debe corresponder al día de hoy.");
         }
     }
 
