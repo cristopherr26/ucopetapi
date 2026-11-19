@@ -13,6 +13,11 @@ import com.uco.ucopetapi.dto.product.ProductDTO;
 import com.uco.ucopetapi.domain.sale.sale.AddItemSaleRequestDomain;
 import com.uco.ucopetapi.dto.sale.sale.SaleOrderDTO;
 import com.uco.ucopetapi.domain.sale.enums.ItemType;
+import com.uco.ucopetapi.domain.product.enums.StockMovementReason;
+import com.uco.ucopetapi.dto.appointment.AppointmentStatusDTO;
+import com.uco.ucopetapi.repository.tutorPet.ITutorPetRepository;
+import com.uco.ucopetapi.service.appointment.AppointmentService;
+import com.uco.ucopetapi.service.product.StockService;
 import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.repository.attentionhealth.IAttentionHealthRepository;
 import com.uco.ucopetapi.messaging.attentionhealth.AttentionHealthCreationSenderBroker;
@@ -25,6 +30,7 @@ import com.uco.ucopetapi.service.procedure.ProcedureService;
 import com.uco.ucopetapi.service.sale.itemSale.ItemSaleService;
 import com.uco.ucopetapi.service.sale.sale.adapter.SaleOrderCompatibilityAdapter;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -61,6 +67,9 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
     private final SaleOrderCompatibilityAdapter saleOrderCompatibilityAdapter;
     private final ItemSaleService itemSaleService;
     private final InvoiceService invoiceService;
+    private final ITutorPetRepository tutorPetRepository;
+    private final StockService stockService;
+    private final AppointmentService appointmentService;
     private final AttentionHealthCreationSenderBroker creationSender;
     private final AttentionHealthDeactivationSenderBroker deactivationSender;
 
@@ -73,6 +82,9 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
                                    final SaleOrderCompatibilityAdapter saleOrderCompatibilityAdapter,
                                    final ItemSaleService itemSaleService,
                                    final InvoiceService invoiceService,
+                                   final ITutorPetRepository tutorPetRepository,
+                                   final StockService stockService,
+                                   final AppointmentService appointmentService,
                                    final AttentionHealthCreationSenderBroker creationSender,
                                    final AttentionHealthDeactivationSenderBroker deactivationSender) {
         this.attentionHealthRepository = attentionHealthRepository;
@@ -84,6 +96,9 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         this.saleOrderCompatibilityAdapter = saleOrderCompatibilityAdapter;
         this.itemSaleService = itemSaleService;
         this.invoiceService = invoiceService;
+        this.tutorPetRepository = tutorPetRepository;
+        this.stockService = stockService;
+        this.appointmentService = appointmentService;
         this.creationSender = creationSender;
         this.deactivationSender = deactivationSender;
     }
@@ -186,6 +201,8 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         requireStatus(attention, "Solo se puede finalizar una atención en curso.", IN_PROGRESS);
         validateStoredAttentionBeforeFinish(attention);
         attention.setStatus(COMPLETED);
+        dispenseProducts(attention);
+        completeAppointment(attention);
         createMedicalOrders(attention);
         createProductSale(attention);
         creationSender.execute(attention, attention.getAttentionId().toString());
@@ -352,7 +369,7 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         for (UUID procedureId : attention.getProcedureIds()) {
             OrderDTO orderRequest = new OrderDTO();
             orderRequest.setPetId(attention.getPetId());
-            orderRequest.setTutorId(attention.getTutorId());
+            orderRequest.setTutorId(tutorPersonId(attention.getTutorId()));
             orderRequest.setProcedureId(procedureId);
 
             OrderDomain order = orderService.save(orderMapper.toDomain(orderRequest));
@@ -360,6 +377,44 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
                 throw new BusinessException(
                         "No fue posible crear la orden médica para el procedimiento " + procedureId + ".");
             }
+        }
+    }
+
+    private UUID tutorPersonId(final UUID tutorId) {
+        return tutorPetRepository.findById(tutorId)
+                .map(tutor -> tutor.getPerson().getId())
+                .orElse(tutorId);
+    }
+
+    private void dispenseProducts(final AttentionHealthDomain attention) {
+        for (AttentionHealthProductDomain product : attention.getProducts()) {
+            stockService.adjustStock(product.getProductId(), attention.getHeadquarterId(),
+                    -product.getQuantity(), StockMovementReason.DISPENSE,
+                    "Atención " + attention.getAttentionId());
+        }
+    }
+
+    private void completeAppointment(final AttentionHealthDomain attention) {
+        if (attention.getAppointmentId() == null) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now(ZONE_ID);
+        boolean due = appointmentService.findById(attention.getAppointmentId())
+                .filter(appointment -> "CONFIRMED".equalsIgnoreCase(appointment.getStatus()))
+                .filter(appointment -> appointment.getAppointmentDate() != null
+                        && appointment.getAppointmentTime() != null
+                        && !LocalDateTime.of(appointment.getAppointmentDate(), appointment.getAppointmentTime())
+                        .isAfter(now))
+                .isPresent();
+        if (!due) {
+            return;
+        }
+        AppointmentStatusDTO status = new AppointmentStatusDTO();
+        status.setStatus("COMPLETED");
+        try {
+            appointmentService.requestStatusChange(attention.getAppointmentId(), status);
+        } catch (ResponseStatusException exception) {
+            throw new BusinessException("No se pudo completar la cita de la atención: " + exception.getReason());
         }
     }
 
