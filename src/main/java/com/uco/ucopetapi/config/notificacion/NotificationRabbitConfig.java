@@ -1,4 +1,4 @@
-package com.uco.ucopetapi.config;
+package com.uco.ucopetapi.config.notificacion;
 
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;

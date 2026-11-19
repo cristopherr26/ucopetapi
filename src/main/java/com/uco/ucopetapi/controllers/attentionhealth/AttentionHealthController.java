@@ -45,14 +45,14 @@ public class AttentionHealthController {
     }
 
     @GetMapping("/{attentionId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<AttentionHealthDTO> findAttentionById(
             @PathVariable final Long attentionId) {
         return ResponseEntity.ok(attentionHealthService.findById(attentionId));
     }
 
     @GetMapping("/pet/{petId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<List<AttentionHealthDTO>> findAttentionHistoryByPet(
             @PathVariable final UUID petId) {
         return ResponseEntity.ok(attentionHealthService.findByPetId(petId));
@@ -100,5 +100,3 @@ public class AttentionHealthController {
                 "message", exception.getMessage()));
     }
 }
-
-
