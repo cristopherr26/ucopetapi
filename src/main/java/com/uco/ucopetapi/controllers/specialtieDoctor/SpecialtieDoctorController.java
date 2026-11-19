@@ -4,6 +4,7 @@ import com.uco.ucopetapi.domain.specialtieDoctor.mapper.SpecialtieDoctorMapper;
 import com.uco.ucopetapi.dto.specialtieDoctor.SpecialtieDoctorDTO;
 import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.service.specialtieDoctor.SpecialtieDoctorService;
+import com.uco.ucopetapi.security.HeadquarterScope;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,15 +21,19 @@ public class SpecialtieDoctorController {
 
     private final SpecialtieDoctorService specialtieDoctorService;
     private final SpecialtieDoctorMapper specialtieDoctorMapper;
+    private final HeadquarterScope headquarterScope;
 
     public SpecialtieDoctorController(SpecialtieDoctorService specialtieDoctorService,
-                                      SpecialtieDoctorMapper specialtieDoctorMapper) {
+                                      SpecialtieDoctorMapper specialtieDoctorMapper,
+                                      HeadquarterScope headquarterScope) {
         this.specialtieDoctorService = specialtieDoctorService;
         this.specialtieDoctorMapper = specialtieDoctorMapper;
+        this.headquarterScope = headquarterScope;
     }
 
     @GetMapping
     public ResponseEntity<List<SpecialtieDoctorDTO>> findAllSpecialtieDoctor(@RequestParam UUID headquarterId) {
+        headquarterScope.requireReadable(headquarterId);
         List<SpecialtieDoctorDTO> specialtieDoctor = specialtieDoctorService.findAll(headquarterId)
                 .stream().map(specialtieDoctorMapper::toDTO).toList();
         return ResponseEntity.ok(specialtieDoctor);
@@ -48,6 +53,7 @@ public class SpecialtieDoctorController {
             @RequestParam UUID headquarterId,
             @RequestParam(required = false) UUID idDoctor,
             @RequestParam(required = false) UUID idSpecialtie) {
+        headquarterScope.requireReadable(headquarterId);
         List<SpecialtieDoctorDTO> specialtieDoctor = specialtieDoctorService
                 .findByFilter(headquarterId, idDoctor, idSpecialtie)
                 .stream().map(specialtieDoctorMapper::toDTO).toList();

@@ -3,6 +3,7 @@ package com.uco.ucopetapi.controllers.doctor;
 import com.uco.ucopetapi.domain.doctor.mapper.DoctorMapper;
 import com.uco.ucopetapi.dto.doctor.DoctorDTO;
 import com.uco.ucopetapi.exception.BusinessException;
+import com.uco.ucopetapi.security.HeadquarterScope;
 import com.uco.ucopetapi.service.doctor.DoctorService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,14 +21,18 @@ public class DoctorController {
 
     private final DoctorService doctorService;
     private final DoctorMapper doctorMapper;
+    private final HeadquarterScope headquarterScope;
 
-    public DoctorController(DoctorService doctorService, DoctorMapper doctorMapper) {
+    public DoctorController(DoctorService doctorService, DoctorMapper doctorMapper,
+                            HeadquarterScope headquarterScope) {
         this.doctorService = doctorService;
         this.doctorMapper = doctorMapper;
+        this.headquarterScope = headquarterScope;
     }
 
     @GetMapping
     public ResponseEntity<List<DoctorDTO>> findAllDoctor(@RequestParam UUID headquarterId) {
+        headquarterScope.requireReadable(headquarterId);
         List<DoctorDTO> doctors = doctorService.findAll(headquarterId).stream()
                 .map(doctorMapper::toDTO)
                 .toList();
@@ -47,6 +52,7 @@ public class DoctorController {
     public ResponseEntity<List<DoctorDTO>> findDoctorByFilter(
             @RequestParam UUID headquarterId,
             @RequestParam(required = false) String licenseNumber) {
+        headquarterScope.requireReadable(headquarterId);
         List<DoctorDTO> doctors = doctorService.findByFilter(headquarterId, licenseNumber).stream()
                 .map(doctorMapper::toDTO)
                 .toList();

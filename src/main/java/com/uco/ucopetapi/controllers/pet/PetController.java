@@ -2,6 +2,7 @@ package com.uco.ucopetapi.controllers.pet;
 
 import com.uco.ucopetapi.dto.pet.PetDTO;
 import com.uco.ucopetapi.exception.BusinessException;
+import com.uco.ucopetapi.security.HeadquarterScope;
 import com.uco.ucopetapi.service.pet.PetService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,9 +19,11 @@ public class PetController {
     private static final String MESSAGE = "message";
 
     private final PetService petService;
+    private final HeadquarterScope headquarterScope;
 
-    public PetController(PetService petService) {
+    public PetController(PetService petService, HeadquarterScope headquarterScope) {
         this.petService = petService;
+        this.headquarterScope = headquarterScope;
     }
 
     @GetMapping
@@ -31,6 +34,7 @@ public class PetController {
             @RequestParam(required = false) String species,
             @RequestParam(required = false) Boolean isActive) {
 
+        headquarterScope.requireReadable(headquarterId);
         return ResponseEntity.ok(
                 petService.getAllPets(
                         headquarterId,
@@ -81,6 +85,7 @@ public class PetController {
             @PathVariable UUID tutorId,
             @RequestParam UUID headquarterId) {
 
+        headquarterScope.requireReadable(headquarterId);
         return ResponseEntity.ok(
                 petService.getPetsByTutor(tutorId, headquarterId)
         );
