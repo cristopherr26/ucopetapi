@@ -212,8 +212,9 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         });
         requireStockAvailable(attention);
         attention.setStatus(COMPLETED);
-        createProductSale(attention);
+        UUID saleId = createSale(attention);
         dispenseProducts(attention);
+        addSaleItemsAndInvoice(attention, saleId);
         createMedicalOrders(attention);
         completeAppointment(attention);
         creationSender.execute(attention, attention.getAttentionId().toString());
@@ -442,18 +443,22 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         }
     }
 
-    private void createProductSale(final AttentionHealthDomain attention) {
+    private UUID createSale(final AttentionHealthDomain attention) {
         if (attention.getProducts().isEmpty()) {
-            return;
+            return null;
         }
-
         SaleOrderDTO saleRequest = new SaleOrderDTO();
         saleRequest.setHeadquarterId(attention.getHeadquarterId());
         saleRequest.setClientID(attention.getTutorId());
         saleRequest.setPetId(attention.getPetId());
         saleRequest.setComment("Productos asociados a la atención " + attention.getAttentionId());
-        SaleOrderDTO sale = saleOrderCompatibilityAdapter.registerNewSaleOrder(saleRequest);
+        return saleOrderCompatibilityAdapter.registerNewSaleOrder(saleRequest).getId();
+    }
 
+    private void addSaleItemsAndInvoice(final AttentionHealthDomain attention, final UUID saleId) {
+        if (saleId == null) {
+            return;
+        }
         for (AttentionHealthProductDomain productReference : attention.getProducts()) {
             UUID productId = productReference.getProductId();
             ProductDTO product = productService.getById(productId, attention.getHeadquarterId());
@@ -462,11 +467,11 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
             item.setItemType(ItemType.PRODUCTO);
             item.setQuantity(productReference.getQuantity());
             item.setUnitPrice(product.getPrice());
-            itemSaleService.addItemToSaleOrder(sale.getId(), item);
+            itemSaleService.addItemToSaleOrder(saleId, item);
         }
 
         invoiceService.registerNewInvoice(new CreateInvoiceRequestDTO(
-                sale.getId(), "Factura generada por la atención " + attention.getAttentionId()));
+                saleId, "Factura generada por la atención " + attention.getAttentionId()));
     }
 
     private void requireStatus(final AttentionHealthDomain attention, final String message,
