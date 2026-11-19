@@ -87,8 +87,10 @@ class HeadquarterScopeTest {
         worksAt(OWN_HEADQUARTER);
 
         assertThatThrownBy(() -> scope.requireReadable(OTHER_HEADQUARTER))
-                .isInstanceOfSatisfying(ResponseStatusException.class, exception ->
-                        assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN));
+                .isInstanceOfSatisfying(HeadquarterForbiddenException.class, exception -> {
+                    assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+                    assertThat(exception.getReason()).isEqualTo(HeadquarterScope.OTHER_HEADQUARTER);
+                });
     }
 
     @Test
