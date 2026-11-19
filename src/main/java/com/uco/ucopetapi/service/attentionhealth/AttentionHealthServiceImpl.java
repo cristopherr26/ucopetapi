@@ -31,7 +31,9 @@ import com.uco.ucopetapi.service.sale.itemSale.ItemSaleService;
 import com.uco.ucopetapi.service.sale.sale.adapter.SaleOrderCompatibilityAdapter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -70,6 +72,7 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
     private final ITutorPetRepository tutorPetRepository;
     private final StockService stockService;
     private final AppointmentService appointmentService;
+    private final TransactionTemplate readTransaction;
     private final AttentionHealthCreationSenderBroker creationSender;
     private final AttentionHealthDeactivationSenderBroker deactivationSender;
 
@@ -85,6 +88,7 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
                                    final ITutorPetRepository tutorPetRepository,
                                    final StockService stockService,
                                    final AppointmentService appointmentService,
+                                   final PlatformTransactionManager transactionManager,
                                    final AttentionHealthCreationSenderBroker creationSender,
                                    final AttentionHealthDeactivationSenderBroker deactivationSender) {
         this.attentionHealthRepository = attentionHealthRepository;
@@ -99,6 +103,8 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         this.tutorPetRepository = tutorPetRepository;
         this.stockService = stockService;
         this.appointmentService = appointmentService;
+        this.readTransaction = new TransactionTemplate(transactionManager);
+        this.readTransaction.setReadOnly(true);
         this.creationSender = creationSender;
         this.deactivationSender = deactivationSender;
     }
@@ -195,16 +201,21 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
     }
 
     @Override
-    @Transactional
     public AttentionHealthDTO finish(final Long attentionId) {
-        AttentionHealthDomain attention = findDomain(attentionId);
-        requireStatus(attention, "Solo se puede finalizar una atención en curso.", IN_PROGRESS);
-        validateStoredAttentionBeforeFinish(attention);
+        AttentionHealthDomain attention = readTransaction.execute(status -> {
+            AttentionHealthDomain stored = findDomain(attentionId);
+            requireStatus(stored, "Solo se puede finalizar una atención en curso.", IN_PROGRESS);
+            validateStoredAttentionBeforeFinish(stored);
+            stored.getProducts().size();
+            stored.getProcedureIds().size();
+            return stored;
+        });
+        requireStockAvailable(attention);
         attention.setStatus(COMPLETED);
-        dispenseProducts(attention);
-        completeAppointment(attention);
-        createMedicalOrders(attention);
         createProductSale(attention);
+        dispenseProducts(attention);
+        createMedicalOrders(attention);
+        completeAppointment(attention);
         creationSender.execute(attention, attention.getAttentionId().toString());
         return toDto(attention);
     }
@@ -384,6 +395,19 @@ public class AttentionHealthServiceImpl implements AttentionHealthService {
         return tutorPetRepository.findById(tutorId)
                 .map(tutor -> tutor.getPerson().getId())
                 .orElse(tutorId);
+    }
+
+    private void requireStockAvailable(final AttentionHealthDomain attention) {
+        for (AttentionHealthProductDomain product : attention.getProducts()) {
+            Integer available = stockService
+                    .findByProductAndHeadquarter(product.getProductId(), attention.getHeadquarterId())
+                    .getQuantity();
+            if (available == null || available < product.getQuantity()) {
+                throw new BusinessException("No hay stock suficiente en la sede para el producto "
+                        + product.getProductId() + ": hay " + (available == null ? 0 : available)
+                        + " y la atención usa " + product.getQuantity() + ".");
+            }
+        }
     }
 
     private void dispenseProducts(final AttentionHealthDomain attention) {
