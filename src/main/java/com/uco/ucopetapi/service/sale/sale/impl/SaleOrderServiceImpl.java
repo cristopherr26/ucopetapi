@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.service.sale.sale.impl;
 
+import com.uco.ucopetapi.util.transaction.AfterCommit;
 import com.uco.ucopetapi.crosscutting.helpers.UUIDHelper;
 import com.uco.ucopetapi.domain.sale.enums.SaleOrderState;
 import com.uco.ucopetapi.domain.sale.sale.SaleDeactivateMessageDomain;
@@ -96,10 +97,8 @@ public class SaleOrderServiceImpl implements SaleOrderService {
 
         SaleOrderDomain response = populateItems(saved);
 
-        saleCreationSenderBroker.execute(
-                toMessageDomain(response),
-                UUID.randomUUID().toString()
-        );
+        SaleOrderMessageDomain message = toMessageDomain(response);
+        AfterCommit.run(() -> saleCreationSenderBroker.execute(message, UUID.randomUUID().toString()));
 
         return response;
     }
@@ -137,10 +136,8 @@ public class SaleOrderServiceImpl implements SaleOrderService {
 
         SaleOrderDomain response = populateItems(saved);
 
-        saleUpdateSenderBroker.execute(
-                toMessageDomain(response),
-                UUID.randomUUID().toString()
-        );
+        SaleOrderMessageDomain message = toMessageDomain(response);
+        AfterCommit.run(() -> saleUpdateSenderBroker.execute(message, UUID.randomUUID().toString()));
 
         return response;
     }
@@ -176,10 +173,10 @@ public class SaleOrderServiceImpl implements SaleOrderService {
 
         SaleOrderDomain response = populateItems(saved);
 
-        saleDeactivateSenderBroker.execute(
+        AfterCommit.run(() -> saleDeactivateSenderBroker.execute(
                 new SaleDeactivateMessageDomain(response.getId()),
                 UUID.randomUUID().toString()
-        );
+        ));
 
         return response;
     }

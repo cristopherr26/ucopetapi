@@ -1,5 +1,6 @@
 package com.uco.ucopetapi.service.sale.itemSale.impl;
 
+import com.uco.ucopetapi.util.transaction.AfterCommit;
 import com.uco.ucopetapi.crosscutting.helpers.UUIDHelper;
 import com.uco.ucopetapi.domain.sale.enums.ItemType;
 import com.uco.ucopetapi.domain.sale.enums.SaleOrderState;
@@ -119,10 +120,10 @@ public class ItemSaleServiceImpl implements ItemSaleService {
 
         SaleOrderDomain savedOrder = saleOrderRepository.save(order);
 
-        itemSaleCreationSenderBroker.execute(
+        AfterCommit.run(() -> itemSaleCreationSenderBroker.execute(
                 toMessageDomain(savedItem),
                 UUID.randomUUID().toString()
-        );
+        ));
 
         return populateItems(savedOrder);
     }
@@ -163,10 +164,10 @@ public class ItemSaleServiceImpl implements ItemSaleService {
 
         SaleOrderDomain savedOrder = saleOrderRepository.save(order);
 
-        itemSaleUpdateSenderBroker.execute(
+        AfterCommit.run(() -> itemSaleUpdateSenderBroker.execute(
                 toMessageDomain(savedItem),
                 UUID.randomUUID().toString()
-        );
+        ));
 
         return populateItems(savedOrder);
     }
@@ -198,10 +199,10 @@ public class ItemSaleServiceImpl implements ItemSaleService {
 
         SaleOrderDomain savedOrder = saleOrderRepository.save(order);
 
-        itemSaleDeleteSenderBroker.execute(
+        AfterCommit.run(() -> itemSaleDeleteSenderBroker.execute(
                 toDeleteMessageDomain(item),
                 UUID.randomUUID().toString()
-        );
+        ));
 
         return populateItems(savedOrder);
     }
