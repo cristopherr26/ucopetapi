@@ -20,16 +20,32 @@ public class SpecialtieDoctorMapper {
     public SpecialtieDoctorDTO toDTO(SpecialtieDoctorDomain specialtieDoctor) {
         if (specialtieDoctor == null) return null;
         UUID doctorId = specialtieDoctor.getDoctor() != null ? specialtieDoctor.getDoctor().getId() : null;
-        return new SpecialtieDoctorDTO(
-                specialtieDoctor.getId(),
-                doctorId,
-                specialtieDoctor.getIdSpecialtie(),
-                specialtieDoctor.getHeadquarterId());
+        SpecialtieDoctorDTO dto = new SpecialtieDoctorDTO();
+        dto.setId(specialtieDoctor.getId());
+        dto.setDoctor(doctorId);
+        dto.setSpecialtie(specialtieDoctor.getIdSpecialtie());
+        dto.setHeadquarterId(specialtieDoctor.getHeadquarterId());
+        dto.setCertificateUrl(specialtieDoctor.getCertificateUrl());
+        dto.setCertificateNotes(specialtieDoctor.getCertificateNotes());
+        dto.setStatus(specialtieDoctor.getStatus());
+        dto.setVerifiedBy(specialtieDoctor.getVerifiedBy());
+        dto.setVerifiedAt(specialtieDoctor.getVerifiedAt());
+        dto.setRejectionReason(specialtieDoctor.getRejectionReason());
+        dto.setActive(specialtieDoctor.isActive());
+        return dto;
     }
 
+    /**
+     * Solo copia los campos que el cliente puede enviar. status, verifiedBy, verifiedAt,
+     * rejectionReason y active los controla el servicio.
+     */
     public SpecialtieDoctorDomain toDomain(SpecialtieDoctorDTO dto) {
         if (dto == null) return null;
         DoctorDomain doctor = dto.getDoctor() != null ? doctorService.findById(dto.getDoctor()) : null;
-        return new SpecialtieDoctorDomain(dto.getId(), doctor, dto.getSpecialtie(), dto.getHeadquarterId());
+        SpecialtieDoctorDomain domain =
+                new SpecialtieDoctorDomain(dto.getId(), doctor, dto.getSpecialtie(), dto.getHeadquarterId());
+        domain.setCertificateUrl(dto.getCertificateUrl());
+        domain.setCertificateNotes(dto.getCertificateNotes());
+        return domain;
     }
 }

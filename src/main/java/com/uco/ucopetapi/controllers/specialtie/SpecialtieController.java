@@ -1,14 +1,13 @@
 package com.uco.ucopetapi.controllers.specialtie;
 
 import com.uco.ucopetapi.dto.specialtie.SpecialtieDTO;
-import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.service.specialtie.SpecialtieService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -22,12 +21,14 @@ public class SpecialtieController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     public ResponseEntity<List<SpecialtieDTO>> getAllSpecialties() {
         List<SpecialtieDTO> dtos = specialtieService.getAllSpecialties();
         return  ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     public ResponseEntity<SpecialtieDTO> findSpecialtieById(@PathVariable UUID id) {
 
         SpecialtieDTO dto = specialtieService.findSpecialtieById(id);
@@ -36,6 +37,7 @@ public class SpecialtieController {
     }
 
     @GetMapping(params = "name")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     public ResponseEntity<SpecialtieDTO> findSpecialtieByName (@RequestParam String name) {
 
         SpecialtieDTO dto = specialtieService.findSpecialtieByName(name);
@@ -44,32 +46,18 @@ public class SpecialtieController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Object> createSpecialtie(@RequestBody SpecialtieDTO dto) {
-        try {
-            specialtieService.createNewSpecialtie(dto);
+        specialtieService.createNewSpecialtie(dto);
 
-            return ResponseEntity.status(HttpStatus.CREATED).body("La especialidad fue creada exitosamente.");
-
-        } catch (BusinessException e) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(Map.of("message:", e.getMessage()));
-        }
+        return ResponseEntity.status(HttpStatus.CREATED).body("La especialidad fue creada exitosamente.");
     }
 
     @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Object> patchSpecialtie(@PathVariable UUID id, @RequestBody SpecialtieDTO dto) {
+        specialtieService.patchSpecialtie(id, dto);
 
-        try {
-
-            specialtieService.patchSpecialtie(id, dto);
-
-            return ResponseEntity.ok("La especialidad fue actualizada exitosamente.");
-
-        } catch (BusinessException e) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(Map.of("message:", e.getMessage()));
-        }
+        return ResponseEntity.ok("La especialidad fue actualizada exitosamente.");
     }
 }

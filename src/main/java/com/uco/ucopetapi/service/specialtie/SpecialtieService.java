@@ -6,11 +6,12 @@ import com.uco.ucopetapi.dto.specialtie.SpecialtieDTO;
 import com.uco.ucopetapi.exception.BusinessException;
 import com.uco.ucopetapi.repository.certificate.ICertificateRepository;
 import com.uco.ucopetapi.repository.specialtie.ISpecialtieRepository;
+import com.uco.ucopetapi.service.specialtie.exception.SpecialtieConflictException;
+import com.uco.ucopetapi.service.specialtie.exception.SpecialtieNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -35,14 +36,14 @@ public class SpecialtieService {
 
     public SpecialtieDTO findSpecialtieById(UUID id) {
         SpecialtieDomain domain = iSpecialtieRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("No se encontró la especialidad con el ID: " + id));
+                .orElseThrow(() -> new SpecialtieNotFoundException("No se encontró la especialidad con el ID: " + id));
 
         return specialtieMapper.toDTO(domain);
     }
 
     public SpecialtieDTO findSpecialtieByName(String name) {
         SpecialtieDomain domain = iSpecialtieRepository.findSpecialtieByName(name)
-                .orElseThrow(() -> new BusinessException("No se encontró la especialidad con el nombre: " + name));
+                .orElseThrow(() -> new SpecialtieNotFoundException("No se encontró la especialidad con el nombre: " + name));
 
         return specialtieMapper.toDTO(domain);
     }
@@ -52,11 +53,14 @@ public class SpecialtieService {
 
         validateFields(dto);
 
-        validateSpecialtieExists(dto.getName());
-
-        validateCertificateExists(dto.getCertificate());
+        validateSpecialtieNameIsFree(dto.getName(), null);
 
         SpecialtieDomain domainToSave = specialtieMapper.toDomain(dto);
+
+        if (dto.getCertificate() != null) {
+            validateCertificateExists(dto.getCertificate());
+            domainToSave.setCertificate(iCertificateRepository.getReferenceById(dto.getCertificate()));
+        }
 
         return iSpecialtieRepository.save(domainToSave);
     }
@@ -64,13 +68,18 @@ public class SpecialtieService {
     @Transactional
     public SpecialtieDomain patchSpecialtie(UUID id, SpecialtieDTO dto) {
 
+        if (dto == null) {
+            throw new BusinessException("La información de la especialidad no puede ser nula.");
+        }
+
         SpecialtieDomain existingSpecialtie = iSpecialtieRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(
+                .orElseThrow(() -> new SpecialtieNotFoundException(
                         "No se encontró ninguna especialidad con el ID: " + id
                 ));
 
         if (dto.getName() != null) {
             validateName(dto.getName());
+            validateSpecialtieNameIsFree(dto.getName(), id);
             existingSpecialtie.setName(dto.getName());
         }
 
@@ -87,6 +96,9 @@ public class SpecialtieService {
     }
 
     private static final String NAME_REGEX = "^[a-zA-ZáéíóúÁÉÍÓÚñÑ ]+$";
+    private static final String DESCRIPTION_REGEX = "^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ .,;:()/-]+$";
+    private static final String DESCRIPTION_CHARS_MESSAGE =
+            "La descripción solo puede contener letras, números, espacios y los signos . , ; : ( ) - /";
     private void validateFields(SpecialtieDTO dto) {
         if (dto == null) {
             throw new BusinessException("La información de la especialidad no puede ser nula.");
@@ -111,19 +123,13 @@ public class SpecialtieService {
             throw new BusinessException("La descripción es obligatoria.");
         }
 
-        if (!dto.getDescription().matches(NAME_REGEX)) {
-            throw new BusinessException(
-                    "La descripción solo puede contener letras y espacios."
-            );
+        if (!dto.getDescription().matches(DESCRIPTION_REGEX)) {
+            throw new BusinessException(DESCRIPTION_CHARS_MESSAGE);
         }
 
         String descTrimmed = dto.getDescription().trim();
         if (descTrimmed.length() < 10 || descTrimmed.length() > 150) {
             throw new BusinessException("La descripción debe tener una longitud entre 10 y 150 caracteres.");
-        }
-
-        if (dto.getCertificate() == null) {
-            throw new BusinessException("El ID del certificado es obligatorio.");
         }
     }
 
@@ -134,15 +140,18 @@ public class SpecialtieService {
         }
     }
 
-    private void validateSpecialtieExists(String name) {
-
-        Optional<SpecialtieDomain> existingSpecialtie = iSpecialtieRepository.findSpecialtieByName(name);
-
-        if (existingSpecialtie.isPresent()) {
-            throw new BusinessException(
-                    "Ya existe una especialidad con el nombre: " + name
-            );
-        }
+    /**
+     * Lanza 409 si ya existe otra especialidad con ese nombre.
+     * {@code currentId} es el id de la especialidad que se está editando (null al crear).
+     */
+    private void validateSpecialtieNameIsFree(String name, UUID currentId) {
+        iSpecialtieRepository.findSpecialtieByName(name)
+                .filter(existing -> currentId == null || !existing.getId().equals(currentId))
+                .ifPresent(existing -> {
+                    throw new SpecialtieConflictException(
+                            "Ya existe una especialidad con el nombre: " + name
+                    );
+                });
     }
 
     private void validateName(String name) {
@@ -164,10 +173,8 @@ public class SpecialtieService {
             throw new BusinessException("La descripción debe tener una longitud de entre 10 y 150 caracteres.");
         }
 
-        if (!description.matches(NAME_REGEX)) {
-            throw new BusinessException(
-                    "La descripción solo puede contener letras y espacios."
-            );
+        if (!description.matches(DESCRIPTION_REGEX)) {
+            throw new BusinessException(DESCRIPTION_CHARS_MESSAGE);
         }
     }
 }

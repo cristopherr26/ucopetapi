@@ -1,25 +1,25 @@
 package com.uco.ucopetapi.dto.specialtie;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.UUID;
 
+/**
+ * Solo tiene el constructor vacío a propósito: con un constructor con argumentos, Jackson 3 puede usarlo
+ * como creador (los nombres de parámetro están disponibles) y exigir el boolean primitivo.
+ * El estado se acepta como "active" o "isActive" y se devuelve como "active"; es opcional (null = sin cambio
+ * en PATCH, true por defecto al crear).
+ */
 public class SpecialtieDTO {
 
     private UUID id;
     private String name;
     private String description;
-    private Boolean isActive;
+    private Boolean active;
     private UUID certificate;
 
     public SpecialtieDTO() {
-    }
-
-    public SpecialtieDTO(final UUID id, final String name, final boolean isActive,
-                         final String description, final UUID certificate) {
-        setId(id);
-        setName(name);
-        setActive(isActive);
-        setDescription(description);
-        setCertificate(certificate);
     }
 
     public UUID getId() {
@@ -38,12 +38,15 @@ public class SpecialtieDTO {
         this.certificate = certificate;
     }
 
+    @JsonProperty("active")
     public Boolean isActive() {
-        return isActive;
+        return active;
     }
 
+    @JsonProperty("active")
+    @JsonAlias("isActive")
     public void setActive(final Boolean active) {
-        isActive = active;
+        this.active = active;
     }
 
     public String getDescription() {
