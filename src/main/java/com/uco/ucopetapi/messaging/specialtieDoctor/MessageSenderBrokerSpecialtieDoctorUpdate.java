@@ -1,7 +1,7 @@
 package com.uco.ucopetapi.messaging.specialtieDoctor;
 
 import com.uco.ucopetapi.config.specialtieDoctor.SpecialtieDoctorUpdateQueueConfig;
-import com.uco.ucopetapi.domain.specialtieDoctor.SpecialtieDoctorDomain;
+import com.uco.ucopetapi.dto.specialtieDoctor.SpecialtieDoctorDTO;
 import com.uco.ucopetapi.util.MessageSender;
 import com.uco.ucopetapi.util.gson.MapperJsonObject;
 import org.springframework.amqp.core.Message;
@@ -11,10 +11,11 @@ import org.springframework.amqp.core.MessagePropertiesBuilder;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 @Component
-public class MessageSenderBrokerSpecialtieDoctorUpdate implements MessageSender<SpecialtieDoctorDomain> {
+public class MessageSenderBrokerSpecialtieDoctorUpdate implements MessageSender<SpecialtieDoctorDTO> {
 
     private final RabbitTemplate rabbitTemplate;
     private final MapperJsonObject mapperJsonObject;
@@ -29,7 +30,7 @@ public class MessageSenderBrokerSpecialtieDoctorUpdate implements MessageSender<
     }
 
     @Override
-    public void execute(SpecialtieDoctorDomain message, String idMessage) {
+    public void execute(SpecialtieDoctorDTO message, String idMessage) {
         MessageProperties messageProperties = buildMessageProperties(idMessage);
 
         Optional<Message> messageBody = buildMessageBody(message, messageProperties);
@@ -50,10 +51,10 @@ public class MessageSenderBrokerSpecialtieDoctorUpdate implements MessageSender<
     }
 
     private Optional<Message> buildMessageBody(Object message, MessageProperties messageProperties) {
-        Optional<String> messageText = mapperJsonObject.executeGson(message);
+        Optional<String> messageText = mapperJsonObject.execute(message);
 
         return messageText.map(text -> MessageBuilder
-                .withBody(text.getBytes())
+                .withBody(text.getBytes(StandardCharsets.UTF_8))
                 .andProperties(messageProperties)
                 .build());
     }
